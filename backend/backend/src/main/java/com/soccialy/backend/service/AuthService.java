@@ -12,6 +12,8 @@ import java.util.UUID;
 /**
  * Service class responsible for handling user authentication and registration logic.
  * This includes standard credential-based login and OAuth2 (Google) integration.
+ *
+ * @author Apetrei Ionuț-Teodor
  */
 @Service
 public class AuthService

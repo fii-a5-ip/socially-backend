@@ -10,6 +10,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * @author Apetrei Ionuț-Teodor
+ */
 class AuthServiceTest
 {
     private AuthService authService;

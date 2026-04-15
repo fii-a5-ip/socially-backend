@@ -19,6 +19,9 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * @author Apetrei Ionuț-Teodor
+ */
 class AuthControllerTest
 {
     @Mock

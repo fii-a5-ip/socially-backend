@@ -6,6 +6,9 @@ import lombok.*;
 
 import java.util.UUID;
 
+/**
+ * @author Apetrei Ionuț-Teodor
+ */
 @Entity
 @Table(name = "users")
 @Getter

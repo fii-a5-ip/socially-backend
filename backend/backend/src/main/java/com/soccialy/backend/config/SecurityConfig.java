@@ -11,26 +11,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * <h4>🚧 THE SECURITY GATEKEEPER 🚧</h4>
  * <h4>⚠️ Read this before you add new features ⚠️</h4>
- * <h4>1. WHAT IS THIS?</h4>
- * <p>
  * This class decides what guest users are allowed to access. If you add a new URL
  * path in a Controller, it is <b>LOCKED</b> by default.
- * </p>
- * <h4>2. HOW DO I ADD STUFF?</h4>
- * <p>
- * If you want a page to be "Public" (anyone can see it without logging in),
- * you MUST add the path to the <code>requestMatchers</code> list below.
- * </p>
- * <p>
- * <i>Example:</i> <code>.requestMatchers("/api/v1/my-new-page/**").permitAll()</code>
- * </p>
- * <h4>3. WHAT IF I FORGET?</h4>
- * <p>
- * Your new page will give a "403 Forbidden" error, and you will be
- * sad (☹) until you come back here and add it to the guest list.
- * </p>
+ *
+ * @author Apetrei Ionuț-Teodor
  */
 @Configuration
 @EnableWebSecurity

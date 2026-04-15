@@ -14,6 +14,8 @@ import java.util.Map;
 
 /**
  * REST Controller for authentication endpoints.
+ *
+ * @author Apetrei Ionuț-Teodor
  */
 @RestController
 @RequestMapping("/api/v1/auth")
