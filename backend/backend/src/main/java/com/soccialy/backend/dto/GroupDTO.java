@@ -3,7 +3,7 @@ package com.soccialy.backend.dto;
 import lombok.Data;
 
 @Data
-public class UserDTO {
+public class GroupDTO {
     private Integer id;
-    private String username;
+    private String name;
 }
