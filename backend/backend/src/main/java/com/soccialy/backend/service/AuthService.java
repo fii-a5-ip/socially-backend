@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Random;
 
 /**
  * Service class responsible for handling user authentication and registration logic.
@@ -34,7 +35,7 @@ public class AuthService
 
         String hashedAdmin = this.passwordEncoder.encode("password1234");
         User admin = new User("admin", hashedAdmin);
-        admin.setId(UUID.randomUUID());
+        admin.setId(new Random().nextInt(Integer.MAX_VALUE));
         dummyUserTable.put("admin", admin);
     }
 
@@ -57,7 +58,7 @@ public class AuthService
 
         String hashed = passwordEncoder.encode(rawPassword);
         User newUser = new User(username, hashed);
-        newUser.setId(UUID.randomUUID());
+        newUser.setId(new Random().nextInt(Integer.MAX_VALUE));
         dummyUserTable.put(username, newUser);
 
         return newUser;
@@ -117,7 +118,7 @@ public class AuthService
         // Simulate extracting an email from the token
         String dummyEmail = "user" + UUID.randomUUID().toString().substring(0, 5) + "@gmail.com";
         User user = new User(dummyEmail, null);
-        user.setId(UUID.randomUUID());
+        user.setId(new Random().nextInt(Integer.MAX_VALUE));
 
         return user;
     }

@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -31,14 +32,14 @@ class AuthControllerTest
     private AuthController authController;
 
     private User mockUser;
-    private UUID testId;
+    private Integer testId;
 
     @BeforeEach
     void setUp()
     {
         MockitoAnnotations.openMocks(this);
 
-        testId = UUID.randomUUID();
+        testId = new Random().nextInt(Integer.MAX_VALUE);
         // Initialize a dummy user for testing
         mockUser = new User();
         mockUser.setId(testId);
