@@ -1,14 +1,21 @@
 package com.soccialy.backend.service;
 
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.soccialy.backend.dto.AuthResponse;
 import com.soccialy.backend.entity.User;
 import com.soccialy.backend.exception.AuthFailedException;
 import com.soccialy.backend.repository.UserRepository;
 import com.soccialy.backend.security.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.UUID;
 
 /**
@@ -23,13 +30,15 @@ public class AuthService
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final String googleClientId;
 
     @Autowired
-    public AuthService(PasswordEncoder passwordEncoder, UserRepository userRepository, JwtService jwtService)
+    public AuthService(PasswordEncoder passwordEncoder, UserRepository userRepository, JwtService jwtService, @Value("${app.google.client-id}") String googleClientId)
     {
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
+        this.googleClientId = googleClientId;
     }
 
     public AuthResponse registerUser(String username, String rawPassword) throws AuthFailedException
@@ -61,17 +70,32 @@ public class AuthService
 
     public AuthResponse loginUserGoogle(String googleToken) throws AuthFailedException
     {
-        // TODO: Implement actual Google ID Token verification library
-        if ("invalid".equals(googleToken))
+        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                .setAudience(Collections.singletonList(googleClientId))
+                .build();
+
+        try
         {
-            throw new AuthFailedException("Google authentication failed.");
+            GoogleIdToken idToken = verifier.verify(googleToken);
+
+            if (idToken == null)
+            {
+                throw new AuthFailedException("Invalid Google ID Token.");
+            }
+
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String email = payload.getEmail();
+
+            // Find existing user by email or create a new "Social" account
+            User user = userRepository.findByUsername(email)
+                    .orElseGet(() -> userRepository.save(new User(email, null)));
+
+            return createAuthResponse(user);
         }
-
-        String dummyEmail = "user" + UUID.randomUUID().toString().substring(0, 5) + "@gmail.com";
-        User user = userRepository.findByUsername(dummyEmail)
-                .orElseGet(() -> userRepository.save(new User(dummyEmail, null)));
-
-        return createAuthResponse(user);
+        catch (Exception e)
+        {
+            throw new AuthFailedException("Google authentication failed: " + e.getMessage());
+        }
     }
 
     /**
