@@ -34,6 +34,7 @@ public class AuthService
 
     public AuthResponse registerUser(String username, String rawPassword) throws AuthFailedException
     {
+        // TODO: This method does not exist in UserRepository yet.
         if (userRepository.existsByUsername(username))
         {
             throw new AuthFailedException("Error: User already exists!");
