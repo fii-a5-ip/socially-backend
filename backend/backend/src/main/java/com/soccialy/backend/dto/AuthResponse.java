@@ -6,14 +6,20 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
+ * DTO returned upon successful authentication.
+ * Includes the JWT and basic user identity.
+ *
  * @author Apetrei Ionuț-Teodor
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder // Allow for UserResponse.builder().id(id).username(name).build()
-public class UserResponse
+@Builder
+public class AuthResponse
 {
+    private String token;
+    private String type = "Bearer"; // Standard for JWT
     private Integer id;
     private String username;
+    // You could also add: private String role;
 }
