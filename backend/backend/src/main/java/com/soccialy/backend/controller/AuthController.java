@@ -1,8 +1,8 @@
 package com.soccialy.backend.controller;
 
 import com.soccialy.backend.dto.AuthRequest;
-import com.soccialy.backend.dto.UserResponse;
-import com.soccialy.backend.entity.User;
+import com.soccialy.backend.dto.AuthResponse;
+import com.soccialy.backend.dto.GoogleAuthRequest;
 import com.soccialy.backend.service.AuthService;
 import com.soccialy.backend.exception.AuthFailedException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +14,7 @@ import java.util.Map;
 
 /**
  * REST Controller for authentication endpoints.
+ * Handles local credentials and Google OAuth2 integration.
  *
  * @author Apetrei Ionuț-Teodor
  */
@@ -31,18 +32,20 @@ public class AuthController
 
     /**
      * Endpoint for local user registration.
+     * Returns a JWT upon successful creation so the user is logged in immediately.
      */
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody AuthRequest request)
     {
         try
         {
-            User user = authService.registerUser(request.getUsername(), request.getPassword());
-            return ResponseEntity.status(HttpStatus.CREATED).body(mapToResponse(user));
+            AuthResponse response = authService.registerUser(request.getUsername(), request.getPassword());
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
         catch (AuthFailedException e)
         {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -54,12 +57,13 @@ public class AuthController
     {
         try
         {
-            User user = authService.loginUser(request.getUsername(), request.getPassword());
-            return ResponseEntity.ok(mapToResponse(user));
+            AuthResponse response = authService.loginUser(request.getUsername(), request.getPassword());
+            return ResponseEntity.ok(response);
         }
         catch (AuthFailedException e)
         {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -67,31 +71,23 @@ public class AuthController
      * Endpoint for Google OAuth2 login.
      */
     @PostMapping("/google")
-    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> payload)
+    public ResponseEntity<?> googleLogin(@RequestBody GoogleAuthRequest request)
     {
-        String token = payload.get("token");
-
-        if (token == null || token.isEmpty())
+        if (request.getToken() == null || request.getToken().isBlank())
         {
-            return ResponseEntity.badRequest().body("Error: Google token is required.");
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Google token is required."));
         }
 
         try
         {
-            User user = authService.loginUserGoogle(token);
-            return ResponseEntity.ok(mapToResponse(user));
+            AuthResponse response = authService.loginUserGoogle(request.getToken());
+            return ResponseEntity.ok(response);
         }
         catch (AuthFailedException e)
         {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", e.getMessage()));
         }
-    }
-
-    private UserResponse mapToResponse(User user)
-    {
-        return UserResponse.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .build();
     }
 }
