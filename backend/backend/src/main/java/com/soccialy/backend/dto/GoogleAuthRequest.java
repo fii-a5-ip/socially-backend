@@ -1,0 +1,16 @@
+package com.soccialy.backend.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * @author Apetrei Ionuț-Teodor
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GoogleAuthRequest
+{
+    private String token;
+}
