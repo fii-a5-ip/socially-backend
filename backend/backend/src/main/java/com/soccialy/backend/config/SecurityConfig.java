@@ -13,7 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * <h4>⚠️ Read this before you add new features ⚠️</h4>
  * This class decides what guest users are allowed to access. If you add a new URL
- * path in a Controller, it is <b>LOCKED</b> by default.
+ * path in a Controller, it is <b>BLOCKED</b> by default.
  *
  * @author Apetrei Ionuț-Teodor
  */
