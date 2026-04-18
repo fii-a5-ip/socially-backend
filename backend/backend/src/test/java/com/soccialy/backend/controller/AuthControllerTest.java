@@ -1,10 +1,10 @@
-package com.socially.core.controller;
+package com.soccialy.backend.controller;
 
-import com.socially.core.dto.AuthRequest;
-import com.socially.core.dto.UserResponse;
-import com.socially.core.entity.User;
-import com.socially.core.exception.AuthFailedException;
-import com.socially.core.service.AuthService;
+import com.soccialy.backend.dto.AuthRequest;
+import com.soccialy.backend.dto.UserResponse;
+import com.soccialy.backend.entity.User;
+import com.soccialy.backend.exception.AuthFailedException;
+import com.soccialy.backend.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;

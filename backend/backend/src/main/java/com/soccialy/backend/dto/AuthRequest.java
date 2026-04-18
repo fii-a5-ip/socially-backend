@@ -1,4 +1,4 @@
-package com.socially.core.dto;
+package com.soccialy.backend.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -1,7 +1,7 @@
-package com.socially.core.service;
+package com.soccialy.backend.service;
 
-import com.socially.core.entity.User;
-import com.socially.core.exception.AuthFailedException;
+import com.soccialy.backend.entity.User;
+import com.soccialy.backend.exception.AuthFailedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

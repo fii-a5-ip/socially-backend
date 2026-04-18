@@ -1,4 +1,4 @@
-package com.socially.core.config;
+package com.soccialy.backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
