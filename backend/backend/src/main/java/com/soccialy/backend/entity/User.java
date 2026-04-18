@@ -1,14 +1,13 @@
-package com.socially.core.entity;
+package com.soccialy.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.UUID;
+import java.util.HashSet;
+import java.util.Set;
 
-/**
- * @author Apetrei Ionuț-Teodor
- */
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -16,22 +15,35 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User
-{
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+public class User {
 
-    @Column(unique = true, nullable = false)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    @Column(unique = true, nullable = false, length = 45)
     private String username;
 
-    @JsonIgnore // Safety first! Never serialize the hash to JSON
+
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
 
-    // Custom constructor for manual creation without an ID
-    public User(String username, String password)
-    {
+
+    @Builder.Default
+    @ManyToMany
+    @JoinTable(
+            name = "user_filters",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "filter_id")
+    )
+    private Set<Filter> filters = new HashSet<>();
+
+    @Builder.Default
+    @ManyToMany(mappedBy = "users")
+    private Set<Group> groups = new HashSet<>();
+
+    public User(String username, String password) {
         this.username = username;
         this.password = password;
     }
