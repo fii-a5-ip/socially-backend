@@ -177,7 +177,7 @@ public class AuthService
 
         return AuthResponse.builder()
                 .jwtToken(token)
-                .id(user.getId()) // Matches the Long type in AuthResponse
+                .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .fullname(user.getFullname())
