@@ -1,156 +1,144 @@
 package com.soccialy.backend.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.soccialy.backend.dto.AuthRequest;
 import com.soccialy.backend.dto.AuthResponse;
-import com.soccialy.backend.entity.User;
+import com.soccialy.backend.dto.GoogleAuthRequest;
 import com.soccialy.backend.exception.AuthFailedException;
 import com.soccialy.backend.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
+ * Unit tests for the {@link AuthController}.
+ * <p>
+ * This suite utilizes {@link MockMvc} to simulate HTTP requests and verify controller
+ * behavior, including routing, JSON mapping, and interaction with the {@link AuthService}.
+ * </p>
+ *
  * @author Apetrei Ionuț-Teodor
  */
+@WebMvcTest(AuthController.class)
+@AutoConfigureMockMvc(addFilters = false) // Disables Security filter chain for unit testing
 class AuthControllerTest
 {
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
     private AuthService authService;
 
-    @InjectMocks
-    private AuthController authController;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-    private User mockUser;
-    private Integer testId;
+    private AuthResponse mockResponse;
 
-//    @BeforeEach
-//    void setUp()
-//    {
-//        MockitoAnnotations.openMocks(this);
-//
-//        testId = new Random().nextInt(Integer.MAX_VALUE);
-//        // Initialize a dummy user for testing
-//        mockUser = new User();
-//        mockUser.setId(testId);
-//        mockUser.setUsername("testuser");
-//    }
-//
-//    @Test
-//    void register_success()
-//    {
-//        AuthRequest request = new AuthRequest("testuser", "password123");
-//
-//        when(authService.registerUser("testuser", "password123"))
-//                .thenReturn(mockUser);
-//
-//        ResponseEntity<?> response = authController.register(request);
-//
-//        assertEquals(201, response.getStatusCode().value());
-//        assertTrue(response.getBody() instanceof AuthResponse);
-//        AuthResponse body = (AuthResponse) response.getBody();
-//        assertEquals("testuser", body.getUsername());
-//        assertEquals(testId, body.getId());
-//    }
-//
-//    @Test
-//    void register_error()
-//    {
-//        AuthRequest request = new AuthRequest("testuser", "password123");
-//
-//        // Service throws exception in the updated logic
-//        when(authService.registerUser(anyString(), anyString()))
-//                .thenThrow(new AuthFailedException("Error: User already exists!"));
-//
-//        ResponseEntity<?> response = authController.register(request);
-//
-//        assertEquals(400, response.getStatusCode().value());
-//        assertEquals("Error: User already exists!", response.getBody());
-//    }
-//
-//    @Test
-//    void login_success()
-//    {
-//        AuthRequest request = new AuthRequest("testuser", "password123");
-//
-//        when(authService.loginUser("testuser", "password123"))
-//                .thenReturn(mockUser);
-//
-//        ResponseEntity<?> response = authController.login(request);
-//
-//        assertEquals(200, response.getStatusCode().value());
-//        assertTrue(response.getBody() instanceof AuthResponse);
-//        AuthResponse body = (AuthResponse) response.getBody();
-//        assertEquals("testuser", body.getUsername());
-//    }
-//
-//    @Test
-//    void login_error()
-//    {
-//        AuthRequest request = new AuthRequest("testuser", "wrongpass");
-//
-//        when(authService.loginUser(anyString(), anyString()))
-//                .thenThrow(new AuthFailedException("Error: Wrong password."));
-//
-//        ResponseEntity<?> response = authController.login(request);
-//
-//        assertEquals(401, response.getStatusCode().value());
-//        assertEquals("Error: Wrong password.", response.getBody());
-//    }
-//
-//    @Test
-//    void googleLogin_success()
-//    {
-//        Map<String, String> payload = new HashMap<>();
-//        payload.put("token", "valid-google-token");
-//
-//        when(authService.loginUserGoogle("valid-google-token"))
-//                .thenReturn(mockUser);
-//
-//        ResponseEntity<?> response = authController.googleLogin(payload);
-//
-//        assertEquals(200, response.getStatusCode().value());
-//        assertTrue(response.getBody() instanceof AuthResponse);
-//    }
-//
-//    @Test
-//    void googleLogin_missingToken()
-//    {
-//        Map<String, String> payload = new HashMap<>();
-//
-//        ResponseEntity<?> response = authController.googleLogin(payload);
-//
-//        assertEquals(400, response.getStatusCode().value());
-//        assertEquals("Error: Google token is required.", response.getBody());
-//        verifyNoInteractions(authService);
-//    }
-//
-//    @Test
-//    void googleLogin_authFailed()
-//    {
-//        Map<String, String> payload = new HashMap<>();
-//        payload.put("token", "invalid-token");
-//
-//        when(authService.loginUserGoogle("invalid-token"))
-//                .thenThrow(new AuthFailedException("Google authentication failed."));
-//
-//        ResponseEntity<?> response = authController.googleLogin(payload);
-//
-//        assertEquals(401, response.getStatusCode().value());
-//        assertEquals("Google authentication failed.", response.getBody());
-//    }
+    @BeforeEach
+    void setUp()
+    {
+        mockResponse = AuthResponse.builder()
+                .jwtToken("mock-jwt-token")
+                .id(1)
+                .username("testuser")
+                .email("test@example.com")
+                .fullname("Test User")
+                .build();
+    }
+
+    @Test
+    void register_success() throws Exception
+    {
+        AuthRequest request = new AuthRequest("testuser", "password123", "Test User", "test@example.com");
+
+        when(authService.registerUser(any(AuthRequest.class))).thenReturn(mockResponse);
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.jwtToken").value("mock-jwt-token"))
+                .andExpect(jsonPath("$.username").value("testuser"));
+    }
+
+    @Test
+    void register_validationError() throws Exception
+    {
+        // Invalid username (too short) and invalid email
+        AuthRequest request = new AuthRequest("tu", "123", "T", "not-an-email");
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+        // Note: AuthExceptionHandler will return the error message
+    }
+
+    @Test
+    void login_success() throws Exception
+    {
+        AuthRequest request = new AuthRequest("testuser", "password123", "Test User", "test@example.com");
+
+        when(authService.loginUser(any(AuthRequest.class))).thenReturn(mockResponse);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jwtToken").value("mock-jwt-token"));
+    }
+
+    @Test
+    void login_unauthorized() throws Exception
+    {
+        AuthRequest request = new AuthRequest("testuser", "wrongpass", "Test User", "test@example.com");
+
+        when(authService.loginUser(any(AuthRequest.class)))
+                .thenThrow(new AuthFailedException("Error: Invalid email or password."));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Error: Invalid email or password."));
+    }
+
+    @Test
+    void googleLogin_success() throws Exception
+    {
+        GoogleAuthRequest request = new GoogleAuthRequest("valid-google-token");
+
+        when(authService.loginUserGoogle("valid-google-token")).thenReturn(mockResponse);
+
+        mockMvc.perform(post("/api/v1/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jwtToken").value("mock-jwt-token"));
+    }
+
+    @Test
+    void googleLogin_invalidToken() throws Exception
+    {
+        GoogleAuthRequest request = new GoogleAuthRequest("invalid-token");
+
+        when(authService.loginUserGoogle("invalid-token"))
+                .thenThrow(new AuthFailedException("Google authentication failed."));
+
+        mockMvc.perform(post("/api/v1/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Google authentication failed."));
+    }
 }
-
-/*
- * TODO: Update test suite after move to JWT stateless auth.
- *       Dummy in memory db is also no longer used, testing will be done on real db.
- */
