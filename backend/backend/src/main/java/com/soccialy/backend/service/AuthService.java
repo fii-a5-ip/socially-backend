@@ -1,6 +1,5 @@
 package com.soccialy.backend.service;
 
-import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -16,7 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
-import java.util.UUID;
 
 /**
  * Service class responsible for handling user authentication and registration logic.
@@ -43,16 +41,21 @@ public class AuthService
 
     public AuthResponse registerUser(String username, String rawPassword) throws AuthFailedException
     {
-        // TODO: This method does not exist in UserRepository yet.
-        if (userRepository.existsByUsername(username))
+        // TODO: Check if user exists properly via repo
+        if (userRepository.findByUsername(username).isPresent())
         {
             throw new AuthFailedException("Error: User already exists!");
         }
 
         String hashed = passwordEncoder.encode(rawPassword);
-        User newUser = userRepository.save(new User(username, hashed));
+        // Assuming User entity has a constructor or setters for these
+        User newUser = new User();
+        newUser.setUsername(username);
+        newUser.setPassword(hashed);
 
-        return createAuthResponse(newUser);
+        User savedUser = userRepository.save(newUser);
+
+        return createAuthResponse(savedUser);
     }
 
     public AuthResponse loginUser(String username, String rawPassword) throws AuthFailedException
@@ -85,10 +88,17 @@ public class AuthService
 
             GoogleIdToken.Payload payload = idToken.getPayload();
             String email = payload.getEmail();
+            String name = (String) payload.get("name");
 
-            // Find existing user by email or create a new "Social" account
-            User user = userRepository.findByUsername(email)
-                    .orElseGet(() -> userRepository.save(new User(email, null)));
+            // Logic: Find by email. If new, create user with Google details.
+            User user = userRepository.findByEmail(email)
+                    .orElseGet(() -> {
+                        User newUser = new User();
+                        newUser.setEmail(email);
+                        newUser.setUsername(email); // Or generate a unique username
+                        newUser.setFullname(name);
+                        return userRepository.save(newUser);
+                    });
 
             return createAuthResponse(user);
         }
@@ -107,15 +117,16 @@ public class AuthService
 
         return AuthResponse.builder()
                 .jwtToken(token)
-                .type("Bearer")
                 .id(user.getId())
                 .username(user.getUsername())
+                .email(user.getEmail())
+                .fullname(user.getFullname())
                 .build();
     }
 
     /* TODO: Implement Refresh Token logic with 30-day duration.
-     *       RATIONALE: REFRESH TOKENS PERMIT SHORT-LIVED ACCESS TOKENS, MINIMIZING
-     *       THE SECURITY WINDOW IF A JWT IS COMPROMISED WHILE MAINTAINING USER SESSIONS.
-     *       MANDATORY: STORE REFRESH TOKENS IN DATABASE TO ALLOW REMOTE REVOCATION.
+     * RATIONALE: REFRESH TOKENS PERMIT SHORT-LIVED ACCESS TOKENS, MINIMIZING
+     * THE SECURITY WINDOW IF A JWT IS COMPROMISED WHILE MAINTAINING USER SESSIONS.
+     * MANDATORY: STORE REFRESH TOKENS IN DATABASE TO ALLOW REMOTE REVOCATION.
      */
 }

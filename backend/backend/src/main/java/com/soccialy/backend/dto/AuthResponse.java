@@ -14,10 +14,12 @@ import lombok.NoArgsConstructor;
  * <p>Example JSON produced:
  * <pre>
  * {
- *      "jwtToken": "zgGhdfNv...",
- *      "type": "Bearer",
- *      "id": 1,
- *      "username": "exampleUser"
+ *  "jwtToken": "zgGhdfNv...",
+ *  "type": "Bearer",
+ *  "id": 1,
+ *  "username": "johnsmith",
+ *  "email": "john.smith@example.com",
+ *  "fullname": "John Smith"
  * }
  * </pre></p>
  * @author Apetrei Ionuț-Teodor
@@ -36,8 +38,11 @@ public class AuthResponse
      * access, requiring the frontend to include it in the 'Authorization'
      * header as: <code>Authorization: Bearer &lt;token&gt;</code>.
      */
-    private String type;
+    @Builder.Default
+    private String type = "Bearer";
 
     private Integer id;
     private String username;
+    private String email;
+    private String fullname;
 }

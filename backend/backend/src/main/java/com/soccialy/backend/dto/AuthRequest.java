@@ -8,17 +8,16 @@ import lombok.NoArgsConstructor;
  * Data Transfer Object for local authentication requests.
  * <p>The primary purpose of this class is to serve as a target for Spring's
  * JSON deserialization. When a client sends a POST request with a JSON body,
- * Jackson automatically maps the keys to these fields. This avoids manual
- * parsing and provides type safety.</p>
+ * Jackson automatically maps the keys to these fields.</p>
  * <p>Example JSON expected:
  * <pre>
  * {
- *      "username": "exampleUser",
- *      "password": "securePassword123"
+ *  "username": "johnsmith",
+ *  "password": "password1234",
+ *  "fullname": "John Smith",
+ *  "email": "john.smith@example.com"
  * }
  * </pre></p>
- * <p>Note: The structure of this DTO is flexible and can be expanded in the
- * future to include fields like 'email' or 'rememberMe' if requirements evolve.</p>
  * @author Apetrei Ionuț-Teodor
  */
 @Data
@@ -28,4 +27,6 @@ public class AuthRequest
 {
     private String username;
     private String password;
+    private String fullname;
+    private String email;
 }
