@@ -1,34 +1,32 @@
 package com.soccialy.backend.repository;
 
-import com.soccialy.backend.entity.Outgoing;
+import com.soccialy.backend.entity.Event;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface OutgoingRepository extends JpaRepository<Outgoing, Integer> {
+public interface EventRepository extends JpaRepository<Event, Integer> {
 
-    List<Outgoing> findByLocationId(Integer locationId);
-    List<Outgoing> findByNameContainingIgnoreCase(String keyword);
+    List<Event> findByLocationId(Integer locationId);
+    List<Event> findByNameContainingIgnoreCase(String keyword);
+    List<Event> findByCreatorId(Integer creatorId);
+    List<Event> findByDateAfter(LocalDateTime currentDate);
+    List<Event> findByLocationIdNot(Integer excludedLocationId);
 
-    // Gaseste toate iesirile excluzand o anumita locație de care userul s-a plictisit
-    List<Outgoing> findByLocationIdNot(Integer excludedLocationId);
-
-    // Cate evenimente sunt intr-o locatie?
     long countByLocationId(Integer locationId);
 
-    // Full-Text Search
-    @Query(value = "SELECT * FROM outgoings WHERE MATCH(name) AGAINST (?1 IN BOOLEAN MODE)", nativeQuery = true)
-    List<Outgoing> searchByNameFullText(String keyword);
+    @Query(value = "SELECT * FROM events WHERE MATCH(name) AGAINST (?1 IN BOOLEAN MODE)", nativeQuery = true)
+    List<Event> searchByNameFullText(String keyword);
 
-    // Iesiri bazate pe mai multe filtre
     @Query(value = """
-        SELECT DISTINCT o.* FROM outgoings o
-        JOIN locations l ON o.location_id = l.id
+        SELECT DISTINCT e.* FROM events e
+        JOIN locations l ON e.location_id = l.id
         JOIN location_filters lf ON l.id = lf.location_id
         WHERE lf.filter_id IN (?1)
         """, nativeQuery = true)
-    List<Outgoing> findOutgoingsByFilterIds(List<Integer> filterIds);
+    List<Event> findEventsByFilterIds(List<Integer> filterIds);
 }

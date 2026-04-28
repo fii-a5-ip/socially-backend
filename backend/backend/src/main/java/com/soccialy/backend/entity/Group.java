@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "groups") // Notă: 'groups' este cuvânt rezervat în MySQL, dar JPA se descurcă dacă e setat corect.
+@Table(name = "`groups`")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,6 +22,13 @@ public class Group {
     @Column(nullable = false, length = 45)
     private String name;
 
+    @Column(name = "img_link", length = 2048)
+    private String imgLink;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creator_user_id", nullable = false)
+    private User creator;
+
     @Builder.Default
     @ManyToMany
     @JoinTable(
@@ -31,7 +38,8 @@ public class Group {
     )
     private Set<User> users = new HashSet<>();
 
-    public Group(String name) {
+    public Group(String name, User creator) {
         this.name = name;
+        this.creator = creator;
     }
 }

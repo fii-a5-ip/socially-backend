@@ -12,14 +12,9 @@ import java.util.Optional;
 public interface LocationRepository extends JpaRepository<Location, Integer> {
 
     Optional<Location> findByName(String name);
-
-    // Cautare nume dupa prefix
     List<Location> findByNameStartingWithIgnoreCase(String prefix);
-
-    // Gasește locatii care au un anumit filtru
     List<Location> findByFiltersId(Integer filterId);
 
-    // Sorteaza locatiile in functie de cate iesiri outgoings sunt organizate acolo
-    @Query(value = "SELECT l.* FROM locations l LEFT JOIN outgoings o ON l.id = o.location_id GROUP BY l.id ORDER BY COUNT(o.id) DESC", nativeQuery = true)
+    @Query(value = "SELECT l.* FROM locations l LEFT JOIN events e ON l.id = e.location_id GROUP BY l.id ORDER BY COUNT(e.id) DESC", nativeQuery = true)
     List<Location> findTopPopularLocations();
 }

@@ -6,4 +6,6 @@ import lombok.Data;
 public class GroupDTO {
     private Integer id;
     private String name;
+    private String imgLink;
+    private Integer creatorUserId;
 }
