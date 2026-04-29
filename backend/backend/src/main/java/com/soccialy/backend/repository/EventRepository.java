@@ -3,6 +3,7 @@ package com.soccialy.backend.repository;
 import com.soccialy.backend.entity.Event;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -29,4 +30,15 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
         WHERE lf.filter_id IN (?1)
         """, nativeQuery = true)
     List<Event> findEventsByFilterIds(List<Integer> filterIds);
+
+    @Query(value = "SELECT DISTINCT e.* FROM events e " +
+            "LEFT JOIN event_filters f ON e.id = f.event_id " +
+            "WHERE MATCH(e.name) AGAINST(:searchString IN NATURAL LANGUAGE MODE) " +
+            "OR f.filter_id IN (:filters) LIMIT 300",
+            nativeQuery = true)
+    List<Event> searchByTextOrFilters(
+            @Param("searchString") String searchString,
+            @Param("filters") List<Integer> filters
+    );
 }
+
