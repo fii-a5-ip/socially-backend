@@ -1,0 +1,45 @@
+name: "SonarQube_action_sper_sa_mearga"
+on:
+  push:
+      branches:
+      - main #sau poate main/backend/backend/src/main daca trebuie ignorat branch-ul "test"
+
+  pull_request:
+      types: [opened, synchronize, reopened]
+  
+  workflow_dispatch: #adica atunci cand pornesti manual scanarea
+
+jobs:
+  sonarqube:
+    runs-on: ubuntu-latest #creaza un container
+    steps:
+    - name: Pregatire pt scanare
+      uses: actions/checkout@v6 #cloneaza in container
+      with: # Disabling shallow clones for improving the relevancy of reporting (nu stiu ce inseamna asta dar e recomandat)
+        fetch-depth: 0
+
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 17
+
+    - name: Build si Maven #necesar pt unele proiecte Java, transforma fisiere .java in .class pe care SonarQube stie sa foloseasca
+      run: mvn clean verify 
+
+    - name: Scanare SonarQube
+      uses: SonarSource/sonarqube-scan-action@v7.2.1
+
+    - name: Timer #
+      uses: SonarSource/sonarqube-quality-gate-action@v1
+      timeout-minutes: 5
+      
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL}}
+      with:
+      # JaCoCo este un set de teste pe care Sonar Qube le foloseste.
+        args: >
+          -Dsonar.organization=fii-a5-ip
+          -Dsonar.projectKey=fii-a5-ip_socially-backend
+          -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
