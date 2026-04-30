@@ -7,7 +7,6 @@ import lombok.*;
 import java.util.HashSet;
 import java.util.Set;
 
-
 @Entity
 @Table(name = "users")
 @Getter
@@ -24,11 +23,18 @@ public class User {
     @Column(unique = true, nullable = false, length = 45)
     private String username;
 
-
     @JsonIgnore
     @Column(nullable = false)
     private String password;
 
+    @Column(length = 100)
+    private String email;
+
+    @Column(length = 300)
+    private String bio;
+
+    @Column(name = "profile_picture_url", length = 500)
+    private String profilePictureUrl;
 
     @Builder.Default
     @ManyToMany

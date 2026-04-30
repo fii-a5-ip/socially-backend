@@ -8,4 +8,7 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findByUsername(String username);
+    
+    // Linia de mai jos repară eroarea din AuthService:
+    boolean existsByUsername(String username);
 }
