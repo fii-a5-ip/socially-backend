@@ -157,7 +157,7 @@
 				<plugin>
               	 	<groupId>org.sonarsource.scanner.maven</groupId>
               		<artifactId>sonar-maven-plugin</artifactId>
-  			  	 	<version>4.0.0.4121</version>
+  			  	 	<version>5.6.0.6792</version> <!-- cel mai recent conform: https://mvnrepository.com/artifact/org.sonarsource.scanner.maven/sonar-maven-plugin -->
 			    </plugin>
 			
 			<!-- Plugin Adaugat de Dinu pt SonarQube. Cod luat de pe StackOverflow -->
