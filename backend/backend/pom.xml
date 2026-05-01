@@ -152,6 +152,13 @@
 					</execution>
 				</executions>
 			</plugin>
+            <!-- Plugin Adaugat pentru teste mai efficiente. (Mai puține repetiții în teste, găsește mai ușor locațiile fișierelor și altele, idk nu am înțeles tot)-->
+
+				<plugin>
+              	 	<groupId>org.sonarsource.scanner.maven</groupId>
+              		<artifactId>sonar-maven-plugin</artifactId>
+  			  	 	<version>4.0.0.4121</version>
+			    </plugin>
 			
 			<!-- Plugin Adaugat de Dinu pt SonarQube. Cod luat de pe StackOverflow -->
 			    <plugin>
