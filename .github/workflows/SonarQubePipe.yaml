@@ -23,13 +23,9 @@ jobs:
       with:
         distribution: temurin
         java-version: 17
-
-    - name: Build si Maven #necesar pt unele proiecte Java, transforma fisiere .java in .class pe care SonarQube stie sa foloseasca
-      run: mvn clean verify 
-      working-directory: backend/backend
-
+        
     - name: Scanare SonarQube
-      run: mvn clean verify sonar:sonar
+      run: mvn clean verify sonar:sonar -Dsonar.organization=fii-a5-ip -Dsonar.projectKey=fii-a5-ip_socially-backend
       working-directory: backend/backend
                   # JaCoCo este un set de teste pe care Sonar Qube le foloseste.
 
