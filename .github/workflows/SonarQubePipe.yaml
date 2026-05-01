@@ -29,14 +29,15 @@ jobs:
       working-directory: backend/backend
 
     - name: Scanare SonarQube
-      uses: SonarSource/sonarqube-scan-action@v7.2.1
-      with:
-            projectBaseDir: backend/backend
+      run: mvn clean verify sonar:sonar
+      working-directory: backend/backend
                   # JaCoCo este un set de teste pe care Sonar Qube le foloseste.
-            args: >
-                -Dsonar.organization=fii-a5-ip
-                -Dsonar.projectKey=fii-a5-ip_socially-backend
-                -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+
+                # Astea aparent nu mai sunt de folos dar le las în caz că se schimbă ceva.  
+                #args: >
+                #-Dsonar.organization=fii-a5-ip
+                #-Dsonar.projectKey=fii-a5-ip_socially-backend
+                #-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL}}
