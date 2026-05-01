@@ -28,9 +28,16 @@
 	</scm>
 	<properties>
 		<java.version>17</java.version>
- 	    <sonar.organization>fii-a5-ip</sonar.organization> <!-- Dinu a adaugat linia aceasta. Cred ca trebuie pt SonarQube-->
+ 	    <sonar.organization>fii-a5-ip</sonar.organization> <!-- Dinu a adaugat liniile aceasta. Cred ca trebuie pt SonarQube-->
 	</properties>
 	<dependencies>
+
+		<dependency><!-- Generează o bază de date în lipsa acesteia. Necesar pt SonarQube. -->
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+		
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
