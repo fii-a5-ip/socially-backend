@@ -2,7 +2,7 @@ name: "SonarQube_action_sper_sa_mearga"
 on:
   push:
       branches:
-      - main #sau poate main/backend/backend/src/main daca trebuie ignorat branch-ul "test"
+      - main/backend/backend/src/main
 
   pull_request:
       types: [opened, synchronize, reopened]
