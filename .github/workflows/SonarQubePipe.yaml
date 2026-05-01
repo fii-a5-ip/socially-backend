@@ -26,20 +26,22 @@ jobs:
 
     - name: Build si Maven #necesar pt unele proiecte Java, transforma fisiere .java in .class pe care SonarQube stie sa foloseasca
       run: mvn clean verify 
+      working-directory: backend/backend
 
     - name: Scanare SonarQube
       uses: SonarSource/sonarqube-scan-action@v7.2.1
+      with:
+            projectBaseDir: backend/backend
+                  # JaCoCo este un set de teste pe care Sonar Qube le foloseste.
+            args: >
+                -Dsonar.organization=fii-a5-ip
+                -Dsonar.projectKey=fii-a5-ip_socially-backend
+                -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL}}
 
     - name: Timer #
       uses: SonarSource/sonarqube-quality-gate-action@v1
       timeout-minutes: 5
       
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL}}
-      with:
-      # JaCoCo este un set de teste pe care Sonar Qube le foloseste.
-        args: >
-          -Dsonar.organization=fii-a5-ip
-          -Dsonar.projectKey=fii-a5-ip_socially-backend
-          -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
