@@ -2,7 +2,7 @@ name: "SonarQube_action_sper_sa_mearga"
 on:
   push:
       branches:
-      - main/backend/backend/src/main
+      - main #sau poate main/backend/backend/src/main daca
 
   pull_request:
       types: [opened, synchronize, reopened]
