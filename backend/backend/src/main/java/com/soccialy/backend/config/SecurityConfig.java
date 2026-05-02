@@ -3,6 +3,7 @@ package com.soccialy.backend.config;
 import com.soccialy.backend.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -46,10 +47,15 @@ public class SecurityConfig
         // Disable CSRF as we are using JWTs (stateless). No cookies for REST.
         http.csrf(AbstractHttpConfigurer::disable)
 
+            // Use the CORS rules from WebConfig for browser requests.
+            .cors(Customizer.withDefaults())
+
             // Configure endpoint permissions
             .authorizeHttpRequests(auth -> auth
                     // Allow public access to authentication endpoints
                     .requestMatchers("/api/v1/auth/**").permitAll()
+                    // Group routes are available only for authenticated users.
+                    .requestMatchers("/api/groups/**").authenticated()
                     // All other requests must be authenticated
                     .anyRequest().authenticated()
             )
