@@ -30,6 +30,15 @@ public class UserService {
         return userMapper.toDTO(savedUser);
     }
 
+    public List<UserDTO> searchUsers(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return List.of();
+        }
+        return userRepository.searchUsers(query).stream()
+                .map(userMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
     // --- MOCK METHODS FOR OUTGOING SERVICE ---
 
     /**

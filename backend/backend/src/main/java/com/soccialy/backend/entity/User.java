@@ -24,6 +24,15 @@ public class User {
     @Column(unique = true, nullable = false, length = 45)
     private String username;
 
+    @Column(nullable = false, length = 45)
+    private String fullname;
+
+    @Column(unique = true, length = 45)
+    private String email;
+
+    @Column(name = "profile_img_url", length = 2048)
+    private String profileImgUrl;
+
 
     @JsonIgnore
     @Column(nullable = false)
