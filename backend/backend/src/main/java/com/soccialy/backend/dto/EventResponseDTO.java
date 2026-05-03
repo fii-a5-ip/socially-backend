@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OutgoingResponseDTO {
+public class EventResponseDTO {
     private Integer id;
     private String name;
     private String url;

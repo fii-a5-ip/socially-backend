@@ -1,7 +1,7 @@
 package com.soccialy.backend.controller;
 
-import com.soccialy.backend.dto.OutgoingResponseDTO;
-import com.soccialy.backend.service.OutgoingService;
+import com.soccialy.backend.dto.EventResponseDTO;
+import com.soccialy.backend.service.EventService;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -19,10 +19,10 @@ import java.util.List;
 @Validated
 public class OutgoingController {
 
-    private final OutgoingService outgoingService;
+    private final EventService outgoingService;
 
     @GetMapping("/search")
-    public ResponseEntity<List<OutgoingResponseDTO>> searchOutgoings(
+    public ResponseEntity<List<EventResponseDTO>> searchOutgoings(
             @AuthenticationPrincipal String currentUserIdStr,
             @RequestParam @NotBlank @Size(max = 150, message = "Search query is too long") String query,
             @RequestParam(defaultValue = "50.0") Double maxDistance,
@@ -30,7 +30,7 @@ public class OutgoingController {
 
         Integer secureUserId = Integer.parseInt(currentUserIdStr);
 
-        List<OutgoingResponseDTO> results = outgoingService.sortOutgoings(secureUserId, query, maxDistance, maxDays);
+        List<EventResponseDTO> results = outgoingService.sortOutgoings(secureUserId, query, maxDistance, maxDays);
 
         return ResponseEntity.ok(results);
     }

@@ -1,14 +1,14 @@
 package com.soccialy.backend.dto;
 
+import java.time.LocalDateTime;
+
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 @Data
-public class OutgoingRequestDTO {
+public class EventRequestDTO {
 
     @NotBlank(message = "Event name cannot be empty.")
     private String name;
