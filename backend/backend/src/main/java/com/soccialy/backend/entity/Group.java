@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "groups") // Notă: 'groups' este cuvânt rezervat în MySQL, dar JPA se descurcă dacă e setat corect.
+@Table(name = "`groups`") // 'groups' e cuvânt rezervat în MySQL — backtick-urile forțează Hibernate să-l escape corect
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,9 +21,6 @@ public class Group {
 
     @Column(nullable = false, length = 45)
     private String name;
-
-    @Column(columnDefinition = "TEXT")
-    private String description;
 
     @Column(name = "img_link", length = 2048)
     private String imgLink;

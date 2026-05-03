@@ -43,13 +43,25 @@ public class SecurityConfig
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
     {
-        // Disable CSRF as we are using JWTs (stateless). No cookies for REST.
-        http.csrf(AbstractHttpConfigurer::disable)
+        // Enable CORS in the security filter chain
+        http.cors(cors -> cors.configurationSource(request -> {
+                    var config = new org.springframework.web.cors.CorsConfiguration();
+                    config.setAllowedOrigins(java.util.List.of("http://localhost:5173", "https://socially-frontend-lovat.vercel.app"));
+                    config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    config.setAllowedHeaders(java.util.List.of("*"));
+                    config.setAllowCredentials(true);
+                    return config;
+                }))
+
+            // Disable CSRF as we are using JWTs (stateless). No cookies for REST.
+            .csrf(AbstractHttpConfigurer::disable)
 
             // Configure endpoint permissions
             .authorizeHttpRequests(auth -> auth
                     // Allow public access to authentication endpoints
                     .requestMatchers("/api/v1/auth/**").permitAll()
+                    // Allow our new endpoints temporarily for testing
+                    .requestMatchers("/api/users/**", "/api/groups/**").permitAll()
                     // All other requests must be authenticated
                     .anyRequest().authenticated()
             )
