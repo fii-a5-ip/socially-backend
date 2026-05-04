@@ -22,9 +22,4 @@ public class UserController {
     public ResponseEntity<UserDTO> create(@RequestBody UserDTO userDTO) {
         return ResponseEntity.ok(userService.saveUser(userDTO));
     }
-
-    @GetMapping("/search")
-    public ResponseEntity<List<UserDTO>> searchUsers(@RequestParam("query") String query) {
-        return ResponseEntity.ok(userService.searchUsers(query));
-    }
 }
