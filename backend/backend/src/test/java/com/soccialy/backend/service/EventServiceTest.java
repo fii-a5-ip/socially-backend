@@ -1,10 +1,10 @@
 package com.soccialy.backend.service;
 
-import com.soccialy.backend.dto.OutgoingResponseDTO;
+import com.soccialy.backend.dto.EventResponseDTO;
 import com.soccialy.backend.entity.Coordinates;
-import com.soccialy.backend.entity.Outgoing;
-import com.soccialy.backend.mapper.OutgoingMapper;
-import com.soccialy.backend.repository.OutgoingRepository;
+import com.soccialy.backend.entity.Event;
+import com.soccialy.backend.mapper.EventMapper;
+import com.soccialy.backend.repository.EventRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,10 +20,10 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class OutgoingServiceTest {
+class EventServiceTest {
 
     @Mock
-    private OutgoingRepository outgoingRepository;
+    private EventRepository eventRepository;
 
     @Mock
     private AiService aiServiceClient;
@@ -35,10 +35,10 @@ class OutgoingServiceTest {
     private LocationService locationServiceClient;
 
     @Spy
-    private OutgoingMapper outgoingMapper = new OutgoingMapper();
+    private EventMapper eventMapper = new EventMapper();
 
     @InjectMocks
-    private OutgoingService outgoingService;
+    private EventService eventService;
 
     @Test
     void testSortOutgoings_CompoundScoringWithUserFilters() {
@@ -50,22 +50,22 @@ class OutgoingServiceTest {
         when(userService.getUserProfileFilters(userId)).thenReturn(List.of(1, 4, 5));
         when(aiServiceClient.getSearchFilters(query)).thenReturn(List.of(1, 2, 3));
 
-        Outgoing outA = new Outgoing();
-        outA.setId(101);
-        outA.setName("Event A");
-        outA.setLocation(new com.soccialy.backend.entity.Location(1, "Loc 1", null, null)); // Updated for the real Location entity
-        outA.setScheduledDate(LocalDateTime.now().plusDays(1));
-        outA.setFilterIds(List.of(1, 2));
+        Event eventA = new Event();
+        eventA.setId(101);
+        eventA.setName("Event A");
+        eventA.setLocation(new com.soccialy.backend.entity.Location(1, "Loc 1", null, null)); // Updated for the real Location entity
+        eventA.setScheduledDate(LocalDateTime.now().plusDays(1));
+        eventA.setFilterIds(List.of(1, 2));
 
-        Outgoing outB = new Outgoing();
-        outB.setId(102);
-        outB.setName("Event B");
-        outB.setLocation(new com.soccialy.backend.entity.Location(2, "Loc 2", null, null)); // Updated for the real Location entity
-        outB.setScheduledDate(LocalDateTime.now().plusDays(20));
-        outB.setFilterIds(List.of(4, 10));
+        Event eventB = new Event();
+        eventB.setId(102);
+        eventB.setName("Event B");
+        eventB.setLocation(new com.soccialy.backend.entity.Location(2, "Loc 2", null, null)); // Updated for the real Location entity
+        eventB.setScheduledDate(LocalDateTime.now().plusDays(20));
+        eventB.setFilterIds(List.of(4, 10));
 
-        when(outgoingRepository.searchByTextOrFilters(eq(query), anyList()))
-                .thenReturn(new ArrayList<>(List.of(outA, outB)));
+        when(eventRepository.searchByTextOrFilters(eq(query), anyList()))
+                .thenReturn(new ArrayList<>(List.of(eventA, eventB)));
 
         Map<Integer, List<Integer>> mockLocationFilters = new HashMap<>();
         mockLocationFilters.put(1, List.of(3));
@@ -80,7 +80,7 @@ class OutgoingServiceTest {
         Double maxDistance = 50.0;
         Integer maxDays = 30;
 
-        List<OutgoingResponseDTO> results = outgoingService.sortOutgoings(userId, query, maxDistance, maxDays);
+        List<EventResponseDTO> results = eventService.sortEvents(userId, query, maxDistance, maxDays);
 
         assertEquals(2, results.size(), "Should return exactly 2 results");
         assertEquals(101, results.get(0).getId(), "Event A should be ranked first");
@@ -102,25 +102,25 @@ class OutgoingServiceTest {
         when(userService.getUserProfileFilters(userId)).thenReturn(List.of(1));
         when(aiServiceClient.getSearchFilters(query)).thenReturn(List.of(2));
 
-        Outgoing eventA = new Outgoing();
+        Event eventA = new Event();
         eventA.setId(1);
         eventA.setLocation(new com.soccialy.backend.entity.Location(1, "Loc", null, null));
         eventA.setFilterIds(List.of(1, 2));
         eventA.setScheduledDate(LocalDateTime.now().plusDays(3));
 
-        Outgoing eventB = new Outgoing();
+        Event eventB = new Event();
         eventB.setId(2);
         eventB.setLocation(new com.soccialy.backend.entity.Location(2, "Loc", null, null));
         eventB.setFilterIds(List.of(1, 2));
         eventB.setScheduledDate(LocalDateTime.now().plusDays(10));
 
-        when(outgoingRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(Arrays.asList(eventA, eventB));
+        when(eventRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(Arrays.asList(eventA, eventB));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         
         Map<Integer, Double> mockDistances = Map.of(1, 5.0, 2, 15.0);
         when(aiServiceClient.getDistances(eq(userCoords), anySet())).thenReturn(mockDistances);
 
-        List<OutgoingResponseDTO> results = outgoingService.sortOutgoings(userId, query, maxDistance, maxDays);
+        List<EventResponseDTO> results = eventService.sortEvents(userId, query, maxDistance, maxDays);
 
         assertEquals(2, results.size());
         assertEquals(1, results.get(0).getId(), "Event A should be first because it is inside the dynamic bounds");
@@ -139,16 +139,16 @@ class OutgoingServiceTest {
         when(userService.getUserProfileFilters(userId)).thenReturn(List.of());
         when(aiServiceClient.getSearchFilters(query)).thenReturn(List.of());
 
-        Outgoing event = new Outgoing();
+        Event event = new Event();
         event.setId(1);
         event.setLocation(new com.soccialy.backend.entity.Location(1, "Loc", null, null));
         event.setScheduledDate(LocalDateTime.now().plusDays(15));
 
-        when(outgoingRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(new ArrayList<>(List.of(event)));
+        when(eventRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(eq(userCoords), anySet())).thenReturn(Map.of(1, 0.0));
 
-        List<OutgoingResponseDTO> results = outgoingService.sortOutgoings(userId, query, maxDistance, maxDays);
+        List<EventResponseDTO> results = eventService.sortEvents(userId, query, maxDistance, maxDays);
 
         assertEquals(1, results.size());
     }
@@ -164,16 +164,16 @@ class OutgoingServiceTest {
         when(userService.getUserProfileFilters(userId)).thenReturn(List.of());
         when(aiServiceClient.getSearchFilters(query)).thenReturn(List.of());
 
-        Outgoing event = new Outgoing();
+        Event event = new Event();
         event.setId(99);
         event.setLocation(new com.soccialy.backend.entity.Location(99, "Loc", null, null));
         event.setScheduledDate(LocalDateTime.now());
 
-        when(outgoingRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(new ArrayList<>(List.of(event)));
+        when(eventRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(any(), anySet())).thenReturn(new HashMap<>());
 
-        List<OutgoingResponseDTO> results = outgoingService.sortOutgoings(userId, query, maxDistance, maxDays);
+        List<EventResponseDTO> results = eventService.sortEvents(userId, query, maxDistance, maxDays);
 
         assertEquals(1, results.size());
         assertEquals(99, results.get(0).getId());
@@ -188,16 +188,16 @@ class OutgoingServiceTest {
         when(userService.getUserProfileFilters(userId)).thenReturn(new ArrayList<>());
         when(aiServiceClient.getSearchFilters(query)).thenReturn(new ArrayList<>());
 
-        Outgoing event = new Outgoing();
+        Event event = new Event();
         event.setId(1);
         event.setLocation(new com.soccialy.backend.entity.Location(1, "Loc", null, null));
         event.setFilterIds(List.of(5, 6, 7));
 
-        when(outgoingRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(new ArrayList<>(List.of(event)));
+        when(eventRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(any(), anySet())).thenReturn(Map.of(1, 5.0));
 
-        List<OutgoingResponseDTO> results = outgoingService.sortOutgoings(userId, query, 50.0, 30);
+        List<EventResponseDTO> results = eventService.sortEvents(userId, query, 50.0, 30);
 
         assertEquals(1, results.size());
         assertEquals(1, results.get(0).getId());
@@ -212,10 +212,10 @@ class OutgoingServiceTest {
         when(userService.getUserProfileFilters(userId)).thenReturn(List.of(1));
         when(aiServiceClient.getSearchFilters(query)).thenReturn(List.of(2));
 
-        when(outgoingRepository.searchByTextOrFilters(eq(query), anyList()))
+        when(eventRepository.searchByTextOrFilters(eq(query), anyList()))
                 .thenReturn(new ArrayList<>());
 
-        List<OutgoingResponseDTO> results = outgoingService.sortOutgoings(userId, query, 50.0, 30);
+        List<EventResponseDTO> results = eventService.sortEvents(userId, query, 50.0, 30);
 
         assertEquals(0, results.size());
     }
