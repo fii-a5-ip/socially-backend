@@ -60,7 +60,7 @@ public class EventService {
         return candidates.stream()
                 .limit(20)
                 .map(eventMapper::toResponseDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private double calculateCompoundScore(Event event, List<Integer> userFilters, List<Integer> searchFilters, 

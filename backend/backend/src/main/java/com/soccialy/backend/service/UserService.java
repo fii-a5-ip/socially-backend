@@ -21,7 +21,7 @@ public class UserService {
     public List<UserDTO> findAllUsers() {
         return userRepository.findAll().stream()
                 .map(userMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public UserDTO saveUser(UserDTO userDTO) {
@@ -36,7 +36,7 @@ public class UserService {
         }
         return userRepository.searchUsers(query).stream()
                 .map(userMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     // --- MOCK METHODS FOR OUTGOING SERVICE ---

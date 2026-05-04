@@ -53,5 +53,28 @@ class EventControllerTest {
                         .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("1").roles("USER")))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void testSearchEvents_WithStringPrincipal_ReturnsOk() throws Exception {
+        EventResponseDTO dto = new EventResponseDTO();
+        dto.setId(1);
+        dto.setName("Test Event");
+
+        when(eventService.sortEvents(anyInt(), anyString(), anyDouble(), anyInt()))
+                .thenReturn(List.of(dto));
+
+        // Use a real UsernamePasswordAuthenticationToken with a String principal
+        mockMvc.perform(get("/api/events/search")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication(
+                                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                                        "1", "password", org.springframework.security.core.authority.AuthorityUtils.createAuthorityList("ROLE_USER")
+                                )
+                        ))
+                        .param("query", "concert"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Test Event"));
+    }
 }
+
+
 

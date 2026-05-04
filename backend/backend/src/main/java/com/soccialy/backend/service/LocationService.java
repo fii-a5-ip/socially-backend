@@ -23,7 +23,7 @@ public class LocationService {
     public List<LocationDTO> getAllLocations() {
         return locationRepository.findAll().stream()
                 .map(locationMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public LocationDTO getLocationById(Integer id) {
@@ -45,7 +45,7 @@ public class LocationService {
                         Location::getId,
                         location -> location.getFilters().stream()
                                 .map(Filter::getId)
-                                .collect(Collectors.toList())
+                                .toList()
                 ));
     }
 
