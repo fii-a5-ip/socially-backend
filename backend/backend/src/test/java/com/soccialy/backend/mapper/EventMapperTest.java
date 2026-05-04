@@ -25,7 +25,7 @@ class EventMapperTest {
         Event event = Event.builder()
                 .id(100)
                 .name("Test Event")
-                .description("Description")
+                .url("https://example.com")
                 .scheduledDate(LocalDateTime.now())
                 .location(location)
                 .filterIds(List.of(1, 2, 3))
@@ -38,10 +38,9 @@ class EventMapperTest {
         assertNotNull(dto);
         assertEquals(event.getId(), dto.getId());
         assertEquals(event.getName(), dto.getName());
-        assertEquals(event.getDescription(), dto.getDescription());
+        assertEquals(event.getUrl(), dto.getUrl());
         assertEquals(event.getScheduledDate(), dto.getScheduledDate());
-        assertEquals(location.getName(), dto.getLocationName());
-        assertEquals(event.getFilterIds(), dto.getFilterIds());
+        assertEquals(location.getId(), dto.getLocationId());
     }
 
     @Test
@@ -58,6 +57,7 @@ class EventMapperTest {
 
         // Assert
         assertNotNull(dto);
-        assertNull(dto.getLocationName());
+        assertNull(dto.getLocationId());
     }
 }
+
