@@ -219,4 +219,28 @@ class EventServiceTest {
 
         assertEquals(0, results.size());
     }
+
+    @Test
+    void testSortEvents_WithNullLocation_DoesNotCrash() {
+        Integer userId = 1;
+        String query = "sushi";
+        when(userService.getUserCoordinates(userId)).thenReturn(new Coordinates(45.0, 25.0));
+        when(userService.getUserProfileFilters(userId)).thenReturn(List.of());
+        when(aiServiceClient.getSearchFilters(query)).thenReturn(List.of());
+
+        Event eventNoLoc = new Event();
+        eventNoLoc.setId(500);
+        eventNoLoc.setName("No Loc Event");
+        eventNoLoc.setLocation(null); // Explicitly null location
+
+        when(eventRepository.searchByTextOrFilters(eq(query), anyList()))
+                .thenReturn(new ArrayList<>(List.of(eventNoLoc)));
+        when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
+        when(aiServiceClient.getDistances(any(), anySet())).thenReturn(new HashMap<>());
+
+        List<EventResponseDTO> results = eventService.sortEvents(userId, query, 50.0, 30);
+
+        assertEquals(1, results.size());
+        assertEquals(500, results.get(0).getId());
+    }
 }
