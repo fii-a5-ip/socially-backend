@@ -14,7 +14,7 @@ Acesta este repository-ul principal pentru backend-ul proiectului **Socially**, 
 ## 🛠️ Configurare Locală
 
 ### 1. Baza de Date
-Asigură-te că ai acces la instanța de TiDB. String-ul de conexiune trebuie să includă SSL pentru a funcționa cu TiDB Cloud:
+Asigură-te că ai acces la instanța de TiDB. String-ul de conexiune trebuie să includă SSL pentru a funcționa cu TiDB Cloud(Dati mesaj la scrum pentru credentiale):
 ```properties
 spring.datasource.url=jdbc:mysql://<host>:4000/socially?useSSL=true&sslMode=VERIFY_IDENTITY
 ```
