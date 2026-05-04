@@ -14,23 +14,27 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/outgoings")
+@RequestMapping("/api/events")
 @RequiredArgsConstructor
 @Validated
-public class OutgoingController {
+public class EventController {
 
-    private final EventService outgoingService;
+    private final EventService eventService;
 
     @GetMapping("/search")
-    public ResponseEntity<List<EventResponseDTO>> searchOutgoings(
-            @AuthenticationPrincipal String currentUserIdStr,
+    public ResponseEntity<List<EventResponseDTO>> searchEvents(
+            @AuthenticationPrincipal Object principal,
             @RequestParam @NotBlank @Size(max = 150, message = "Search query is too long") String query,
             @RequestParam(defaultValue = "50.0") Double maxDistance,
             @RequestParam(defaultValue = "30") Integer maxDays) {
 
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+
         Integer secureUserId = Integer.parseInt(currentUserIdStr);
 
-        List<EventResponseDTO> results = outgoingService.sortOutgoings(secureUserId, query, maxDistance, maxDays);
+        List<EventResponseDTO> results = eventService.sortEvents(secureUserId, query, maxDistance, maxDays);
 
         return ResponseEntity.ok(results);
     }

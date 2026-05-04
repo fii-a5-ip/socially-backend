@@ -1,6 +1,7 @@
 package com.soccialy.backend.service;
 
 import com.soccialy.backend.dto.LocationDTO;
+import com.soccialy.backend.entity.Filter;
 import com.soccialy.backend.entity.Location;
 import com.soccialy.backend.mapper.LocationMapper;
 import com.soccialy.backend.repository.LocationRepository;
@@ -8,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,7 +23,7 @@ public class LocationService {
     public List<LocationDTO> getAllLocations() {
         return locationRepository.findAll().stream()
                 .map(locationMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public LocationDTO getLocationById(Integer id) {
@@ -33,6 +36,17 @@ public class LocationService {
         Location location = locationMapper.toEntity(locationDTO);
         Location savedLocation = locationRepository.save(location);
         return locationMapper.toDTO(savedLocation);
+    }
+
+    public Map<Integer, List<Integer>> getFiltersForLocations(Set<Integer> locationIds) {
+        List<Location> locations = locationRepository.findAllById(locationIds);
+        return locations.stream()
+                .collect(Collectors.toMap(
+                        Location::getId,
+                        location -> location.getFilters().stream()
+                                .map(Filter::getId)
+                                .toList()
+                ));
     }
 
 

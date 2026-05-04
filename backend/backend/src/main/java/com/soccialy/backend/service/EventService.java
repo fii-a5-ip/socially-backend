@@ -26,7 +26,7 @@ public class EventService {
 
     private final EventMapper eventMapper;
 
-    public List<EventResponseDTO> sortOutgoings(Integer userId, String searchString, Double maxDistance, Integer maxDays) {
+    public List<EventResponseDTO> sortEvents(Integer userId, String searchString, Double maxDistance, Integer maxDays) {
 
         LocalDateTime timeOfSearch = LocalDateTime.now();
 
@@ -60,7 +60,7 @@ public class EventService {
         return candidates.stream()
                 .limit(20)
                 .map(eventMapper::toResponseDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private double calculateCompoundScore(Event event, List<Integer> userFilters, List<Integer> searchFilters, 

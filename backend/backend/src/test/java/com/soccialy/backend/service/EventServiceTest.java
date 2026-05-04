@@ -3,6 +3,7 @@ package com.soccialy.backend.service;
 import com.soccialy.backend.dto.EventResponseDTO;
 import com.soccialy.backend.entity.Coordinates;
 import com.soccialy.backend.entity.Event;
+import com.soccialy.backend.entity.Location;
 import com.soccialy.backend.mapper.EventMapper;
 import com.soccialy.backend.repository.EventRepository;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,7 @@ class EventServiceTest {
     private EventService eventService;
 
     @Test
-    void testSortOutgoings_CompoundScoringWithUserFilters() {
+    void testSortEvents_CompoundScoringWithUserFilters() {
         Integer userId = 1;
         String query = "sushi";
         Coordinates userCoords = new Coordinates(45.0, 25.0);
@@ -91,7 +92,7 @@ class EventServiceTest {
     }
 
     @Test
-    void testSortOutgoings_DynamicParameters_AreRespected() {
+    void testSortEvents_DynamicParameters_AreRespected() {
         Integer userId = 1;
         String query = "coffee";
         Double maxDistance = 10.0;
@@ -128,7 +129,7 @@ class EventServiceTest {
     }
 
     @Test
-    void testSortOutgoings_MathBugFix_IntegerDivisionIsPrevented() {
+    void testSortEvents_MathBugFix_IntegerDivisionIsPrevented() {
         Integer userId = 1;
         String query = "coffee";
         Double maxDistance = 50.0;
@@ -154,7 +155,7 @@ class EventServiceTest {
     }
 
     @Test
-    void testSortOutgoings_UnknownDistanceFallback_IsStrictlyZero() {
+    void testSortEvents_UnknownDistanceFallback_IsStrictlyZero() {
         Integer userId = 1;
         String query = "coffee";
         Double maxDistance = 100.0;
@@ -180,7 +181,7 @@ class EventServiceTest {
     }
 
     @Test
-    void testSortOutgoings_NoFilters_ReturnsPerfectFilterScore() {
+    void testSortEvents_NoFilters_ReturnsPerfectFilterScore() {
         Integer userId = 1;
         String query = "";
         
@@ -204,7 +205,7 @@ class EventServiceTest {
     }
 
     @Test
-    void testSortOutgoings_NoCandidatesFound_ReturnsEmptyList() {
+    void testSortEvents_NoCandidatesFound_ReturnsEmptyList() {
         Integer userId = 1;
         String query = "something obscure";
 
@@ -219,4 +220,48 @@ class EventServiceTest {
 
         assertEquals(0, results.size());
     }
+
+    @Test
+    void testSortEvents_BoundaryConditions() {
+        Integer userId = 1;
+        String query = "boundary";
+        LocalDateTime now = LocalDateTime.now();
+        when(userService.getUserCoordinates(userId)).thenReturn(new Coordinates(45.0, 25.0));
+        when(userService.getUserProfileFilters(userId)).thenReturn(List.of());
+        when(aiServiceClient.getSearchFilters(query)).thenReturn(List.of());
+
+        // Event 1: Distance > maxDistance
+        Event e1 = new Event();
+        e1.setId(10); e1.setName("Far Event");
+        Location l1 = new Location(); l1.setId(100); e1.setLocation(l1);
+        e1.setScheduledDate(now.plusDays(1));
+
+        // Event 2: ScheduledDate in the past
+        Event e2 = new Event();
+        e2.setId(11); e2.setName("Past Event");
+        Location l2 = new Location(); l2.setId(101); e2.setLocation(l2);
+        e2.setScheduledDate(now.minusDays(1));
+
+        // Event 3: ScheduledDate is null
+        Event e3 = new Event();
+        e3.setId(12); e3.setName("No Date Event");
+        Location l3 = new Location(); l3.setId(102); e3.setLocation(l3);
+        e3.setScheduledDate(null);
+
+        when(eventRepository.searchByTextOrFilters(eq(query), anyList()))
+                .thenReturn(new ArrayList<>(List.of(e1, e2, e3)));
+
+        Map<Integer, Double> distances = new HashMap<>();
+        distances.put(100, 60.0); // > 50.0
+        distances.put(101, 10.0);
+        distances.put(102, 10.0);
+
+        when(aiServiceClient.getDistances(any(), anySet())).thenReturn(distances);
+        when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
+
+        List<EventResponseDTO> results = eventService.sortEvents(userId, query, 50.0, 30);
+
+        assertEquals(3, results.size());
+    }
+
 }
