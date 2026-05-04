@@ -28,8 +28,10 @@ cd backend/backend
 ### 3. Rularea Testelor (SonarQube Ready)
 Pentru a trece de Quality Gate, noul cod trebuie să aibă o acoperire de minim **80%**.
 ```bash
-./mvnw test
+cd backend/backend
+./mvnw clean test
 ```
+*Dacă build-ul este "SUCCESS" local, atunci va trece și pe GitHub.*
 
 ---
 
@@ -42,11 +44,14 @@ Orice rută nouă adăugată într-un Controller este **BLOCATĂ implicit** (403
 ```
 
 ### Obținerea User-ului Curent
-Nu trimite ID-ul de user din Frontend dacă acesta este logat. Backend-ul extrage ID-ul automat din token-ul JWT:
+Backend-ul extrage ID-ul automat din token-ul JWT. Folosim o abordare robustă care acceptă atât `String` cât și `UserDetails`:
 ```java
-@PostMapping("/action")
-public ResponseEntity<?> performAction(@AuthenticationPrincipal String currentUserIdStr) {
-    Integer userId = Integer.parseInt(currentUserIdStr);
+@GetMapping("/profile")
+public ResponseEntity<?> getProfile(@AuthenticationPrincipal Object principal) {
+    String userIdStr = (principal instanceof UserDetails) 
+        ? ((UserDetails) principal).getUsername() 
+        : principal.toString();
+    Integer userId = Integer.parseInt(userIdStr);
     // ...
 }
 ```
@@ -60,15 +65,10 @@ CORS este configurat centralizat în `SecurityConfig.java`. În producție, adau
 
 Respectăm fluxul: **Controller → Service → Mapper → Repository**.
 
-1. **DTO-uri**: Niciodată nu trimite Entități JPA direct către Frontend. Folosește DTO-urile din pachetul `com.soccialy.backend.dto`.
-2. **Mappere**: Folosește `@Component` pentru mappere pentru a converti între Entitate și DTO.
-3. **Erori**: Folosește `ResourceNotFoundException` pentru resurse inexistente (automat returnează 404).
-
-### Cuvinte Rezervate SQL
-Dacă numele tabelei este un cuvânt rezervat (ex: `groups`), folosește backticks în entitate:
-```java
-@Table(name = "`groups`")
-```
+1. **Events vs Outgoings**: Folosim exclusiv termenul **Events** pentru evenimente/ieșiri. Rutele vechi `/api/outgoings` sunt acum `/api/events`.
+2. **DTO-uri**: Folosește DTO-urile din pachetul `com.soccialy.backend.dto`.
+3. **Mappere**: Folosește componentele din pachetul `mapper` pentru conversii.
+4. **Erori**: Folosește `ResourceNotFoundException` pentru resurse inexistente (automat returnează 404).
 
 ---
 
@@ -91,3 +91,9 @@ Frontend-ul trebuie să folosească o variabilă de mediu pentru URL-ul API:
   "memberIds": [2, 3, 4]
 }
 ```
+### Exemple Endpoint-uri (Update)
+
+#### 1. Căutare și Sortare Evenimente (AI Powered)
+- **Endpoint**: `GET /api/events/search`
+- **Params**: `query` (string, obligatoriu), `maxDistance` (default 50), `maxDays` (default 30)
+- **Descriere**: Returnează evenimente sortate după relevanță (filtre utilizator + AI matching).

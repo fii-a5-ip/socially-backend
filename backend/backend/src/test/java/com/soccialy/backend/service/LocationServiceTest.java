@@ -65,4 +65,14 @@ class LocationServiceTest {
         // Assert
         assertTrue(result.isEmpty());
     }
+
+    @Test
+    void testGetFiltersForLocations_NullIds_ReturnsEmptyMap() {
+        // Act
+        Map<Integer, List<Integer>> result = locationService.getFiltersForLocations(null);
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
 }
+
