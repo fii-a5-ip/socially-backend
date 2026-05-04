@@ -23,7 +23,7 @@ public class FilterService {
         return filterRepository.findAll()
                 .stream()
                 .map(filterMapper::toDTO)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public FilterDTO saveFilter(FilterDTO filterDTO) {

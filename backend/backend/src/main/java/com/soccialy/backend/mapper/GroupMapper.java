@@ -24,7 +24,7 @@ public class GroupMapper {
         }
         
         if (group.getUsers() != null) {
-            dto.setMemberIds(group.getUsers().stream().map(User::getId).toList());
+            dto.setMemberIds(group.getUsers().stream().map(User::getId).collect(Collectors.toList()));
         }
         return dto;
     }
