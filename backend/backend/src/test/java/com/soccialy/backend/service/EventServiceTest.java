@@ -41,7 +41,7 @@ class EventServiceTest {
     private EventService eventService;
 
     @Test
-    void testSortOutgoings_CompoundScoringWithUserFilters() {
+    void testSortEvents_CompoundScoringWithUserFilters() {
         Integer userId = 1;
         String query = "sushi";
         Coordinates userCoords = new Coordinates(45.0, 25.0);
@@ -91,7 +91,7 @@ class EventServiceTest {
     }
 
     @Test
-    void testSortOutgoings_DynamicParameters_AreRespected() {
+    void testSortEvents_DynamicParameters_AreRespected() {
         Integer userId = 1;
         String query = "coffee";
         Double maxDistance = 10.0;
@@ -128,7 +128,7 @@ class EventServiceTest {
     }
 
     @Test
-    void testSortOutgoings_MathBugFix_IntegerDivisionIsPrevented() {
+    void testSortEvents_MathBugFix_IntegerDivisionIsPrevented() {
         Integer userId = 1;
         String query = "coffee";
         Double maxDistance = 50.0;
@@ -154,7 +154,7 @@ class EventServiceTest {
     }
 
     @Test
-    void testSortOutgoings_UnknownDistanceFallback_IsStrictlyZero() {
+    void testSortEvents_UnknownDistanceFallback_IsStrictlyZero() {
         Integer userId = 1;
         String query = "coffee";
         Double maxDistance = 100.0;
@@ -180,7 +180,7 @@ class EventServiceTest {
     }
 
     @Test
-    void testSortOutgoings_NoFilters_ReturnsPerfectFilterScore() {
+    void testSortEvents_NoFilters_ReturnsPerfectFilterScore() {
         Integer userId = 1;
         String query = "";
         
@@ -204,7 +204,7 @@ class EventServiceTest {
     }
 
     @Test
-    void testSortOutgoings_NoCandidatesFound_ReturnsEmptyList() {
+    void testSortEvents_NoCandidatesFound_ReturnsEmptyList() {
         Integer userId = 1;
         String query = "something obscure";
 

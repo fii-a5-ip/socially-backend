@@ -38,7 +38,7 @@ public class Location {
 
     @Builder.Default
     @OneToMany(mappedBy = "location", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Event> outgoings = new HashSet<>();
+    private Set<Event> events = new HashSet<>();
 
     @Builder.Default
     @ManyToMany

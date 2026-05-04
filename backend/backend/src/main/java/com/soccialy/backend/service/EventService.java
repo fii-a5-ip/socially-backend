@@ -26,7 +26,7 @@ public class EventService {
 
     private final EventMapper eventMapper;
 
-    public List<EventResponseDTO> sortOutgoings(Integer userId, String searchString, Double maxDistance, Integer maxDays) {
+    public List<EventResponseDTO> sortEvents(Integer userId, String searchString, Double maxDistance, Integer maxDays) {
 
         LocalDateTime timeOfSearch = LocalDateTime.now();
 
