@@ -32,6 +32,7 @@ public class Event {
 
     private LocalDateTime scheduledDate;
 
+    @Builder.Default
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "event_filters", joinColumns = @JoinColumn(name = "event_id"))
     @Column(name = "filter_id")
