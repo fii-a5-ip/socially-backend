@@ -1,5 +1,6 @@
 package com.soccialy.backend.service;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.soccialy.backend.dto.AuthRequest;
 import com.soccialy.backend.dto.AuthResponse;
 import com.soccialy.backend.entity.User;
@@ -19,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
@@ -31,14 +33,9 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests for the {@link AuthService}.
  * <p>
- * This suite verifies the business logic for user registration and local login
- * by mocking external dependencies such as the repository, JWT service, and
- * password encoder.
- * </p>
- * <p>
- * The tests intentionally focus mostly on local authentication because Google token
- * verification is constructed inside the service method and is better tested
- * with either an integration test or a refactored injectable verifier.
+ * This suite verifies the business logic for user registration, local login,
+ * and Google login by mocking external dependencies such as the repository,
+ * JWT service, password encoder, and Google token verification.
  * </p>
  *
  * @author Apetrei Ionuț-Teodor
@@ -57,14 +54,14 @@ class AuthServiceTest
     @Mock
     private JwtService jwtService;
 
-    private AuthService authService;
+    private TestableAuthService authService;
     private User mockUser;
     private AuthRequest authRequest;
 
     @BeforeEach
     void setUp()
     {
-        authService = new AuthService(
+        authService = new TestableAuthService(
                 passwordEncoder,
                 userRepository,
                 jwtService,
@@ -87,9 +84,6 @@ class AuthServiceTest
         );
     }
 
-    /**
-     * Tests successful local user registration.
-     */
     @Test
     void registerUser_Success() throws AuthFailedException
     {
@@ -111,9 +105,6 @@ class AuthServiceTest
         verify(jwtService).generateToken(1);
     }
 
-    /**
-     * Tests that registration stores an encoded password, not the raw password.
-     */
     @Test
     void registerUser_EncodesPasswordBeforeSaving() throws AuthFailedException
     {
@@ -136,9 +127,6 @@ class AuthServiceTest
         verify(passwordEncoder).encode("plain_password");
     }
 
-    /**
-     * Tests that registration calls password encoding exactly once.
-     */
     @Test
     void registerUser_EncodesPasswordExactlyOnce() throws AuthFailedException
     {
@@ -149,9 +137,6 @@ class AuthServiceTest
         verify(passwordEncoder, times(1)).encode("plain_password");
     }
 
-    /**
-     * Tests that duplicate email prevents registration.
-     */
     @Test
     void registerUser_DuplicateEmail_ThrowsException()
     {
@@ -170,9 +155,6 @@ class AuthServiceTest
         verify(jwtService, never()).generateToken(any(Integer.class));
     }
 
-    /**
-     * Tests that duplicate email detection is case-insensitive.
-     */
     @Test
     void registerUser_DuplicateEmailDifferentCase_ThrowsException()
     {
@@ -198,9 +180,6 @@ class AuthServiceTest
         verify(jwtService, never()).generateToken(any(Integer.class));
     }
 
-    /**
-     * Tests that broad search results with no exact email match do not block registration.
-     */
     @ParameterizedTest
     @MethodSource("nonDuplicateSearchResults")
     void registerUser_SearchReturnsNoExactEmail_DoesNotCountAsDuplicate(User searchResult)
@@ -221,9 +200,6 @@ class AuthServiceTest
         verify(jwtService).generateToken(1);
     }
 
-    /**
-     * Tests that duplicate username prevents registration.
-     */
     @Test
     void registerUser_DuplicateUsername_ThrowsException()
     {
@@ -242,9 +218,6 @@ class AuthServiceTest
         verify(jwtService, never()).generateToken(any(Integer.class));
     }
 
-    /**
-     * Tests that username checking happens only after email has been cleared.
-     */
     @Test
     void registerUser_DuplicateEmail_DoesNotCheckUsername()
     {
@@ -258,9 +231,6 @@ class AuthServiceTest
         verify(userRepository, never()).existsByUsername(anyString());
     }
 
-    /**
-     * Tests that registration generates the JWT using the ID returned by the saved user.
-     */
     @Test
     void registerUser_GeneratesTokenUsingSavedUserId() throws AuthFailedException
     {
@@ -289,9 +259,6 @@ class AuthServiceTest
         verify(jwtService).generateToken(25);
     }
 
-    /**
-     * Tests that registration response keeps the default Bearer token type.
-     */
     @Test
     void registerUser_ResponseTypeDefaultsToBearer() throws AuthFailedException
     {
@@ -302,9 +269,6 @@ class AuthServiceTest
         assertEquals("Bearer", response.getType());
     }
 
-    /**
-     * Tests that the saved user does not receive an ID before repository persistence.
-     */
     @Test
     void registerUser_UserPassedToRepositoryHasNoManualId() throws AuthFailedException
     {
@@ -318,9 +282,6 @@ class AuthServiceTest
         assertNull(userCaptor.getValue().getId());
     }
 
-    /**
-     * Tests successful local login.
-     */
     @Test
     void loginUser_Success() throws AuthFailedException
     {
@@ -340,9 +301,6 @@ class AuthServiceTest
         verify(jwtService).generateToken(1);
     }
 
-    /**
-     * Tests that login uses case-insensitive email matching.
-     */
     @Test
     void loginUser_EmailDifferentCase_Success() throws AuthFailedException
     {
@@ -366,9 +324,6 @@ class AuthServiceTest
         verify(jwtService).generateToken(1);
     }
 
-    /**
-     * Tests that login selects the exact email match when repository search returns multiple users.
-     */
     @Test
     void loginUser_SearchReturnsMultipleUsers_UsesExactEmailMatch() throws AuthFailedException
     {
@@ -396,9 +351,6 @@ class AuthServiceTest
         verify(jwtService, never()).generateToken(99);
     }
 
-    /**
-     * Tests that broad search results without an exact email match do not allow login.
-     */
     @ParameterizedTest
     @MethodSource("nonDuplicateSearchResults")
     void loginUser_SearchReturnsNoExactEmail_ThrowsException(User searchResult)
@@ -416,9 +368,6 @@ class AuthServiceTest
         verify(jwtService, never()).generateToken(any(Integer.class));
     }
 
-    /**
-     * Tests that login fails when no user exists for the provided email.
-     */
     @Test
     void loginUser_UserNotFound_ThrowsException()
     {
@@ -435,9 +384,6 @@ class AuthServiceTest
         verify(jwtService, never()).generateToken(any(Integer.class));
     }
 
-    /**
-     * Tests that invalid login email values return invalid credentials without calling the repository.
-     */
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"   "})
@@ -462,9 +408,6 @@ class AuthServiceTest
         verify(jwtService, never()).generateToken(any(Integer.class));
     }
 
-    /**
-     * Tests login failure due to incorrect password.
-     */
     @Test
     void loginUser_WrongPassword_ThrowsExceptionAndDoesNotSaveUser()
     {
@@ -483,10 +426,6 @@ class AuthServiceTest
         verify(userRepository, never()).save(any(User.class));
     }
 
-    /**
-     * Tests that OAuth2 users cannot log in through the local login flow
-     * when they have no usable local password.
-     */
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"   "})
@@ -506,9 +445,6 @@ class AuthServiceTest
         verify(jwtService, never()).generateToken(any(Integer.class));
     }
 
-    /**
-     * Tests that login generates the JWT using the integer database user ID.
-     */
     @Test
     void loginUser_GeneratesTokenUsingIntegerUserId() throws AuthFailedException
     {
@@ -520,12 +456,8 @@ class AuthServiceTest
         assertEquals("mock_jwt_for_99", response.getJwtToken());
 
         verify(jwtService).generateToken(99);
-        verify(jwtService, never()).generateToken(null);
     }
 
-    /**
-     * Tests that login response keeps the default Bearer token type.
-     */
     @Test
     void loginUser_ResponseTypeDefaultsToBearer() throws AuthFailedException
     {
@@ -536,9 +468,6 @@ class AuthServiceTest
         assertEquals("Bearer", response.getType());
     }
 
-    /**
-     * Tests that local login never encodes the incoming password.
-     */
     @Test
     void loginUser_Success_DoesNotEncodePassword() throws AuthFailedException
     {
@@ -549,22 +478,129 @@ class AuthServiceTest
         verify(passwordEncoder, never()).encode(anyString());
     }
 
-    /**
-     * Tests that malformed Google tokens fail before saving or generating an app JWT.
-     */
-    @Test
-    void loginUserGoogle_MalformedToken_ThrowsExceptionWithoutSavingUser()
+    @ParameterizedTest
+    @MethodSource("invalidGooglePayloads")
+    void loginUserGoogle_InvalidPayload_ThrowsExceptionWithoutRepositoryAccess(
+            GoogleIdToken.Payload payload,
+            String expectedMessage
+    )
     {
+        authService.setGooglePayload(payload);
+
         AuthFailedException exception = assertThrows(AuthFailedException.class, () ->
         {
-            authService.loginUserGoogle("not-a-valid-google-token");
+            authService.loginUserGoogle("google_token");
         });
 
-        assertTrue(
-                exception.getMessage().contains("Google authentication failed")
-                        || exception.getMessage().contains("Invalid Google ID Token")
+        assertTrue(exception.getMessage().contains(expectedMessage));
+
+        verify(userRepository, never()).searchUsers(anyString());
+        verify(userRepository, never()).save(any(User.class));
+        verify(jwtService, never()).generateToken(any(Integer.class));
+    }
+
+    @Test
+    void loginUserGoogle_ExistingUser_ReturnsAuthResponseWithoutSaving() throws AuthFailedException
+    {
+        GoogleIdToken.Payload payload = googlePayload("test@example.com", "Ignored Google Name", true);
+        authService.setGooglePayload(payload);
+
+        when(userRepository.searchUsers("test@example.com")).thenReturn(List.of(mockUser));
+        when(jwtService.generateToken(1)).thenReturn("mock_jwt");
+
+        AuthResponse response = authService.loginUserGoogle("google_token");
+
+        assertEquals(1, response.getId());
+        assertEquals("testuser", response.getUsername());
+        assertEquals("test@example.com", response.getEmail());
+        assertEquals("Test User", response.getFullname());
+        assertEquals("mock_jwt", response.getJwtToken());
+        assertEquals("Bearer", response.getType());
+
+        verify(userRepository, never()).save(any(User.class));
+        verify(jwtService).generateToken(1);
+    }
+
+    @ParameterizedTest
+    @MethodSource("googleNewUserCases")
+    void loginUserGoogle_NewUser_SavesExpectedGoogleUser(
+            String email,
+            String googleName,
+            String expectedUsername,
+            String expectedFullname,
+            List<String> existingUsernames
+    ) throws AuthFailedException
+    {
+        GoogleIdToken.Payload payload = googlePayload(email, googleName, true);
+        authService.setGooglePayload(payload);
+
+        User savedUser = createUser(
+                10,
+                expectedUsername,
+                email,
+                "",
+                expectedFullname
         );
 
+        when(userRepository.searchUsers(email)).thenReturn(Collections.emptyList());
+        when(userRepository.existsByUsername(anyString())).thenAnswer(invocation ->
+                existingUsernames.contains(invocation.getArgument(0))
+        );
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(jwtService.generateToken(10)).thenReturn("mock_google_jwt");
+
+        AuthResponse response = authService.loginUserGoogle("google_token");
+
+        assertEquals(10, response.getId());
+        assertEquals(expectedUsername, response.getUsername());
+        assertEquals(email, response.getEmail());
+        assertEquals(expectedFullname, response.getFullname());
+        assertEquals("mock_google_jwt", response.getJwtToken());
+        assertEquals("Bearer", response.getType());
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+
+        User newUser = userCaptor.getValue();
+
+        assertNull(newUser.getId());
+        assertEquals(email, newUser.getEmail());
+        assertEquals(expectedFullname, newUser.getFullname());
+        assertEquals(expectedUsername, newUser.getUsername());
+        assertEquals("", newUser.getPassword());
+    }
+
+    @Test
+    void loginUserGoogle_VerificationThrowsRuntimeException_WrapsExceptionWithoutSaving()
+    {
+        authService.setGoogleVerificationException(new RuntimeException("network failed"));
+
+        AuthFailedException exception = assertThrows(AuthFailedException.class, () ->
+        {
+            authService.loginUserGoogle("google_token");
+        });
+
+        assertTrue(exception.getMessage().contains("Google authentication failed"));
+        assertTrue(exception.getMessage().contains("network failed"));
+
+        verify(userRepository, never()).searchUsers(anyString());
+        verify(userRepository, never()).save(any(User.class));
+        verify(jwtService, never()).generateToken(any(Integer.class));
+    }
+
+    @Test
+    void loginUserGoogle_VerificationThrowsAuthFailedException_RethrowsExceptionWithoutSaving()
+    {
+        authService.setGoogleVerificationException(new AuthFailedException("Invalid Google ID Token."));
+
+        AuthFailedException exception = assertThrows(AuthFailedException.class, () ->
+        {
+            authService.loginUserGoogle("google_token");
+        });
+
+        assertEquals("Invalid Google ID Token.", exception.getMessage());
+
+        verify(userRepository, never()).searchUsers(anyString());
         verify(userRepository, never()).save(any(User.class));
         verify(jwtService, never()).generateToken(any(Integer.class));
     }
@@ -609,6 +645,142 @@ class AuthServiceTest
         );
     }
 
+    private static Stream<Arguments> invalidGooglePayloads()
+    {
+        return Stream.of(
+                arguments(
+                        googlePayload("google@example.com", "Google User", false),
+                        "not verified"
+                ),
+                arguments(
+                        googlePayload(null, "Google User", true),
+                        "email is missing"
+                ),
+                arguments(
+                        googlePayload("", "Google User", true),
+                        "email is missing"
+                ),
+                arguments(
+                        googlePayload("   ", "Google User", true),
+                        "email is missing"
+                ),
+                arguments(
+                        googlePayload("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz@example.com", "Google User", true),
+                        "email is too long"
+                )
+        );
+    }
+
+    private static Stream<Arguments> googleNewUserCases()
+    {
+        String longName = "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String truncatedLongName = longName.substring(0, 45);
+
+        String baseUsername = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        String emailWithLongBase = baseUsername + "@";
+        List<String> existingLongBaseUsernames = existingLongBaseUsernames(baseUsername);
+        String expectedLongBaseUsername = baseUsername.substring(0, 43) + "10";
+
+        return Stream.of(
+                arguments(
+                        "google@example.com",
+                        "Google User",
+                        "google",
+                        "Google User",
+                        List.of()
+                ),
+                arguments(
+                        "google@example.com",
+                        null,
+                        "google",
+                        "google@example.com",
+                        List.of()
+                ),
+                arguments(
+                        "google@example.com",
+                        "   ",
+                        "google",
+                        "google@example.com",
+                        List.of()
+                ),
+                arguments(
+                        "google@example.com",
+                        longName,
+                        "google",
+                        truncatedLongName,
+                        List.of()
+                ),
+                arguments(
+                        "john+demo@example.com",
+                        "John Demo",
+                        "johndemo",
+                        "John Demo",
+                        List.of()
+                ),
+                arguments(
+                        "+++@example.com",
+                        "Invalid Username",
+                        "user",
+                        "Invalid Username",
+                        List.of()
+                ),
+                arguments(
+                        "@example.com",
+                        "No Local Part",
+                        "user",
+                        "No Local Part",
+                        List.of()
+                ),
+                arguments(
+                        "google@example.com",
+                        "Google User",
+                        "google2",
+                        "Google User",
+                        List.of("google", "google1")
+                ),
+                arguments(
+                        emailWithLongBase,
+                        "Long Base User",
+                        expectedLongBaseUsername,
+                        "Long Base User",
+                        existingLongBaseUsernames
+                )
+        );
+    }
+
+    private static List<String> existingLongBaseUsernames(String baseUsername)
+    {
+        List<String> usernames = new ArrayList<>();
+
+        usernames.add(baseUsername);
+
+        for (int suffix = 1; suffix <= 9; suffix++)
+        {
+            usernames.add(baseUsername + suffix);
+        }
+
+        return usernames;
+    }
+
+    private static GoogleIdToken.Payload googlePayload(
+            String email,
+            String name,
+            Boolean emailVerified
+    )
+    {
+        GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
+
+        payload.setEmail(email);
+        payload.setEmailVerified(emailVerified);
+
+        if (name != null)
+        {
+            payload.set("name", name);
+        }
+
+        return payload;
+    }
+
     private static User createUser(
             Integer id,
             String username,
@@ -626,5 +798,42 @@ class AuthServiceTest
         user.setFullname(fullname);
 
         return user;
+    }
+
+    private static class TestableAuthService extends AuthService
+    {
+        private GoogleIdToken.Payload googlePayload;
+        private Exception googleVerificationException;
+
+        TestableAuthService(
+                PasswordEncoder passwordEncoder,
+                UserRepository userRepository,
+                JwtService jwtService,
+                String googleClientId
+        )
+        {
+            super(passwordEncoder, userRepository, jwtService, googleClientId);
+        }
+
+        void setGooglePayload(GoogleIdToken.Payload googlePayload)
+        {
+            this.googlePayload = googlePayload;
+        }
+
+        void setGoogleVerificationException(Exception googleVerificationException)
+        {
+            this.googleVerificationException = googleVerificationException;
+        }
+
+        @Override
+        protected GoogleIdToken.Payload verifyGoogleToken(String googleToken) throws Exception
+        {
+            if (googleVerificationException != null)
+            {
+                throw googleVerificationException;
+            }
+
+            return googlePayload;
+        }
     }
 }

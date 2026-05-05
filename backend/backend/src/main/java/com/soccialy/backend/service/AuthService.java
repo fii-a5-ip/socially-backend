@@ -135,20 +135,9 @@ public class AuthService
     @Transactional
     public AuthResponse loginUserGoogle(String googleToken) throws AuthFailedException
     {
-        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                .setAudience(Collections.singletonList(googleClientId))
-                .build();
-
         try
         {
-            GoogleIdToken idToken = verifier.verify(googleToken);
-
-            if (idToken == null)
-            {
-                throw new AuthFailedException("Invalid Google ID Token.");
-            }
-
-            GoogleIdToken.Payload payload = idToken.getPayload();
+            GoogleIdToken.Payload payload = verifyGoogleToken(googleToken);
 
             if (!Boolean.TRUE.equals(payload.getEmailVerified()))
             {
@@ -196,6 +185,33 @@ public class AuthService
         {
             throw new AuthFailedException("Google authentication failed: " + e.getMessage());
         }
+    }
+
+    /**
+     * Verifies a Google ID token and returns its payload.
+     * <p>
+     * This method is protected so unit tests can override it without making
+     * real Google verification calls.
+     * </p>
+     *
+     * @param googleToken The Google ID token received from the frontend.
+     * @return The verified Google token payload.
+     * @throws Exception if token verification fails.
+     */
+    protected GoogleIdToken.Payload verifyGoogleToken(String googleToken) throws Exception
+    {
+        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                .setAudience(Collections.singletonList(googleClientId))
+                .build();
+
+        GoogleIdToken idToken = verifier.verify(googleToken);
+
+        if (idToken == null)
+        {
+            throw new AuthFailedException("Invalid Google ID Token.");
+        }
+
+        return idToken.getPayload();
     }
 
     /**
