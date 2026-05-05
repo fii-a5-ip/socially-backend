@@ -20,6 +20,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -571,9 +573,9 @@ class AuthServiceTest
     }
 
     @Test
-    void loginUserGoogle_VerificationThrowsRuntimeException_WrapsExceptionWithoutSaving()
+    void loginUserGoogle_VerificationThrowsIOException_WrapsExceptionWithoutSaving()
     {
-        authService.setGoogleVerificationException(new RuntimeException("network failed"));
+        authService.setGoogleVerificationIOException(new IOException("network failed"));
 
         AuthFailedException exception = assertThrows(AuthFailedException.class, () ->
         {
@@ -589,9 +591,29 @@ class AuthServiceTest
     }
 
     @Test
+    void loginUserGoogle_VerificationThrowsGeneralSecurityException_WrapsExceptionWithoutSaving()
+    {
+        authService.setGoogleVerificationSecurityException(new GeneralSecurityException("signature failed"));
+
+        AuthFailedException exception = assertThrows(AuthFailedException.class, () ->
+        {
+            authService.loginUserGoogle("google_token");
+        });
+
+        assertTrue(exception.getMessage().contains("Google authentication failed"));
+        assertTrue(exception.getMessage().contains("signature failed"));
+
+        verify(userRepository, never()).searchUsers(anyString());
+        verify(userRepository, never()).save(any(User.class));
+        verify(jwtService, never()).generateToken(any(Integer.class));
+    }
+
+    @Test
     void loginUserGoogle_VerificationThrowsAuthFailedException_RethrowsExceptionWithoutSaving()
     {
-        authService.setGoogleVerificationException(new AuthFailedException("Invalid Google ID Token."));
+        authService.setGoogleVerificationAuthFailedException(
+                new AuthFailedException("Invalid Google ID Token.")
+        );
 
         AuthFailedException exception = assertThrows(AuthFailedException.class, () ->
         {
@@ -803,7 +825,9 @@ class AuthServiceTest
     private static class TestableAuthService extends AuthService
     {
         private GoogleIdToken.Payload googlePayload;
-        private Exception googleVerificationException;
+        private AuthFailedException googleAuthFailedException;
+        private IOException googleIOException;
+        private GeneralSecurityException googleSecurityException;
 
         TestableAuthService(
                 PasswordEncoder passwordEncoder,
@@ -820,17 +844,38 @@ class AuthServiceTest
             this.googlePayload = googlePayload;
         }
 
-        void setGoogleVerificationException(Exception googleVerificationException)
+        void setGoogleVerificationAuthFailedException(AuthFailedException googleAuthFailedException)
         {
-            this.googleVerificationException = googleVerificationException;
+            this.googleAuthFailedException = googleAuthFailedException;
+        }
+
+        void setGoogleVerificationIOException(IOException googleIOException)
+        {
+            this.googleIOException = googleIOException;
+        }
+
+        void setGoogleVerificationSecurityException(GeneralSecurityException googleSecurityException)
+        {
+            this.googleSecurityException = googleSecurityException;
         }
 
         @Override
-        protected GoogleIdToken.Payload verifyGoogleToken(String googleToken) throws Exception
+        protected GoogleIdToken.Payload verifyGoogleToken(String googleToken)
+                throws AuthFailedException, IOException, GeneralSecurityException
         {
-            if (googleVerificationException != null)
+            if (googleAuthFailedException != null)
             {
-                throw googleVerificationException;
+                throw googleAuthFailedException;
+            }
+
+            if (googleIOException != null)
+            {
+                throw googleIOException;
+            }
+
+            if (googleSecurityException != null)
+            {
+                throw googleSecurityException;
             }
 
             return googlePayload;

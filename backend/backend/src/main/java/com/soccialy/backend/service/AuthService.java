@@ -15,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
 
@@ -177,11 +179,7 @@ public class AuthService
 
             return createAuthResponse(user);
         }
-        catch (AuthFailedException e)
-        {
-            throw e;
-        }
-        catch (Exception e)
+        catch (IOException | GeneralSecurityException e)
         {
             throw new AuthFailedException("Google authentication failed: " + e.getMessage());
         }
@@ -196,9 +194,12 @@ public class AuthService
      *
      * @param googleToken The Google ID token received from the frontend.
      * @return The verified Google token payload.
-     * @throws Exception if token verification fails.
+     * @throws AuthFailedException if the token is invalid.
+     * @throws IOException if Google token verification fails due to I/O.
+     * @throws GeneralSecurityException if Google token verification fails due to security validation.
      */
-    protected GoogleIdToken.Payload verifyGoogleToken(String googleToken) throws Exception
+    protected GoogleIdToken.Payload verifyGoogleToken(String googleToken)
+            throws AuthFailedException, IOException, GeneralSecurityException
     {
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                 .setAudience(Collections.singletonList(googleClientId))
