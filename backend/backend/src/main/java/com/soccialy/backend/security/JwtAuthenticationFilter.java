@@ -76,7 +76,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter
 
                 /*
                  * =========================================================================
-                 * TODO: ROLE-BASED ACCESS CONTROL (RBAC)
+                 * MAYBE-FOR-FUTURE-IDK-PROBABLY-NOT: ROLE-BASED ACCESS CONTROL (RBAC)
                  * =========================================================================
                  * Right now, we grant ZERO authorities (empty list). This means all
                  * authenticated users are equal.
