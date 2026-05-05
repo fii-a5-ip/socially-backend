@@ -3,12 +3,12 @@ package com.soccialy.backend.controller;
 import com.soccialy.backend.dto.AuthRequest;
 import com.soccialy.backend.dto.AuthResponse;
 import com.soccialy.backend.dto.GoogleAuthRequest;
-import com.soccialy.backend.service.AuthService;
 import com.soccialy.backend.exception.AuthFailedException;
+import com.soccialy.backend.service.AuthService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -33,7 +33,6 @@ public class AuthController
 {
     private final AuthService authService;
 
-    @Autowired
     public AuthController(AuthService authService)
     {
         this.authService = authService;
@@ -56,7 +55,9 @@ public class AuthController
      * business logic violations.
      */
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody AuthRequest request)
+    public ResponseEntity<AuthResponse> register(
+            @Validated(AuthRequest.RegisterValidation.class) @RequestBody AuthRequest request)
+            throws AuthFailedException
     {
         AuthResponse response = authService.registerUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -65,20 +66,22 @@ public class AuthController
     /**
      * Endpoint for local user login using email and password.
      * <p>
-     * Validates the user's provided email format and structural requirements before checking
-     * the email against the database and the raw password against the stored BCrypt hash.
+     * Validates the user's provided email and password before checking the email
+     * against the database and the raw password against the stored BCrypt hash.
      * If the credentials match, a session-initiating JWT is returned to the client.
      * </p>
      *
      * @param request An {@link AuthRequest} object containing the login credentials
-     * (specifically the email and password fields).
+     * using the email and password fields.
      * @return A {@link ResponseEntity} wrapping the {@link AuthResponse} containing the
      * authenticated user's information and the access token.
      * @throws AuthFailedException if the email is not found, the password is incorrect,
      * or if the account is restricted to OAuth2 login only.
      */
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request)
+    public ResponseEntity<AuthResponse> login(
+            @Validated(AuthRequest.LoginValidation.class) @RequestBody AuthRequest request)
+            throws AuthFailedException
     {
         AuthResponse response = authService.loginUser(request);
         return ResponseEntity.ok(response);
@@ -101,7 +104,8 @@ public class AuthController
      * cryptographic verification with Google's servers.
      */
     @PostMapping("/google")
-    public ResponseEntity<AuthResponse> googleLogin(@RequestBody GoogleAuthRequest request)
+    public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody GoogleAuthRequest request)
+            throws AuthFailedException
     {
         if (request.getToken() == null || request.getToken().isBlank())
         {
