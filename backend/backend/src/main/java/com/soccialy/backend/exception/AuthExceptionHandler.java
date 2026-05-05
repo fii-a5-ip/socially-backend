@@ -7,8 +7,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Specialized global exception handler for authentication and validation errors.
@@ -38,24 +38,41 @@ public class AuthExceptionHandler
     }
 
     /**
-     * Handles DTO validation failures triggered by {@code @Valid} annotations.
+     * Handles DTO validation failures triggered by {@code @Valid} and {@code @Validated} annotations.
      * <p>
-     * This method extracts the default message from the first field error found
-     * in the binding result to provide a concise error response to the client.
+     * This method extracts all field validation errors from the binding result and returns
+     * them as a field-to-message map so the client can display precise form errors.
+     * </p>
+     * <p>Example JSON response:
+     * <pre>
+     * {
+     *     "error": "Validation failed",
+     *     "fields": {
+     *         "email": "Please provide a valid email address",
+     *         "password": "Password must be at least 8 characters long"
+     *     }
+     * }
+     * </pre>
      * </p>
      *
      * @param ex The {@link MethodArgumentNotValidException} thrown by Spring during validation.
-     * @return A {@link ResponseEntity} with a 400 Bad Request status and the validation message.
+     * @return A {@link ResponseEntity} with a 400 Bad Request status and the validation messages.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex)
+    public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex)
     {
-        String errorMessage = Optional.ofNullable(ex.getBindingResult().getFieldError())
-                .map(FieldError::getDefaultMessage)
-                .orElse("Validation failed");
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+
+        for (FieldError fieldError : ex.getBindingResult().getFieldErrors())
+        {
+            fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
+        }
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", errorMessage));
+                .body(Map.of(
+                        "error", "Validation failed",
+                        "fields", fieldErrors
+                ));
     }
 }
