@@ -5,6 +5,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -64,10 +66,19 @@ class JwtAuthenticationFilterTest
         verifyChainContinued(request);
     }
 
-    @Test
-    void doFilterInternal_EmptyAuthorizationHeader_ContinuesChainWithoutAuthentication() throws Exception
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "",
+            "Basic abc123",
+            "bearer valid.jwt.token",
+            "Bearervalid.jwt.token",
+            " Bearer valid.jwt.token"
+    })
+    void doFilterInternal_InvalidAuthorizationHeader_ContinuesChainWithoutAuthentication(
+            String authorizationHeader
+    ) throws Exception
     {
-        MockHttpServletRequest request = requestWithAuthorizationHeader("");
+        MockHttpServletRequest request = requestWithAuthorizationHeader(authorizationHeader);
 
         jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
@@ -76,82 +87,17 @@ class JwtAuthenticationFilterTest
         verifyChainContinued(request);
     }
 
-    @Test
-    void doFilterInternal_BasicAuthorizationHeader_ContinuesChainWithoutAuthentication() throws Exception
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "Bearer ",
+            "Bearer    ",
+            "Bearer \t\t"
+    })
+    void doFilterInternal_BlankBearerToken_ContinuesChainWithoutAuthentication(
+            String authorizationHeader
+    ) throws Exception
     {
-        MockHttpServletRequest request = requestWithAuthorizationHeader("Basic abc123");
-
-        jwtAuthenticationFilter.doFilter(request, response, filterChain);
-
-        assertNoAuthentication();
-        verifyNoInteractions(jwtService);
-        verifyChainContinued(request);
-    }
-
-    @Test
-    void doFilterInternal_LowercaseBearerPrefix_ContinuesChainWithoutAuthentication() throws Exception
-    {
-        MockHttpServletRequest request = requestWithAuthorizationHeader("bearer " + TOKEN);
-
-        jwtAuthenticationFilter.doFilter(request, response, filterChain);
-
-        assertNoAuthentication();
-        verifyNoInteractions(jwtService);
-        verifyChainContinued(request);
-    }
-
-    @Test
-    void doFilterInternal_BearerPrefixWithoutRequiredSpace_ContinuesChainWithoutAuthentication() throws Exception
-    {
-        MockHttpServletRequest request = requestWithAuthorizationHeader("Bearer" + TOKEN);
-
-        jwtAuthenticationFilter.doFilter(request, response, filterChain);
-
-        assertNoAuthentication();
-        verifyNoInteractions(jwtService);
-        verifyChainContinued(request);
-    }
-
-    @Test
-    void doFilterInternal_HeaderWithLeadingSpaceBeforeBearer_ContinuesChainWithoutAuthentication() throws Exception
-    {
-        MockHttpServletRequest request = requestWithAuthorizationHeader(" Bearer " + TOKEN);
-
-        jwtAuthenticationFilter.doFilter(request, response, filterChain);
-
-        assertNoAuthentication();
-        verifyNoInteractions(jwtService);
-        verifyChainContinued(request);
-    }
-
-    @Test
-    void doFilterInternal_BearerHeaderWithoutToken_ContinuesChainWithoutAuthentication() throws Exception
-    {
-        MockHttpServletRequest request = requestWithAuthorizationHeader("Bearer ");
-
-        jwtAuthenticationFilter.doFilter(request, response, filterChain);
-
-        assertNoAuthentication();
-        verifyNoInteractions(jwtService);
-        verifyChainContinued(request);
-    }
-
-    @Test
-    void doFilterInternal_BearerHeaderWithOnlySpaces_ContinuesChainWithoutAuthentication() throws Exception
-    {
-        MockHttpServletRequest request = requestWithAuthorizationHeader("Bearer    ");
-
-        jwtAuthenticationFilter.doFilter(request, response, filterChain);
-
-        assertNoAuthentication();
-        verifyNoInteractions(jwtService);
-        verifyChainContinued(request);
-    }
-
-    @Test
-    void doFilterInternal_BearerHeaderWithOnlyTabs_ContinuesChainWithoutAuthentication() throws Exception
-    {
-        MockHttpServletRequest request = requestWithAuthorizationHeader("Bearer \t\t");
+        MockHttpServletRequest request = requestWithAuthorizationHeader(authorizationHeader);
 
         jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
@@ -287,6 +233,7 @@ class JwtAuthenticationFilterTest
                 null,
                 Collections.emptyList()
         );
+
         SecurityContextHolder.getContext().setAuthentication(existingAuthentication);
 
         jwtAuthenticationFilter.doFilter(request, response, filterChain);
