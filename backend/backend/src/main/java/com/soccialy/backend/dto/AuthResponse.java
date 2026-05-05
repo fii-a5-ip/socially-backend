@@ -15,14 +15,15 @@ import lombok.NoArgsConstructor;
  * <p>Example JSON produced:
  * <pre>
  * {
- * "jwtToken": "eyJhbGci...",
- * "type": "Bearer",
- * "id": 1,
- * "username": "johnsmith",
- * "email": "john.smith@example.com",
- * "fullname": "John Smith"
+ *     "jwtToken": "eyJhbGci...",
+ *     "type": "Bearer",
+ *     "id": 1,
+ *     "username": "johnsmith",
+ *     "email": "john.smith@example.com",
+ *     "fullname": "John Smith"
  * }
- * </pre></p>
+ * </pre>
+ * </p>
  *
  * @author Apetrei Ionuț-Teodor
  */
@@ -41,7 +42,7 @@ public class AuthResponse
      * The authentication scheme type.
      * <p>
      * <b>Bearer</b> indicates that the holder of the token is granted access.
-     * The frontend must include this in the 'Authorization' header as:
+     * The frontend must include this in the Authorization header as:
      * <code>Authorization: Bearer &lt;token&gt;</code>.
      * </p>
      */
@@ -52,7 +53,19 @@ public class AuthResponse
      * The unique identifier of the user in the database.
      */
     private Integer id;
+
+    /**
+     * The user's public username.
+     */
     private String username;
+
+    /**
+     * The user's email address.
+     */
     private String email;
+
+    /**
+     * The user's full display name.
+     */
     private String fullname;
 }

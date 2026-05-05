@@ -7,20 +7,33 @@ import lombok.NoArgsConstructor;
 
 /**
  * Data Transfer Object for local authentication requests.
- * <p>The primary purpose of this class is to serve as a target for Spring's
+ * <p>
+ * The primary purpose of this class is to serve as a target for Spring's
  * JSON deserialization and to enforce input validation constraints.
- * When a client sends a POST request with a JSON body, Jackson maps the keys
- * to these fields, and the Jakarta Validation API ensures data integrity
- * (e.g., alphanumeric usernames, valid email formats).</p>
- * <p>Example JSON expected:
+ * </p>
+ * <p>
+ * Registration requires username, password, fullname, and email.
+ * Login requires only email and password.
+ * </p>
+ * <p>Example registration JSON expected:
  * <pre>
  * {
- * "username": "johnsmith",
- * "password": "password1234",
- * "fullname": "John Smith",
- * "email": "john.smith@example.com"
+ *     "username": "johnsmith",
+ *     "password": "password1234",
+ *     "fullname": "John Smith",
+ *     "email": "john.smith@example.com"
  * }
- * </pre></p>
+ * </pre>
+ * </p>
+ * <p>Example login JSON expected:
+ * <pre>
+ * {
+ *     "password": "password1234",
+ *     "email": "john.smith@example.com"
+ * }
+ * </pre>
+ * </p>
+ *
  * @author Apetrei Ionuț-Teodor
  */
 @Data
@@ -28,21 +41,59 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AuthRequest
 {
-    @NotBlank(message = "Username is required")
-    @Pattern(regexp = "^[a-zA-Z0-9._]{3,20}$",
-            message = "Username must be 3-20 characters and alphanumeric")
+    /**
+     * Validation group used when registering a local account.
+     */
+    public interface RegisterValidation
+    {
+    }
+
+    /**
+     * Validation group used when logging into a local account.
+     */
+    public interface LoginValidation
+    {
+    }
+
+    @NotBlank(message = "Username is required", groups = RegisterValidation.class)
+    @Pattern(
+            regexp = "^[a-zA-Z0-9._]{3,20}$",
+            message = "Username must be 3-20 characters and contain only letters, numbers, dots, or underscores",
+            groups = RegisterValidation.class
+    )
     private String username;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, message = "Password must be at least 8 characters long")
+    @NotBlank(
+            message = "Password is required",
+            groups = {RegisterValidation.class, LoginValidation.class}
+    )
+    @Size(
+            min = 8,
+            message = "Password must be at least 8 characters long",
+            groups = {RegisterValidation.class, LoginValidation.class}
+    )
     private String password;
 
-    @NotBlank(message = "Full name is required")
-    @Pattern(regexp = "^[a-zA-Z\\s]{2,50}$",
-            message = "Full name must be 2-50 characters (letters and spaces only)")
+    @NotBlank(message = "Full name is required", groups = RegisterValidation.class)
+    @Pattern(
+            regexp = "^[\\p{L}\\s'-]{2,45}$",
+            message = "Full name must be 2-45 characters and contain only letters, spaces, apostrophes, or hyphens",
+            groups = RegisterValidation.class
+    )
     private String fullname;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Please provide a valid email address")
+    @NotBlank(
+            message = "Email is required",
+            groups = {RegisterValidation.class, LoginValidation.class}
+    )
+    @Size(
+            max = 45,
+            message = "Email must be at most 45 characters long",
+            groups = {RegisterValidation.class, LoginValidation.class}
+    )
+    @Email(
+            message = "Please provide a valid email address",
+            groups = {RegisterValidation.class, LoginValidation.class}
+    )
     private String email;
 }
