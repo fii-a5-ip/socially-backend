@@ -10,18 +10,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -33,7 +36,7 @@ import static org.mockito.Mockito.*;
  * password encoder.
  * </p>
  * <p>
- * The tests intentionally focus on local authentication because Google token
+ * The tests intentionally focus mostly on local authentication because Google token
  * verification is constructed inside the service method and is better tested
  * with either an integration test or a refactored injectable verifier.
  * </p>
@@ -43,6 +46,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest
 {
+    private static final String GOOGLE_CLIENT_ID = "test-google-client-id";
+
     @Mock
     private UserRepository userRepository;
 
@@ -52,21 +57,27 @@ class AuthServiceTest
     @Mock
     private JwtService jwtService;
 
-    @InjectMocks
     private AuthService authService;
-
     private User mockUser;
     private AuthRequest authRequest;
 
     @BeforeEach
     void setUp()
     {
-        mockUser = new User();
-        mockUser.setId(1);
-        mockUser.setUsername("testuser");
-        mockUser.setEmail("test@example.com");
-        mockUser.setPassword("hashed_password");
-        mockUser.setFullname("Test User");
+        authService = new AuthService(
+                passwordEncoder,
+                userRepository,
+                jwtService,
+                GOOGLE_CLIENT_ID
+        );
+
+        mockUser = createUser(
+                1,
+                "testuser",
+                "test@example.com",
+                "hashed_password",
+                "Test User"
+        );
 
         authRequest = new AuthRequest(
                 "testuser",
@@ -82,11 +93,7 @@ class AuthServiceTest
     @Test
     void registerUser_Success() throws AuthFailedException
     {
-        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(Collections.emptyList());
-        when(userRepository.existsByUsername(authRequest.getUsername())).thenReturn(false);
-        when(passwordEncoder.encode(authRequest.getPassword())).thenReturn("hashed_password");
-        when(userRepository.save(any(User.class))).thenReturn(mockUser);
-        when(jwtService.generateToken(1)).thenReturn("mock_jwt");
+        mockSuccessfulRegistration(authRequest, mockUser, "mock_jwt");
 
         AuthResponse response = authService.registerUser(authRequest);
 
@@ -110,11 +117,7 @@ class AuthServiceTest
     @Test
     void registerUser_EncodesPasswordBeforeSaving() throws AuthFailedException
     {
-        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(Collections.emptyList());
-        when(userRepository.existsByUsername(authRequest.getUsername())).thenReturn(false);
-        when(passwordEncoder.encode(authRequest.getPassword())).thenReturn("hashed_password");
-        when(userRepository.save(any(User.class))).thenReturn(mockUser);
-        when(jwtService.generateToken(1)).thenReturn("mock_jwt");
+        mockSuccessfulRegistration(authRequest, mockUser, "mock_jwt");
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
 
@@ -139,11 +142,7 @@ class AuthServiceTest
     @Test
     void registerUser_EncodesPasswordExactlyOnce() throws AuthFailedException
     {
-        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(Collections.emptyList());
-        when(userRepository.existsByUsername(authRequest.getUsername())).thenReturn(false);
-        when(passwordEncoder.encode(authRequest.getPassword())).thenReturn("hashed_password");
-        when(userRepository.save(any(User.class))).thenReturn(mockUser);
-        when(jwtService.generateToken(1)).thenReturn("mock_jwt");
+        mockSuccessfulRegistration(authRequest, mockUser, "mock_jwt");
 
         authService.registerUser(authRequest);
 
@@ -177,12 +176,13 @@ class AuthServiceTest
     @Test
     void registerUser_DuplicateEmailDifferentCase_ThrowsException()
     {
-        User existingUser = new User();
-        existingUser.setId(2);
-        existingUser.setUsername("existing");
-        existingUser.setEmail("TEST@EXAMPLE.COM");
-        existingUser.setPassword("hashed_password");
-        existingUser.setFullname("Existing User");
+        User existingUser = createUser(
+                2,
+                "existing",
+                "TEST@EXAMPLE.COM",
+                "hashed_password",
+                "Existing User"
+        );
 
         when(userRepository.searchUsers("test@example.com")).thenReturn(List.of(existingUser));
 
@@ -199,19 +199,14 @@ class AuthServiceTest
     }
 
     /**
-     * Tests that broad search results with non-matching emails do not block registration.
+     * Tests that broad search results with no exact email match do not block registration.
      */
-    @Test
-    void registerUser_SearchReturnsNonExactEmail_DoesNotCountAsDuplicate() throws AuthFailedException
+    @ParameterizedTest
+    @MethodSource("nonDuplicateSearchResults")
+    void registerUser_SearchReturnsNoExactEmail_DoesNotCountAsDuplicate(User searchResult)
+            throws AuthFailedException
     {
-        User nonMatchingUser = new User();
-        nonMatchingUser.setId(5);
-        nonMatchingUser.setUsername("otheruser");
-        nonMatchingUser.setEmail("other@example.com");
-        nonMatchingUser.setPassword("hashed_other");
-        nonMatchingUser.setFullname("Other User");
-
-        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(List.of(nonMatchingUser));
+        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(List.of(searchResult));
         when(userRepository.existsByUsername(authRequest.getUsername())).thenReturn(false);
         when(passwordEncoder.encode(authRequest.getPassword())).thenReturn("hashed_password");
         when(userRepository.save(any(User.class))).thenReturn(mockUser);
@@ -269,12 +264,13 @@ class AuthServiceTest
     @Test
     void registerUser_GeneratesTokenUsingSavedUserId() throws AuthFailedException
     {
-        User savedUser = new User();
-        savedUser.setId(25);
-        savedUser.setUsername("newuser");
-        savedUser.setEmail("new@example.com");
-        savedUser.setFullname("New User");
-        savedUser.setPassword("hashed_password");
+        User savedUser = createUser(
+                25,
+                "newuser",
+                "new@example.com",
+                "hashed_password",
+                "New User"
+        );
 
         AuthRequest newRequest = new AuthRequest(
                 "newuser",
@@ -283,11 +279,7 @@ class AuthServiceTest
                 "new@example.com"
         );
 
-        when(userRepository.searchUsers(newRequest.getEmail())).thenReturn(Collections.emptyList());
-        when(userRepository.existsByUsername(newRequest.getUsername())).thenReturn(false);
-        when(passwordEncoder.encode(newRequest.getPassword())).thenReturn("hashed_password");
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
-        when(jwtService.generateToken(25)).thenReturn("mock_jwt_for_25");
+        mockSuccessfulRegistration(newRequest, savedUser, "mock_jwt_for_25");
 
         AuthResponse response = authService.registerUser(newRequest);
 
@@ -303,11 +295,7 @@ class AuthServiceTest
     @Test
     void registerUser_ResponseTypeDefaultsToBearer() throws AuthFailedException
     {
-        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(Collections.emptyList());
-        when(userRepository.existsByUsername(authRequest.getUsername())).thenReturn(false);
-        when(passwordEncoder.encode(authRequest.getPassword())).thenReturn("hashed_password");
-        when(userRepository.save(any(User.class))).thenReturn(mockUser);
-        when(jwtService.generateToken(1)).thenReturn("mock_jwt");
+        mockSuccessfulRegistration(authRequest, mockUser, "mock_jwt");
 
         AuthResponse response = authService.registerUser(authRequest);
 
@@ -320,11 +308,7 @@ class AuthServiceTest
     @Test
     void registerUser_UserPassedToRepositoryHasNoManualId() throws AuthFailedException
     {
-        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(Collections.emptyList());
-        when(userRepository.existsByUsername(authRequest.getUsername())).thenReturn(false);
-        when(passwordEncoder.encode(authRequest.getPassword())).thenReturn("hashed_password");
-        when(userRepository.save(any(User.class))).thenReturn(mockUser);
-        when(jwtService.generateToken(1)).thenReturn("mock_jwt");
+        mockSuccessfulRegistration(authRequest, mockUser, "mock_jwt");
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
 
@@ -340,9 +324,7 @@ class AuthServiceTest
     @Test
     void loginUser_Success() throws AuthFailedException
     {
-        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(List.of(mockUser));
-        when(passwordEncoder.matches("plain_password", "hashed_password")).thenReturn(true);
-        when(jwtService.generateToken(1)).thenReturn("mock_jwt");
+        mockSuccessfulLogin(mockUser, "mock_jwt");
 
         AuthResponse response = authService.loginUser(authRequest);
 
@@ -390,12 +372,13 @@ class AuthServiceTest
     @Test
     void loginUser_SearchReturnsMultipleUsers_UsesExactEmailMatch() throws AuthFailedException
     {
-        User nonMatchingUser = new User();
-        nonMatchingUser.setId(99);
-        nonMatchingUser.setUsername("wronguser");
-        nonMatchingUser.setEmail("wrong@example.com");
-        nonMatchingUser.setPassword("wrong_hash");
-        nonMatchingUser.setFullname("Wrong User");
+        User nonMatchingUser = createUser(
+                99,
+                "wronguser",
+                "wrong@example.com",
+                "wrong_hash",
+                "Wrong User"
+        );
 
         when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(List.of(nonMatchingUser, mockUser));
         when(passwordEncoder.matches("plain_password", "hashed_password")).thenReturn(true);
@@ -416,17 +399,11 @@ class AuthServiceTest
     /**
      * Tests that broad search results without an exact email match do not allow login.
      */
-    @Test
-    void loginUser_SearchReturnsOnlyNonExactEmail_ThrowsException()
+    @ParameterizedTest
+    @MethodSource("nonDuplicateSearchResults")
+    void loginUser_SearchReturnsNoExactEmail_ThrowsException(User searchResult)
     {
-        User nonMatchingUser = new User();
-        nonMatchingUser.setId(10);
-        nonMatchingUser.setUsername("otheruser");
-        nonMatchingUser.setEmail("other@example.com");
-        nonMatchingUser.setPassword("hashed_password");
-        nonMatchingUser.setFullname("Other User");
-
-        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(List.of(nonMatchingUser));
+        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(List.of(searchResult));
 
         AuthFailedException exception = assertThrows(AuthFailedException.class, () ->
         {
@@ -459,41 +436,18 @@ class AuthServiceTest
     }
 
     /**
-     * Tests that null login email returns invalid credentials without calling the repository.
+     * Tests that invalid login email values return invalid credentials without calling the repository.
      */
-    @Test
-    void loginUser_NullEmail_ThrowsExceptionWithoutSearching()
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void loginUser_InvalidEmail_ThrowsExceptionWithoutSearching(String email)
     {
         AuthRequest request = new AuthRequest(
                 "unused",
                 "plain_password",
                 "Unused",
-                null
-        );
-
-        AuthFailedException exception = assertThrows(AuthFailedException.class, () ->
-        {
-            authService.loginUser(request);
-        });
-
-        assertTrue(exception.getMessage().contains("Invalid email or password"));
-
-        verify(userRepository, never()).searchUsers(any());
-        verify(passwordEncoder, never()).matches(anyString(), anyString());
-        verify(jwtService, never()).generateToken(any(Integer.class));
-    }
-
-    /**
-     * Tests that blank login email returns invalid credentials without calling the repository.
-     */
-    @Test
-    void loginUser_BlankEmail_ThrowsExceptionWithoutSearching()
-    {
-        AuthRequest request = new AuthRequest(
-                "unused",
-                "plain_password",
-                "Unused",
-                "   "
+                email
         );
 
         AuthFailedException exception = assertThrows(AuthFailedException.class, () ->
@@ -512,7 +466,7 @@ class AuthServiceTest
      * Tests login failure due to incorrect password.
      */
     @Test
-    void loginUser_WrongPassword_ThrowsException()
+    void loginUser_WrongPassword_ThrowsExceptionAndDoesNotSaveUser()
     {
         when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(List.of(mockUser));
         when(passwordEncoder.matches("plain_password", "hashed_password")).thenReturn(false);
@@ -526,6 +480,7 @@ class AuthServiceTest
 
         verify(passwordEncoder).matches("plain_password", "hashed_password");
         verify(jwtService, never()).generateToken(any(Integer.class));
+        verify(userRepository, never()).save(any(User.class));
     }
 
     /**
@@ -558,10 +513,7 @@ class AuthServiceTest
     void loginUser_GeneratesTokenUsingIntegerUserId() throws AuthFailedException
     {
         mockUser.setId(99);
-
-        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(List.of(mockUser));
-        when(passwordEncoder.matches("plain_password", "hashed_password")).thenReturn(true);
-        when(jwtService.generateToken(99)).thenReturn("mock_jwt_for_99");
+        mockSuccessfulLogin(mockUser, "mock_jwt_for_99");
 
         AuthResponse response = authService.loginUser(authRequest);
 
@@ -577,30 +529,11 @@ class AuthServiceTest
     @Test
     void loginUser_ResponseTypeDefaultsToBearer() throws AuthFailedException
     {
-        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(List.of(mockUser));
-        when(passwordEncoder.matches("plain_password", "hashed_password")).thenReturn(true);
-        when(jwtService.generateToken(1)).thenReturn("mock_jwt");
+        mockSuccessfulLogin(mockUser, "mock_jwt");
 
         AuthResponse response = authService.loginUser(authRequest);
 
         assertEquals("Bearer", response.getType());
-    }
-
-    /**
-     * Tests that failed local login does not save or modify users.
-     */
-    @Test
-    void loginUser_WrongPassword_DoesNotSaveUser()
-    {
-        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(List.of(mockUser));
-        when(passwordEncoder.matches("plain_password", "hashed_password")).thenReturn(false);
-
-        assertThrows(AuthFailedException.class, () ->
-        {
-            authService.loginUser(authRequest);
-        });
-
-        verify(userRepository, never()).save(any(User.class));
     }
 
     /**
@@ -609,12 +542,89 @@ class AuthServiceTest
     @Test
     void loginUser_Success_DoesNotEncodePassword() throws AuthFailedException
     {
-        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(List.of(mockUser));
-        when(passwordEncoder.matches("plain_password", "hashed_password")).thenReturn(true);
-        when(jwtService.generateToken(1)).thenReturn("mock_jwt");
+        mockSuccessfulLogin(mockUser, "mock_jwt");
 
         authService.loginUser(authRequest);
 
         verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    /**
+     * Tests that malformed Google tokens fail before saving or generating an app JWT.
+     */
+    @Test
+    void loginUserGoogle_MalformedToken_ThrowsExceptionWithoutSavingUser()
+    {
+        AuthFailedException exception = assertThrows(AuthFailedException.class, () ->
+        {
+            authService.loginUserGoogle("not-a-valid-google-token");
+        });
+
+        assertTrue(
+                exception.getMessage().contains("Google authentication failed")
+                        || exception.getMessage().contains("Invalid Google ID Token")
+        );
+
+        verify(userRepository, never()).save(any(User.class));
+        verify(jwtService, never()).generateToken(any(Integer.class));
+    }
+
+    private void mockSuccessfulRegistration(
+            AuthRequest request,
+            User savedUser,
+            String jwtToken
+    )
+    {
+        when(userRepository.searchUsers(request.getEmail())).thenReturn(Collections.emptyList());
+        when(userRepository.existsByUsername(request.getUsername())).thenReturn(false);
+        when(passwordEncoder.encode(request.getPassword())).thenReturn(savedUser.getPassword());
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(jwtService.generateToken(savedUser.getId())).thenReturn(jwtToken);
+    }
+
+    private void mockSuccessfulLogin(User user, String jwtToken)
+    {
+        when(userRepository.searchUsers(authRequest.getEmail())).thenReturn(List.of(user));
+        when(passwordEncoder.matches(authRequest.getPassword(), user.getPassword())).thenReturn(true);
+        when(jwtService.generateToken(user.getId())).thenReturn(jwtToken);
+    }
+
+    private static Stream<Arguments> nonDuplicateSearchResults()
+    {
+        return Stream.of(
+                arguments(createUser(
+                        5,
+                        "otheruser",
+                        "other@example.com",
+                        "hashed_other",
+                        "Other User"
+                )),
+                arguments(createUser(
+                        6,
+                        "nullemailuser",
+                        null,
+                        "hashed_null_email",
+                        "Null Email User"
+                ))
+        );
+    }
+
+    private static User createUser(
+            Integer id,
+            String username,
+            String email,
+            String password,
+            String fullname
+    )
+    {
+        User user = new User();
+
+        user.setId(id);
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPassword(password);
+        user.setFullname(fullname);
+
+        return user;
     }
 }
