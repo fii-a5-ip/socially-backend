@@ -10,13 +10,13 @@ import com.soccialy.backend.entity.User;
 import com.soccialy.backend.exception.AuthFailedException;
 import com.soccialy.backend.repository.UserRepository;
 import com.soccialy.backend.security.JwtService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Service class responsible for handling user authentication and registration logic.
@@ -35,12 +35,15 @@ import java.util.Collections;
 @Service
 public class AuthService
 {
+    private static final int MAX_USERNAME_LENGTH = 45;
+    private static final int MAX_FULLNAME_LENGTH = 45;
+    private static final int MAX_EMAIL_LENGTH = 45;
+
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final String googleClientId;
 
-    @Autowired
     public AuthService(PasswordEncoder passwordEncoder,
                        UserRepository userRepository,
                        JwtService jwtService,
@@ -68,7 +71,9 @@ public class AuthService
     @Transactional
     public AuthResponse registerUser(AuthRequest request) throws AuthFailedException
     {
-        if (userRepository.existsByEmail(request.getEmail()))
+        User existingUser = findUserByEmail(request.getEmail());
+
+        if (existingUser != null)
         {
             throw new AuthFailedException("Error: User already exists with this email!");
         }
@@ -78,12 +83,13 @@ public class AuthService
             throw new AuthFailedException("Error: Username is already taken!");
         }
 
-        String hashed = passwordEncoder.encode(request.getPassword());
+        String hashedPassword = passwordEncoder.encode(request.getPassword());
+
         User newUser = new User();
         newUser.setUsername(request.getUsername());
         newUser.setEmail(request.getEmail());
         newUser.setFullname(request.getFullname());
-        newUser.setPassword(hashed); // Matches User entity field name
+        newUser.setPassword(hashedPassword);
 
         User savedUser = userRepository.save(newUser);
 
@@ -99,11 +105,14 @@ public class AuthService
      */
     public AuthResponse loginUser(AuthRequest request) throws AuthFailedException
     {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AuthFailedException("Error: Invalid email or password."));
+        User user = findUserByEmail(request.getEmail());
 
-        // If password is null, user signed up via Google and has no local password
-        if (user.getPassword() == null)
+        if (user == null)
+        {
+            throw new AuthFailedException("Error: Invalid email or password.");
+        }
+
+        if (user.getPassword() == null || user.getPassword().isBlank())
         {
             throw new AuthFailedException("Error: Please login with Google.");
         }
@@ -140,29 +149,176 @@ public class AuthService
             }
 
             GoogleIdToken.Payload payload = idToken.getPayload();
+
+            if (!Boolean.TRUE.equals(payload.getEmailVerified()))
+            {
+                throw new AuthFailedException("Google email is not verified.");
+            }
+
             String email = payload.getEmail();
             String name = (String) payload.get("name");
 
-            User user = userRepository.findByEmail(email)
-                    .orElseGet(() ->
-                    {
-                        // Default username generation from email prefix
-                        String extractedUsername = email.substring(0, email.indexOf("@"));
+            if (email == null || email.isBlank())
+            {
+                throw new AuthFailedException("Google account email is missing.");
+            }
 
-                        User newUser = new User();
-                        newUser.setEmail(email);
-                        newUser.setFullname(name);
-                        newUser.setUsername(extractedUsername);
+            if (email.length() > MAX_EMAIL_LENGTH)
+            {
+                throw new AuthFailedException("Google account email is too long.");
+            }
 
-                        return userRepository.save(newUser);
-                    });
+            User user = findUserByEmail(email);
+
+            if (user == null)
+            {
+                User newUser = new User();
+                newUser.setEmail(email);
+                newUser.setFullname(normalizeGoogleFullname(name, email));
+                newUser.setUsername(generateUniqueUsername(email));
+
+                /*
+                 * The User entity has password nullable = false.
+                 * Blank password marks this as a Google-only account.
+                 */
+                newUser.setPassword("");
+
+                user = userRepository.save(newUser);
+            }
 
             return createAuthResponse(user);
+        }
+        catch (AuthFailedException e)
+        {
+            throw e;
         }
         catch (Exception e)
         {
             throw new AuthFailedException("Google authentication failed: " + e.getMessage());
         }
+    }
+
+    /**
+     * Finds a user by exact email match, ignoring case.
+     * <p>
+     * The repository currently exposes a broad search method, so this helper narrows
+     * the result back down to an exact email match.
+     * </p>
+     *
+     * @param email The email to search for.
+     * @return The matching {@link User}, or {@code null} if no exact match exists.
+     */
+    private User findUserByEmail(String email)
+    {
+        if (email == null || email.isBlank())
+        {
+            return null;
+        }
+
+        List<User> users = userRepository.searchUsers(email);
+
+        return users.stream()
+                .filter(user -> user.getEmail() != null)
+                .filter(user -> user.getEmail().equalsIgnoreCase(email))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Normalizes a Google display name so it fits the existing User entity limits.
+     *
+     * @param name The display name from the Google payload.
+     * @param email The Google account email used as fallback.
+     * @return A fullname that fits the database column.
+     */
+    private String normalizeGoogleFullname(String name, String email)
+    {
+        String fullname = name;
+
+        if (fullname == null || fullname.isBlank())
+        {
+            fullname = email;
+        }
+
+        if (fullname.length() > MAX_FULLNAME_LENGTH)
+        {
+            fullname = fullname.substring(0, MAX_FULLNAME_LENGTH);
+        }
+
+        return fullname;
+    }
+
+    /**
+     * Generates a unique username for a Google-created account using the email prefix.
+     *
+     * @param email The Google account email.
+     * @return A username that does not already exist in the database.
+     */
+    private String generateUniqueUsername(String email)
+    {
+        String baseUsername = extractUsernameFromEmail(email);
+        String candidate = trimUsername(baseUsername);
+        int suffix = 1;
+
+        while (userRepository.existsByUsername(candidate))
+        {
+            String suffixText = String.valueOf(suffix);
+            int maxBaseLength = MAX_USERNAME_LENGTH - suffixText.length();
+
+            candidate = trimUsername(baseUsername, maxBaseLength) + suffixText;
+            suffix++;
+        }
+
+        return candidate;
+    }
+
+    /**
+     * Extracts a safe username prefix from an email address.
+     *
+     * @param email The email address.
+     * @return A sanitized username base.
+     */
+    private String extractUsernameFromEmail(String email)
+    {
+        int atIndex = email.indexOf("@");
+        String baseUsername = atIndex > 0 ? email.substring(0, atIndex) : "user";
+
+        baseUsername = baseUsername.replaceAll("[^a-zA-Z0-9._-]", "");
+
+        if (baseUsername.isBlank())
+        {
+            return "user";
+        }
+
+        return baseUsername;
+    }
+
+    /**
+     * Trims a username to the maximum username length.
+     *
+     * @param username The username to trim.
+     * @return The trimmed username.
+     */
+    private String trimUsername(String username)
+    {
+        return trimUsername(username, MAX_USERNAME_LENGTH);
+    }
+
+    /**
+     * Trims a username to a specific maximum length.
+     *
+     * @param username The username to trim.
+     * @param maxLength The maximum allowed length.
+     * @return The trimmed username.
+     */
+    private String trimUsername(String username, int maxLength)
+    {
+        if (username.length() <= maxLength)
+        {
+            return username;
+        }
+
+        return username.substring(0, maxLength);
     }
 
     /**
@@ -173,7 +329,7 @@ public class AuthService
      */
     private AuthResponse createAuthResponse(User user)
     {
-        String token = jwtService.generateToken(String.valueOf(user.getId()));
+        String token = jwtService.generateToken(user.getId());
 
         return AuthResponse.builder()
                 .jwtToken(token)
