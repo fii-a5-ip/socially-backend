@@ -1,6 +1,7 @@
 package com.soccialy.backend.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,25 +41,28 @@ public class JwtService
      * @param userId The internal database ID of the authenticated user to be set as the subject.
      * @return A compact, URL-safe JWT string containing the user ID and expiration.
      */
-    public String generateToken(String userId)
+    public String generateToken(Integer userId)
     {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + jwtExpirationMs);
+
         return Jwts.builder()
-                .subject(userId)
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .subject(userId.toString())
+                .issuedAt(now)
+                .expiration(expiration)
                 .signWith(jwtSecretKey)
                 .compact();
     }
 
     /**
-     * Extracts the subject (User ID) from the provided JWT.
+     * Extracts the authenticated user's ID from the provided JWT.
      *
-     * @param token The signed JWT string from which the subject is extracted.
-     * @return The subject string (User ID) contained within the token claims.
+     * @param token The signed JWT string from which the user ID is extracted.
+     * @return The user ID contained within the token subject claim.
      */
-    public String extractUsername(String token)
+    public Integer extractUserId(String token)
     {
-        return extractClaim(token, Claims::getSubject);
+        return Integer.valueOf(extractClaim(token, Claims::getSubject));
     }
 
     /**
@@ -76,7 +80,8 @@ public class JwtService
     }
 
     /**
-     * Validates that the token is structurally sound, correctly signed, and not expired.
+     * Validates that the token is structurally sound, correctly signed, not expired,
+     * and contains a valid numeric user ID.
      *
      * @param token The JWT string to be validated.
      * @return {@code true} if the token is authentic and active; {@code false} otherwise.
@@ -85,9 +90,11 @@ public class JwtService
     {
         try
         {
-            return !isTokenExpired(token);
+            Integer userId = extractUserId(token);
+
+            return userId != null && !isTokenExpired(token);
         }
-        catch (Exception e)
+        catch (JwtException | IllegalArgumentException e)
         {
             return false;
         }
@@ -120,7 +127,7 @@ public class JwtService
      *
      * @param token The signed JWT string to be parsed.
      * @return The {@link Claims} object containing all payload information.
-     * @throws io.jsonwebtoken.JwtException if the token is invalid or the signature fails verification.
+     * @throws JwtException if the token is invalid or the signature fails verification.
      */
     public Claims extractAllClaims(String token)
     {
