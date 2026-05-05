@@ -72,28 +72,12 @@ class JwtAuthenticationFilterTest
             "Basic abc123",
             "bearer valid.jwt.token",
             "Bearervalid.jwt.token",
-            " Bearer valid.jwt.token"
-    })
-    void doFilterInternal_InvalidAuthorizationHeader_ContinuesChainWithoutAuthentication(
-            String authorizationHeader
-    ) throws Exception
-    {
-        MockHttpServletRequest request = requestWithAuthorizationHeader(authorizationHeader);
-
-        jwtAuthenticationFilter.doFilter(request, response, filterChain);
-
-        assertNoAuthentication();
-        verifyNoInteractions(jwtService);
-        verifyChainContinued(request);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {
+            " Bearer valid.jwt.token",
             "Bearer ",
             "Bearer    ",
             "Bearer \t\t"
     })
-    void doFilterInternal_BlankBearerToken_ContinuesChainWithoutAuthentication(
+    void doFilterInternal_UnauthenticatedAuthorizationHeader_ContinuesChainWithoutAuthentication(
             String authorizationHeader
     ) throws Exception
     {
@@ -197,7 +181,7 @@ class JwtAuthenticationFilterTest
     }
 
     @Test
-    void doFilterInternal_InvalidToken_DoesNotSetAuthentication() throws Exception
+    void doFilterInternal_InvalidToken_DoesNotSetAuthenticationAndContinuesChain() throws Exception
     {
         MockHttpServletRequest request = requestWithAuthorizationHeader("Bearer " + TOKEN);
 
@@ -209,19 +193,6 @@ class JwtAuthenticationFilterTest
         verify(jwtService).isTokenValid(TOKEN);
         verify(jwtService, never()).extractUserId(anyString());
         verifyChainContinued(request);
-    }
-
-    @Test
-    void doFilterInternal_InvalidToken_StillContinuesFilterChain() throws Exception
-    {
-        MockHttpServletRequest request = requestWithAuthorizationHeader("Bearer " + TOKEN);
-
-        when(jwtService.isTokenValid(TOKEN)).thenReturn(false);
-
-        jwtAuthenticationFilter.doFilter(request, response, filterChain);
-
-        verifyChainContinued(request);
-        verify(jwtService, never()).extractUserId(anyString());
     }
 
     @Test
