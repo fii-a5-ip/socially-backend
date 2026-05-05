@@ -3,6 +3,7 @@ package com.soccialy.backend.config;
 import com.soccialy.backend.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -48,50 +49,25 @@ public class SecurityConfig
     /**
      * Configures the security filter chain, defining CSRF policy, CORS,
      * endpoint permissions, and the execution order of custom filters.
-     * * @param http The HttpSecurity object to configure.
+     *
+     * @param http The HttpSecurity object to configure.
      * @return The built SecurityFilterChain.
      * @throws Exception If configuration fails.
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
     {
-        // Enable CORS in the security filter chain
-        http.cors(cors -> cors.configurationSource(request -> {
-                    var config = new org.springframework.web.cors.CorsConfiguration();
-                    config.setAllowedOrigins(java.util.List.of("http://localhost:5173", "https://socially-frontend-lovat.vercel.app"));
-                    config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-                    config.setAllowedHeaders(java.util.List.of("*"));
-                    config.setAllowCredentials(true);
-                    return config;
-                }))
-
-            // Disable CSRF as we are using JWTs (stateless). No cookies for REST.
-            .csrf(AbstractHttpConfigurer::disable)
-
-            // Configure endpoint permissions
-            .authorizeHttpRequests(auth -> auth
-                    // Allow public access to authentication endpoints
-                    .requestMatchers("/api/v1/auth/**").permitAll()
-                    // Allow our new endpoints temporarily for testing
-                    .requestMatchers("/api/users/**", "/api/groups/**").permitAll()
-                    // All other requests must be authenticated
-                    .anyRequest().authenticated()
-            )
-
-                // Define request authorization rules
+        http
+                .cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // Publicly accessible endpoints
                         .requestMatchers("/api/v1/auth/**").permitAll()
-                        // Restricted endpoints requiring a valid JWT
+                        .requestMatchers("/api/users/**", "/api/groups/**").permitAll()
                         .anyRequest().authenticated()
                 )
-
-                // Force stateless session management
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
-                // Register the JWT filter before the standard auth filter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -100,24 +76,41 @@ public class SecurityConfig
     /**
      * Configures Cross-Origin Resource Sharing (CORS) to allow requests
      * from the frontend application.
+     *
+     * @return The CORS configuration source used by Spring Security.
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource()
     {
         CorsConfiguration configuration = new CorsConfiguration();
-        // TODO: Replace "*" with your actual frontend URL (e.g., "http://localhost:3000")
-        configuration.setAllowedOrigins(List.of("*"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "https://socially-frontend-lovat.vercel.app"
+        ));
+
+        configuration.setAllowedMethods(List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS"
+        ));
+
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
+
         return source;
     }
 
     /**
      * Bean for password hashing using the BCrypt algorithm.
      * Used by the AuthService to encode raw passwords and verify logins.
+     *
+     * @return The password encoder used by the application.
      */
     @Bean
     public PasswordEncoder passwordEncoder()
