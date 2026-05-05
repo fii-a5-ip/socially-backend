@@ -50,11 +50,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter
             @NonNull FilterChain filterChain) throws ServletException, IOException
     {
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userId;
 
-        // Skip filtering if the header is missing or does not start with "Bearer "
+        // Skip filtering if the header is missing or does not start with "Bearer ".
         if (authHeader == null || !authHeader.startsWith("Bearer "))
+        {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        final String jwt = authHeader.substring(7);
+
+        // Skip filtering if the Bearer token is empty.
+        if (jwt.isBlank())
         {
             filterChain.doFilter(request, response);
             return;
@@ -62,43 +69,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter
 
         try
         {
-            jwt = authHeader.substring(7);
-            userId = jwtService.extractUsername(jwt);
-
-            // If a User ID is extracted and no authentication context exists yet
-            if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null)
+            if (SecurityContextHolder.getContext().getAuthentication() == null
+                    && jwtService.isTokenValid(jwt))
             {
-                if (jwtService.isTokenValid(jwt))
-                {
-                    /*
-                     * =========================================================================
-                     * * TODO: ROLE-BASED ACCESS CONTROL (RBAC)                    *
-                     * =========================================================================
-                     * Right now, we grant ZERO authorities (empty list). This means all
-                     * authenticated users are equal.
-                     * * Future steps:
-                     * 1. Extract "roles" from the JWT claims (e.g., ADMIN, USER, MODERATOR).
-                     * 2. Convert those strings into SimpleGrantedAuthority objects.
-                     * 3. Pass that list into the constructor below instead of emptyList().
-                     * =========================================================================
-                     */
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userId,
-                            null,
-                            Collections.emptyList()
-                    );
+                Integer userId = jwtService.extractUserId(jwt);
 
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                /*
+                 * =========================================================================
+                 * TODO: ROLE-BASED ACCESS CONTROL (RBAC)
+                 * =========================================================================
+                 * Right now, we grant ZERO authorities (empty list). This means all
+                 * authenticated users are equal.
+                 *
+                 * Future steps:
+                 * 1. Extract "roles" from the JWT claims (e.g., ADMIN, USER, MODERATOR).
+                 * 2. Convert those strings into SimpleGrantedAuthority objects.
+                 * 3. Pass that list into the constructor below instead of emptyList().
+                 * =========================================================================
+                 */
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        userId,
+                        null,
+                        Collections.emptyList()
+                );
 
-                    // Set the user as authenticated in the Security Context
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                // Set the user ID as authenticated in the Security Context.
+                SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
         catch (Exception e)
         {
-            // If token parsing fails (expired, malformed), we simply don't set the auth context.
-            // This will lead to a 403 Forbidden for restricted endpoints.
+            // If token parsing fails, we clear the context and continue the filter chain.
+            // Restricted endpoints will reject the request because no authentication is set.
+            SecurityContextHolder.clearContext();
             logger.error("Could not set user authentication in security context", e);
         }
 
