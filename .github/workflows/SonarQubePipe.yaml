@@ -63,24 +63,12 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: Network Scan Test
-        run: |
-          echo "Scanning port 22 on 52.58.222.100..."
-          nc -zv -w 5 52.58.222.100 22
-
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
-        env:
-          DB_URL: ${{ secrets.DB_URL }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASS: ${{ secrets.DB_PASS }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+        uses: appleboy/ssh-action@v1.0.0 # Folosim versiunea care merge sigur la voi
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user 
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DB_URL,DB_USER,DB_PASS,GOOGLE_CLIENT_ID,JWT_SECRET_KEY
           script: |
             # 1. Autentificare ECR pe serverul EC2
             aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
@@ -88,15 +76,20 @@ jobs:
             # 2. Tragerea celei mai noi imagini
             docker pull ${{ steps.login-ecr.outputs.registry }}/backend-core:latest
             
-            # 3. Oprirea și ștergerea containerului vechi
+            # 3. Crearea fisierului .env pentru Spring
+            mkdir -p ~/spring-app
+            cd ~/spring-app
+            
+            # Folosim GHILIMELE SIMPLE ('') obligatoriu, altfel caracterele din parola rup bash-ul
+            echo 'DB_URL=${{ secrets.DB_URL }}' > .env
+            echo 'DB_USER=${{ secrets.DB_USER }}' >> .env
+            echo 'DB_PASS=${{ secrets.DB_PASS }}' >> .env
+            echo 'GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}' >> .env
+            echo 'JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}' >> .env
+            
+            # 4. Oprirea și ștergerea containerului vechi
             docker stop spring-backend-app || true
             docker rm spring-backend-app || true
             
-            # 4. Pornirea noului container
-            docker run -d --name spring-backend-app -p 9090:9090 \
-              -e DB_URL="$DB_URL" \
-              -e DB_USER="$DB_USER" \
-              -e DB_PASS="$DB_PASS" \
-              -e GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
-              -e JWT_SECRET_KEY="$JWT_SECRET_KEY" \
-              ${{ steps.login-ecr.outputs.registry }}/backend-core:latest
+            # 5. Pornirea noului container citind din fisierul .env
+            docker run -d --name spring-backend-app --env-file .env -p 9090:9090 ${{ steps.login-ecr.outputs.registry }}/backend-core:latest
