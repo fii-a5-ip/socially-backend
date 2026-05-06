@@ -63,6 +63,11 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
+      - name: Network Scan Test
+        run: |
+          echo "Scanning port 22 on 52.58.222.100..."
+          nc -zv -w 5 52.58.222.100 22
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         env:
