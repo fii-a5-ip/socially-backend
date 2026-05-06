@@ -1,15 +1,29 @@
-# 1. Folosim o imagine oficială și minimală de Java 17 (JRE e suficient pt rulare)
+# ==========================================
+# STAGE 1: Builder-ul (Compilează aplicația)
+# ==========================================
+FROM maven:3.9.4-eclipse-temurin-17 AS builder
+
+WORKDIR /build
+
+# Copiem pom.xml și descărcăm dependențele
+COPY pom.xml .
+
+# Copiem sursele și compilăm proiectul generând acel folder "target" în interiorul Docker
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# ==========================================
+# STAGE 2: Runner-ul (Imaginea finală pe care o trimitem pe AWS)
+# ==========================================
 FROM eclipse-temurin:17-jre-alpine
 
-# 2. Setăm directorul de lucru în interiorul containerului
 WORKDIR /app
 
-# 3. Copiem fișierul .jar generat de Maven din folderul target în container
-# Notă: Spring Boot generează de obicei un singur executabil .jar aici
-COPY target/*.jar app.jar
+# Acum merge! Tragem fișierul .jar din primul stagiu (builder)
+COPY --from=builder /build/target/*.jar app.jar
 
-# 4. Expunem portul pe care rulează aplicația (8080 by default la Spring)
+# Expunem portul
 EXPOSE 8080
 
-# 5. Comanda care pornește efectiv aplicația când containerul este lansat
+# Pornim aplicația
 ENTRYPOINT ["java", "-jar", "app.jar"]
