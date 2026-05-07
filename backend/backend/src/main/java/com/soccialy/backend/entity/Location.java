@@ -63,10 +63,8 @@ public class Location {
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.events = new HashSet<>();
+        this.filters = new HashSet<>();
     }
 
-    public Location(Integer id, String name, Object dummy1, Object dummy2) {
-        this.id = id;
-        this.name = name;
-    }
 }

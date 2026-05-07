@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
@@ -54,14 +55,14 @@ class EventServiceTest {
         Event eventA = new Event();
         eventA.setId(101);
         eventA.setName("Event A");
-        eventA.setLocation(new com.soccialy.backend.entity.Location(1, "Loc 1", null, null)); // Updated for the real Location entity
+        eventA.setLocation(new com.soccialy.backend.entity.Location(1, "Loc 1", new BigDecimal("0"), new BigDecimal("0"),null, null, null)); // Updated for the real Location entity
         eventA.setScheduledDate(LocalDateTime.now().plusDays(1));
         eventA.setFilterIds(List.of(1, 2));
 
         Event eventB = new Event();
         eventB.setId(102);
         eventB.setName("Event B");
-        eventB.setLocation(new com.soccialy.backend.entity.Location(2, "Loc 2", null, null)); // Updated for the real Location entity
+        eventB.setLocation(new com.soccialy.backend.entity.Location(2, "Loc 2", new BigDecimal("0"), new BigDecimal("0"), null, null, null)); // Updated for the real Location entity
         eventB.setScheduledDate(LocalDateTime.now().plusDays(20));
         eventB.setFilterIds(List.of(4, 10));
 
@@ -105,13 +106,13 @@ class EventServiceTest {
 
         Event eventA = new Event();
         eventA.setId(1);
-        eventA.setLocation(new com.soccialy.backend.entity.Location(1, "Loc", null, null));
+        eventA.setLocation(new com.soccialy.backend.entity.Location(1, "Loc", new BigDecimal("0"), new BigDecimal("0"), null, null, null));
         eventA.setFilterIds(List.of(1, 2));
         eventA.setScheduledDate(LocalDateTime.now().plusDays(3));
 
         Event eventB = new Event();
         eventB.setId(2);
-        eventB.setLocation(new com.soccialy.backend.entity.Location(2, "Loc", null, null));
+        eventB.setLocation(new com.soccialy.backend.entity.Location(2, "Loc", new BigDecimal("0"), new BigDecimal("0"), null, null, null));
         eventB.setFilterIds(List.of(1, 2));
         eventB.setScheduledDate(LocalDateTime.now().plusDays(10));
 
@@ -142,7 +143,7 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(1);
-        event.setLocation(new com.soccialy.backend.entity.Location(1, "Loc", null, null));
+        event.setLocation(new com.soccialy.backend.entity.Location(1, "Loc", new BigDecimal("0"), new BigDecimal("0"), null, null, null));
         event.setScheduledDate(LocalDateTime.now().plusDays(15));
 
         when(eventRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(new ArrayList<>(List.of(event)));
@@ -167,7 +168,7 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(99);
-        event.setLocation(new com.soccialy.backend.entity.Location(99, "Loc", null, null));
+        event.setLocation(new com.soccialy.backend.entity.Location(99, "Loc", new BigDecimal("0"), new BigDecimal("0"), null, null, null));
         event.setScheduledDate(LocalDateTime.now());
 
         when(eventRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(new ArrayList<>(List.of(event)));
@@ -191,7 +192,7 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(1);
-        event.setLocation(new com.soccialy.backend.entity.Location(1, "Loc", null, null));
+        event.setLocation(new com.soccialy.backend.entity.Location(1, "Loc", new BigDecimal("0"), new BigDecimal("0"), null, null, null));
         event.setFilterIds(List.of(5, 6, 7));
 
         when(eventRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(new ArrayList<>(List.of(event)));
