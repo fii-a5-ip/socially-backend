@@ -9,6 +9,7 @@ public class GroupDTO {
     private Integer id;
     private String name;
     private String imgLink;
+    private String desc;
     private Integer creatorUserId;
     private List<Integer> memberIds;
 }
