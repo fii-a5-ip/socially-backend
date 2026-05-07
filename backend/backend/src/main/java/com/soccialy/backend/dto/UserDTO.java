@@ -13,3 +13,7 @@ public class UserDTO {
     private String profilePictureUrl;
     private List<FilterDTO> filters;
 }
+    private String fullname;
+    private String email;
+    private String profileImgUrl;
+}

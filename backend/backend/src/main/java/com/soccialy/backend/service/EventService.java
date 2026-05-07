@@ -1,10 +1,10 @@
 package com.soccialy.backend.service;
 
-import com.soccialy.backend.dto.OutgoingResponseDTO;
+import com.soccialy.backend.dto.EventResponseDTO;
 import com.soccialy.backend.entity.Coordinates;
-import com.soccialy.backend.entity.Outgoing;
-import com.soccialy.backend.repository.OutgoingRepository;
-import com.soccialy.backend.mapper.OutgoingMapper;
+import com.soccialy.backend.entity.Event;
+import com.soccialy.backend.repository.EventRepository;
+import com.soccialy.backend.mapper.EventMapper;
 import com.soccialy.backend.service.LocationService;
 import lombok.RequiredArgsConstructor;
 
@@ -17,16 +17,16 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class OutgoingService {
+public class EventService {
 
-    private final OutgoingRepository outgoingRepository;
+    private final EventRepository eventRepository;
     private final AiService aiServiceClient;
     private final UserService userService;
     private final LocationService locationServiceClient;
 
-    private final OutgoingMapper outgoingMapper;
+    private final EventMapper eventMapper;
 
-    public List<OutgoingResponseDTO> sortOutgoings(Integer userId, String searchString, Double maxDistance, Integer maxDays) {
+    public List<EventResponseDTO> sortEvents(Integer userId, String searchString, Double maxDistance, Integer maxDays) {
 
         LocalDateTime timeOfSearch = LocalDateTime.now();
 
@@ -37,14 +37,14 @@ public class OutgoingService {
         Set<Integer> combinedFilters = new HashSet<>(userFilters);
         combinedFilters.addAll(searchFilters);
 
-        List<Outgoing> candidates = outgoingRepository.searchByTextOrFilters(searchString, new ArrayList<>(combinedFilters));
+        List<Event> candidates = eventRepository.searchByTextOrFilters(searchString, new ArrayList<>(combinedFilters));
 
         if (candidates.isEmpty()) {
             return new ArrayList<>();
         }
 
         Set<Integer> uniqueLocationIds = candidates.stream()
-                .map(outgoing -> outgoing.getLocation() != null ? outgoing.getLocation().getId() : null)
+                .map(event -> event.getLocation() != null ? event.getLocation().getId() : null)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
@@ -59,22 +59,22 @@ public class OutgoingService {
 
         return candidates.stream()
                 .limit(20)
-                .map(outgoingMapper::toResponseDTO)
-                .collect(Collectors.toList());
+                .map(eventMapper::toResponseDTO)
+                .toList();
     }
 
-    private double calculateCompoundScore(Outgoing outgoing, List<Integer> userFilters, List<Integer> searchFilters, 
+    private double calculateCompoundScore(Event event, List<Integer> userFilters, List<Integer> searchFilters, 
                                           Map<Integer, List<Integer>> locationFiltersMap,
                                           Map<Integer, Double> distancesMap, Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch) {
 
-        Integer locId = outgoing.getLocation() != null ? outgoing.getLocation().getId() : null;
+        Integer locId = event.getLocation() != null ? event.getLocation().getId() : null;
 
-        Set<Integer> totalFilters = new HashSet<>(outgoing.getFilterIds() != null ? outgoing.getFilterIds() : new ArrayList<>());
+        Set<Integer> totalFilters = new HashSet<>(event.getFilterIds() != null ? event.getFilterIds() : new ArrayList<>());
         totalFilters.addAll(locationFiltersMap.getOrDefault(locId, new ArrayList<>()));
 
         double filterScore = calculateFilterScore(totalFilters, userFilters, searchFilters);
         double distanceScore = calculateDistanceScore(distancesMap.getOrDefault(locId, maxDistance + 1.0), maxDistance);
-        double timeScore = calculateTimeScore(timeOfSearch, outgoing.getScheduledDate(), maxDays);
+        double timeScore = calculateTimeScore(timeOfSearch, event.getScheduledDate(), maxDays);
 
         return (0.5 * filterScore) + (0.3 * distanceScore) + (0.2 * timeScore);
     }
