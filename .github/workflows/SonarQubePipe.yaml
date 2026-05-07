@@ -56,7 +56,7 @@ jobs:
       - name: Build, tag, and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: proiect-backend-api 
+          ECR_REPOSITORY: backend-core 
           IMAGE_TAG: latest
         working-directory: backend/backend 
         run: |
@@ -64,7 +64,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.0.0 # Folosim versiunea care merge sigur la voi
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user 
@@ -74,13 +74,22 @@ jobs:
             aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
             
             # 2. Tragerea celei mai noi imagini
-            docker pull ${{ steps.login-ecr.outputs.registry }}/proiect-backend-api:latest
+            docker pull ${{ steps.login-ecr.outputs.registry }}/backend-core:latest
             
-            # 3. Oprirea și ștergerea containerului vechi
+            # 3. Crearea fisierului .env pentru Spring
+            mkdir -p ~/spring-app
+            cd ~/spring-app
+            
+            # Folosim GHILIMELE SIMPLE ('') obligatoriu, altfel caracterele din parola rup bash-ul
+            echo 'DB_URL=${{ secrets.DB_URL }}' > .env
+            echo 'DB_USER=${{ secrets.DB_USER }}' >> .env
+            echo 'DB_PASS=${{ secrets.DB_PASS }}' >> .env
+            echo 'GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}' >> .env
+            echo 'JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}' >> .env
+            
+            # 4. Oprirea și ștergerea containerului vechi
             docker stop spring-backend-app || true
             docker rm spring-backend-app || true
             
-            # 4. Pornirea noului container
-            # ATENȚIE: Am schimbat porturile la 8080:8080 (portul default Spring Boot). 
-            # Dacă aplicația ta folosește portul 5000, modifică înapoi în 5000:5000.
-            docker run -d --name spring-backend-app -p 8080:8080 ${{ steps.login-ecr.outputs.registry }}/proiect-backend-api:latest
+            # 5. Pornirea noului container citind din fisierul .env
+            docker run -d --name spring-backend-app --env-file .env -p 9090:9090 ${{ steps.login-ecr.outputs.registry }}/backend-core:latest
