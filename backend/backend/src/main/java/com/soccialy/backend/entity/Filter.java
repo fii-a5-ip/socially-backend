@@ -33,10 +33,6 @@ public class Filter {
     @ManyToMany(mappedBy = "filters")
     private Set<Location> locations = new HashSet<>();
 
-    @Builder.Default
-    @ManyToMany(mappedBy = "filters")
-    private Set<Event> events = new HashSet<>();
-
     public Filter(String name) {
         this.name = name;
     }

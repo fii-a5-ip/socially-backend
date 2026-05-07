@@ -8,5 +8,6 @@ public class UserDTO {
     private String username;
     private String fullname;
     private String email;
+    private String googleId;
     private String profileImgUrl;
 }

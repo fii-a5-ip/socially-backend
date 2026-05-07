@@ -64,4 +64,9 @@ public class Location {
         this.latitude = latitude;
         this.longitude = longitude;
     }
+
+    public Location(Integer id, String name, Object dummy1, Object dummy2) {
+        this.id = id;
+        this.name = name;
+    }
 }

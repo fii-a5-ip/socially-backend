@@ -40,24 +40,22 @@ public class Event {
     private String desc;
 
     @Column(name = "date", nullable = false)
-    private LocalDateTime date;
-
-    //private LocalDateTime scheduledDate;
-
-//    @Builder.Default
-//    @ElementCollection(fetch = FetchType.EAGER)
-//    @CollectionTable(name = "event_filters", joinColumns = @JoinColumn(name = "event_id"))
-//    @Column(name = "filter_id")
-//    private List<Integer> filterIds = new ArrayList<>();
+    private LocalDateTime scheduledDate;
 
     @Builder.Default
-    @ManyToMany
-    @JoinTable(
-            name = "event_filters",
-            joinColumns = @JoinColumn(name = "event_id"),
-            inverseJoinColumns = @JoinColumn(name = "filter_id")
-    )
-    private Set<Filter> filters = new HashSet<>();
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "event_filters", joinColumns = @JoinColumn(name = "event_id"))
+    @Column(name = "filter_id")
+    private List<Integer> filterIds = new ArrayList<>();
+
+//    @Builder.Default
+//    @ManyToMany
+//    @JoinTable(
+//            name = "event_filters",
+//            joinColumns = @JoinColumn(name = "event_id"),
+//            inverseJoinColumns = @JoinColumn(name = "filter_id")
+//    )
+//    private Set<Filter> filters = new HashSet<>();
 
     public Event(String name, String url, Location location, User creator, String desc, LocalDateTime date) {
         this.name = name;
@@ -65,6 +63,6 @@ public class Event {
         this.location = location;
         this.creator = creator;
         this.desc = desc;
-        this.date = date;
+        this.scheduledDate = date;
     }
 }

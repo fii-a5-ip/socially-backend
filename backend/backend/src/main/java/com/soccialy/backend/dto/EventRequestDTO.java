@@ -1,6 +1,7 @@
 package com.soccialy.backend.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
@@ -16,10 +17,15 @@ public class EventRequestDTO {
     @NotBlank(message = "URL cannot be empty.")
     private String url;
 
+    @NotBlank(message = "Description cannot be empty.")
+    private String desc;
+
     @NotNull(message = "A valid location ID is required.")
     private Integer locationId;
 
     @NotNull(message = "An event must have a scheduled date and time.")
     @FutureOrPresent(message = "You cannot schedule an event in the past.")
     private LocalDateTime scheduledDate;
+
+    private List<Integer> filterIds;
 }
