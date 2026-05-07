@@ -9,8 +9,7 @@ public class UserDTO {
     private String username;
     private String fullname;
     private String email;
-    private String bio;
-    private String profilePictureUrl;
+    private String googleId;
     private String profileImgUrl;
     private List<FilterDTO> filters;
 }

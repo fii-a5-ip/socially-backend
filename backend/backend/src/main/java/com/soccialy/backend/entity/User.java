@@ -26,15 +26,17 @@ public class User {
     @Column(nullable = false, length = 100)
     private String fullname;
 
-    @Column(unique = true, length = 256)
+    @Column(unique = true, length = 100)
     private String email;
+
+    @Column(name = "google_id", unique = true, length = 100)
+    private String googleId;
 
     @Column(name = "profile_img_url", length = 2048)
     private String profileImgUrl;
 
-
     @JsonIgnore
-    @Column(nullable = false, length = 256)
+    @Column(length = 256)
     private String password;
 
    @Column(unique = true, length = 256)
@@ -56,7 +58,12 @@ public class User {
     private Set<Filter> filters = new HashSet<>();
 
     @Builder.Default
-    @ManyToMany(mappedBy = "users")
+    @ManyToMany
+    @JoinTable(
+            name = "group_users",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "group_id")
+    )
     private Set<Group> groups = new HashSet<>();
 
     public User(String username, String password) {

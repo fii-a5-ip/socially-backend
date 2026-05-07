@@ -30,6 +30,14 @@ public class Event {
     @JoinColumn(name = "location_id", nullable = false)
     private Location location;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creator_user_id", nullable = false)
+    private User creator;
+
+    @Column(name = "`desc`", columnDefinition = "LONGTEXT", nullable = false)
+    private String desc;
+
+    @Column(name = "date", nullable = false)
     private LocalDateTime scheduledDate;
 
     @Builder.Default
@@ -38,9 +46,12 @@ public class Event {
     @Column(name = "filter_id")
     private List<Integer> filterIds = new ArrayList<>();
 
-    public Event(String name, String url, Location location) {
+    public Event(String name, String url, Location location, User creator, String desc, LocalDateTime date) {
         this.name = name;
         this.url = url;
         this.location = location;
+        this.creator = creator;
+        this.desc = desc;
+        this.scheduledDate = date;
     }
 }
