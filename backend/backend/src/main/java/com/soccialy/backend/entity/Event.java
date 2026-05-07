@@ -1,10 +1,8 @@
 package com.soccialy.backend.entity;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -47,15 +45,6 @@ public class Event {
     @CollectionTable(name = "event_filters", joinColumns = @JoinColumn(name = "event_id"))
     @Column(name = "filter_id")
     private List<Integer> filterIds = new ArrayList<>();
-
-//    @Builder.Default
-//    @ManyToMany
-//    @JoinTable(
-//            name = "event_filters",
-//            joinColumns = @JoinColumn(name = "event_id"),
-//            inverseJoinColumns = @JoinColumn(name = "filter_id")
-//    )
-//    private Set<Filter> filters = new HashSet<>();
 
     public Event(String name, String url, Location location, User creator, String desc, LocalDateTime date) {
         this.name = name;
