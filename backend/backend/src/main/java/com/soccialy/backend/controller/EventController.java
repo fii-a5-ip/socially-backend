@@ -6,11 +6,13 @@ import com.soccialy.backend.service.EventService;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -26,7 +28,10 @@ public class EventController {
             @AuthenticationPrincipal Object principal,
             @RequestParam @NotBlank @Size(max = 150, message = "Search query is too long") String query,
             @RequestParam(defaultValue = "50.0") Double maxDistance,
-            @RequestParam(defaultValue = "30") Integer maxDays) {
+            @RequestParam(defaultValue = "30") Integer maxDays,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime localTime,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng) {
 
         String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
                 ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
@@ -34,7 +39,9 @@ public class EventController {
 
         Integer secureUserId = Integer.parseInt(currentUserIdStr);
 
-        List<EventResponseDTO> results = eventService.sortEvents(secureUserId, query, maxDistance, maxDays);
+        LocalDateTime searchTime = (localTime != null) ? localTime : LocalDateTime.now();
+
+        List<EventResponseDTO> results = eventService.sortEvents(secureUserId, query, maxDistance, maxDays, searchTime, lat, lng);
 
         return ResponseEntity.ok(results);
     }

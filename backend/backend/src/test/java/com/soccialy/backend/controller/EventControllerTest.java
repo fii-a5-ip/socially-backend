@@ -33,7 +33,7 @@ class EventControllerTest {
         dto.setId(1);
         dto.setName("Test Event");
 
-        when(eventService.sortEvents(anyInt(), anyString(), anyDouble(), anyInt()))
+        when(eventService.sortEvents(anyInt(), anyString(), anyDouble(), anyInt(), any(), anyDouble(), anyDouble()))
                 .thenReturn(List.of(dto));
 
         // Use a custom RequestPostProcessor to set the principal as a String "1"
@@ -60,7 +60,7 @@ class EventControllerTest {
         dto.setId(1);
         dto.setName("Test Event");
 
-        when(eventService.sortEvents(anyInt(), anyString(), anyDouble(), anyInt()))
+        when(eventService.sortEvents(anyInt(), anyString(), anyDouble(), anyInt(), any(), anyDouble(), anyDouble()))
                 .thenReturn(List.of(dto));
 
         // Use a real UsernamePasswordAuthenticationToken with a String principal

@@ -49,6 +49,12 @@ public class Location {
     )
     private Set<Filter> filters = new HashSet<>();
 
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     public Location(String name) {
         this.name = name;
     }

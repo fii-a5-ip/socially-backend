@@ -26,30 +26,48 @@ public class EventService {
 
     private final EventMapper eventMapper;
 
-    public List<EventResponseDTO> sortEvents(Integer userId, String searchString, Double maxDistance, Integer maxDays) {
+    public List<EventResponseDTO> sortEvents(Integer userId, String searchString, Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch, Double lat, Double lng) {
 
-        LocalDateTime timeOfSearch = LocalDateTime.now();
+        Coordinates userCoords = (lat != null && lng != null)
+                ? new Coordinates(lat, lng)
+                : new Coordinates(45.0, 45.0);
 
-        Coordinates userCoords = userService.getUserCoordinates(userId);
         List<Integer> userFilters = userService.getUserProfileFilters(userId);
         List<Integer> searchFilters = aiServiceClient.getSearchFilters(searchString);
 
         Set<Integer> combinedFilters = new HashSet<>(userFilters);
         combinedFilters.addAll(searchFilters);
 
-        List<Event> candidates = eventRepository.searchByTextOrFilters(searchString, new ArrayList<>(combinedFilters));
+        if(combinedFilters.isEmpty())
+        {
+            combinedFilters.add(-1);
+        }
+
+        String safeSearchString = (searchString != null) ? searchString : "";
+
+        List<Event> candidates = eventRepository.searchByTextOrFilters(safeSearchString, new ArrayList<>(combinedFilters));
 
         if (candidates.isEmpty()) {
             return new ArrayList<>();
         }
 
-        Set<Integer> uniqueLocationIds = candidates.stream()
-                .map(event -> event.getLocation() != null ? event.getLocation().getId() : null)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        Set<Integer> uniqueLocationIds = new HashSet<>();
+        Map<Integer, Coordinates> destinationCoordsMap = new HashMap<>();
+
+        for (Event event : candidates) {
+            if (event.getLocation() != null) {
+                Integer locId = event.getLocation().getId();
+                uniqueLocationIds.add(locId);
+
+                destinationCoordsMap.put(locId, new Coordinates(
+                        event.getLocation().getLatitude(),
+                        event.getLocation().getLongitude()
+                ));
+            }
+        }
 
         Map<Integer, List<Integer>> locationFiltersMap = locationServiceClient.getFiltersForLocations(uniqueLocationIds);
-        Map<Integer, Double> distancesMap = aiServiceClient.getDistances(userCoords, uniqueLocationIds);
+        Map<Integer, Double> distancesMap = aiServiceClient.getDistances(userCoords, destinationCoordsMap);
 
         candidates.sort((o1, o2) -> {
             double score1 = calculateCompoundScore(o1, userFilters, searchFilters, locationFiltersMap, distancesMap, maxDistance, maxDays, timeOfSearch);

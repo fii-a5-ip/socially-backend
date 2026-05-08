@@ -30,14 +30,7 @@ public class UserService {
         return userMapper.toDTO(savedUser);
     }
 
-    // --- MOCK METHODS FOR OUTGOING SERVICE ---
-
-    /**
-     * TODO: Replace with real external API logic.
-     */
-    public Coordinates getUserCoordinates(Integer userId) {
-        return new Coordinates(45.0, 25.0); 
-    }
+    // --- MOCK METHODS FOR EVENT SERVICE --
 
     /**
      * TODO: Replace with real database logic.
