@@ -1,3 +1,6 @@
 # Global Owner (daca un fisier din acest repo nu are un owner dedicat, owner-ul global trebuie sa deie approve la PR) 
-.github/ @fii-a5-ip/devops
+
 * @SavaM25
+
+.github/ @fii-a5-ip/devops
+backend/backend/Dockerfile @fii-a5-ip/devops

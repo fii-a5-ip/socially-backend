@@ -1,5 +1,6 @@
 package com.soccialy.backend.entity;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -36,6 +37,15 @@ public class Location {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @Column(nullable = false, precision = 10, scale = 8)
+    private BigDecimal latitude;
+
+    @Column(nullable = false, precision = 10, scale = 8)
+    private BigDecimal longitude;
+
+    @Column(name = "img_url", length = 2048)
+    private String imgUrl;
+
     @Builder.Default
     @OneToMany(mappedBy = "location", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Event> events = new HashSet<>();
@@ -49,13 +59,12 @@ public class Location {
     )
     private Set<Filter> filters = new HashSet<>();
 
-    @Column(name = "latitude")
-    private Double latitude;
-
-    @Column(name = "longitude")
-    private Double longitude;
-
-    public Location(String name) {
+    public Location(String name, BigDecimal latitude, BigDecimal longitude) {
         this.name = name;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.events = new HashSet<>();
+        this.filters = new HashSet<>();
     }
+
 }
