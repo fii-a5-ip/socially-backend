@@ -1,6 +1,7 @@
 package com.soccialy.backend.dto;
 
 import lombok.Data;
+import java.util.List;
 
 @Data
 public class UserDTO {
@@ -8,6 +9,8 @@ public class UserDTO {
     private String username;
     private String fullname;
     private String email;
-    private String googleId;
+    private String bio;
+    private String profilePictureUrl;
     private String profileImgUrl;
+    private List<FilterDTO> filters;
 }
