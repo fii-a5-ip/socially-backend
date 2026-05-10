@@ -3,7 +3,6 @@ package com.soccialy.backend.service;
 import com.soccialy.backend.dto.FilterDTO;
 import com.soccialy.backend.dto.UpdateUserDTO;
 import com.soccialy.backend.dto.UserDTO;
-import com.soccialy.backend.entity.Coordinates;
 import com.soccialy.backend.entity.Filter;
 import com.soccialy.backend.entity.User;
 import com.soccialy.backend.mapper.UserMapper;
@@ -88,19 +87,6 @@ public class UserService {
         return userMapper.toDTO(savedUser);
     }
 
-    // --- USED BY OutgoingService ---
-
-    /**
-     * TODO: Replace with real external API logic for coordinates.
-     */
-    Coordinates coords = new Coordinates();
-    coords.setLatitude(45.0);
-    coords.setLongitude(25.0);
-    return coords;
-
-    /**
-     * Returns the filter IDs associated with a user.
-     */
     public List<Integer> getUserProfileFilters(Integer userId) {
         return getUserFilters(userId).stream()
                 .map(FilterDTO::getId)
