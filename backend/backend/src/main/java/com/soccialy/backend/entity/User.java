@@ -50,7 +50,7 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "filter_id")
     )
     private Set<Filter> filters = new HashSet<>();
-
+//test
     @Builder.Default
     @ManyToMany(mappedBy = "users")
     private Set<Group> groups = new HashSet<>();
