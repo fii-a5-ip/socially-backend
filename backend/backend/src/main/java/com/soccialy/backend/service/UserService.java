@@ -92,4 +92,12 @@ public class UserService {
                 .map(FilterDTO::getId)
                 .collect(Collectors.toList());
     }
+
+    public com.soccialy.backend.entity.Coordinates getUserCoordinates(Integer userId) {
+       com.soccialy.backend.entity.Coordinates coords = new com.soccialy.backend.entity.Coordinates();
+       coords.setLatitude(45.0);
+       coords.setLongitude(25.0);
+       return coords;
+    }
+
 }
