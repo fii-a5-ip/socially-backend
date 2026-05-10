@@ -93,9 +93,10 @@ public class UserService {
     /**
      * TODO: Replace with real external API logic for coordinates.
      */
-    public Coordinates getUserCoordinates(Integer userId) {
-        return new Coordinates(45.0, 25.0);
-    }
+    Coordinates coords = new Coordinates();
+    coords.setLatitude(45.0);
+    coords.setLongitude(25.0);
+    return coords;
 
     /**
      * Returns the filter IDs associated with a user.
