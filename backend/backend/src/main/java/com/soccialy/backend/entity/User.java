@@ -33,6 +33,9 @@ public class User {
     @Column(nullable = false, length = 256)
     private String password;
 
+    @Column(unique = true, length = 255)
+    private String googleId;
+
     @Column(name = "profile_img_url", length = 2048)
     private String profileImgUrl;
 
@@ -50,7 +53,7 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "filter_id")
     )
     private Set<Filter> filters = new HashSet<>();
-//test
+
     @Builder.Default
     @ManyToMany(mappedBy = "users")
     private Set<Group> groups = new HashSet<>();
