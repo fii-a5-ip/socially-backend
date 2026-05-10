@@ -5,7 +5,6 @@ import com.soccialy.backend.dto.UserDTO;
 import com.soccialy.backend.entity.Filter;
 import com.soccialy.backend.entity.User;
 import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
