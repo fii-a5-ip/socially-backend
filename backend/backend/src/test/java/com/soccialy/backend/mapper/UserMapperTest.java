@@ -22,7 +22,6 @@ class UserMapperTest {
         user.setFullname("Test User");
         user.setEmail("test@test.com");
         user.setBio("bio");
-        user.setProfilePictureUrl("url");
         user.setProfileImgUrl("imgUrl");
         user.setFilters(new HashSet<>());
 
@@ -33,7 +32,7 @@ class UserMapperTest {
         assertEquals("Test User", dto.getFullname());
         assertEquals("test@test.com", dto.getEmail());
         assertEquals("bio", dto.getBio());
-        assertEquals("url", dto.getProfilePictureUrl());
+        assertEquals("imgUrl", dto.getProfileImgUrl());
     }
 
     @Test
@@ -63,7 +62,7 @@ class UserMapperTest {
         dto.setUsername("test");
         dto.setEmail("test@test.com");
         dto.setBio("bio");
-        dto.setProfilePictureUrl("url");
+        dto.setProfileImgUrl("url");
 
         User user = userMapper.toEntity(dto);
 

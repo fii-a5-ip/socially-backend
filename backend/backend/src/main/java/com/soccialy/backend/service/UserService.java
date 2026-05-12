@@ -56,9 +56,6 @@ public class UserService {
         if (updateDTO.getBio() != null) {
             user.setBio(updateDTO.getBio());
         }
-        if (updateDTO.getProfilePictureUrl() != null) {
-            user.setProfilePictureUrl(updateDTO.getProfilePictureUrl());
-        }
         if (updateDTO.getFilterIds() != null) {
             Set<Filter> filters = new HashSet<>(filterRepository.findAllById(updateDTO.getFilterIds()));
             user.setFilters(filters);

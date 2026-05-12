@@ -42,9 +42,6 @@ public class User {
     @Column(length = 300)
     private String bio;
 
-    @Column(name = "profile_picture_url", length = 500)
-    private String profilePictureUrl;
-
     @Builder.Default
     @ManyToMany
     @JoinTable(

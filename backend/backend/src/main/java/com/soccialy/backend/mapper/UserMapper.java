@@ -21,7 +21,6 @@ public class UserMapper {
         dto.setFullname(user.getFullname());
         dto.setEmail(user.getEmail());
         dto.setBio(user.getBio());
-        dto.setProfilePictureUrl(user.getProfilePictureUrl());
         dto.setProfileImgUrl(user.getProfileImgUrl());
 
         if (user.getFilters() != null) {
@@ -44,7 +43,6 @@ public class UserMapper {
         user.setFullname(dto.getFullname());
         user.setEmail(dto.getEmail());
         user.setBio(dto.getBio());
-        user.setProfilePictureUrl(dto.getProfilePictureUrl());
         user.setProfileImgUrl(dto.getProfileImgUrl());
         return user;
     }
