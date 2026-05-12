@@ -11,8 +11,7 @@ import java.util.List;
 @Repository
 public interface GroupRepository extends JpaRepository<Group, Integer> {
 
-    @Query("select distinct g from UserGroup g join g.users u where u.id = :userId")
-    List<Group> findGroupsByUserId(@Param("userId") Integer userId);
+    List<Group> findByUsersId(Integer userId);
 
     @Query("select g from UserGroup g where lower(g.name) like lower(concat('%', :query, '%'))")
     List<Group> searchByName(@Param("query") String query);

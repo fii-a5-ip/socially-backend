@@ -24,7 +24,7 @@ public class GroupService {
 
     @Transactional(readOnly = true)
     public List<GroupDTO> findGroupsByUserId(Integer userId) {
-        return groupRepository.findGroupsByUserId(userId).stream()
+        return groupRepository.findByUsersId(userId).stream()
                 .map(groupMapper::toDTO)
                 .collect(Collectors.toList());
     }

@@ -28,10 +28,9 @@ public class GroupController {
 
     private final GroupService groupService;
 
-    @GetMapping("/my-groups")
-    public ResponseEntity<List<GroupDTO>> getMyGroups(@AuthenticationPrincipal String currentUserIdStr) {
-        Integer currentUserId = Integer.parseInt(currentUserIdStr);
-
+    @GetMapping
+    public ResponseEntity<List<GroupDTO>> getCurrentUserGroups(@AuthenticationPrincipal String currentUserIdStr) {
+        Integer currentUserId = parseCurrentUserId(currentUserIdStr);
         return ResponseEntity.ok(groupService.findGroupsByUserId(currentUserId));
     }
 
@@ -52,9 +51,13 @@ public class GroupController {
             @AuthenticationPrincipal String currentUserIdStr,
             @Valid @RequestBody GroupDTO groupDTO) {
 
-        Integer currentUserId = Integer.parseInt(currentUserIdStr);
+        Integer currentUserId = parseCurrentUserId(currentUserIdStr);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(groupService.createGroup(groupDTO, currentUserId));
+    }
+
+    private Integer parseCurrentUserId(String currentUserIdStr) {
+        return Integer.parseInt(currentUserIdStr);
     }
 }

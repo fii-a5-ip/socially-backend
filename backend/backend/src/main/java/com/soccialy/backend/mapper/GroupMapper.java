@@ -15,7 +15,9 @@ public class GroupMapper {
         GroupDTO dto = new GroupDTO();
         dto.setId(group.getId());
         dto.setName(group.getName());
-        dto.setMemberCount(group.getUsers() != null ? group.getUsers().size() : 0);
+        if (group.getUsers() != null) {
+            dto.setMemberCount(group.getUsers().size());
+        }
         return dto;
     }
 
