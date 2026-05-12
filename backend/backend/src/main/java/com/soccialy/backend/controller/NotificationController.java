@@ -1,4 +1,4 @@
-package com.socially.backend.controller;
+package com.soccialy.backend.controller;
 
 import com.socially.service.NotificationService;
 
