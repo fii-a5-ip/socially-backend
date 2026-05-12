@@ -6,6 +6,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch: # Permite declanșarea manuală din GitHub Actions
+  repository_dispatch:
+    types: [ec2_instance_ready]
 
 jobs:
   build-and-analyze:
