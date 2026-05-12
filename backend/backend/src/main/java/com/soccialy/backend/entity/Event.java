@@ -8,13 +8,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "outgoings")
+@Table(name = "events")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Outgoing {
+public class Event {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,16 +30,28 @@ public class Outgoing {
     @JoinColumn(name = "location_id", nullable = false)
     private Location location;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creator_user_id", nullable = false)
+    private User creator;
+
+    @Column(name = "`desc`", columnDefinition = "LONGTEXT", nullable = false)
+    private String desc;
+
+    @Column(name = "date", nullable = false)
     private LocalDateTime scheduledDate;
 
+    @Builder.Default
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "outgoing_filters", joinColumns = @JoinColumn(name = "outgoing_id"))
+    @CollectionTable(name = "event_filters", joinColumns = @JoinColumn(name = "event_id"))
     @Column(name = "filter_id")
     private List<Integer> filterIds = new ArrayList<>();
 
-    public Outgoing(String name, String url, Location location) {
+    public Event(String name, String url, Location location, User creator, String desc, LocalDateTime date) {
         this.name = name;
         this.url = url;
         this.location = location;
+        this.creator = creator;
+        this.desc = desc;
+        this.scheduledDate = date;
     }
 }

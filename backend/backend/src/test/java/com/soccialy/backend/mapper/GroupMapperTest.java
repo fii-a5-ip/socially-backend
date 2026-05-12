@@ -11,6 +11,9 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for GroupMapper — covers Entity-to-DTO and DTO-to-Entity conversions.
+ */
 class GroupMapperTest {
 
     private GroupMapper groupMapper;
@@ -22,6 +25,11 @@ class GroupMapperTest {
 
     @Test
     void toDTO_Success() {
+        // Arrange
+        User creator = new User();
+        creator.setId(1);
+        creator.setUsername("creator");
+
         User member = new User();
         member.setId(2);
         member.setUsername("member");
@@ -29,14 +37,22 @@ class GroupMapperTest {
         Group group = new Group();
         group.setId(10);
         group.setName("Test Grup");
-        group.setUsers(new HashSet<>(Set.of(member)));
+        group.setImgLink("https://example.com/img.png");
+        group.setCreator(creator);
+        group.setUsers(new HashSet<>(Set.of(creator, member)));
 
+        // Act
         GroupDTO dto = groupMapper.toDTO(group);
 
+        // Assert
         assertNotNull(dto);
         assertEquals(10, dto.getId());
         assertEquals("Test Grup", dto.getName());
-        assertEquals(1, dto.getMemberCount());
+        assertEquals("https://example.com/img.png", dto.getImgLink());
+        assertEquals(1, dto.getCreatorUserId());
+        assertTrue(dto.getMemberIds().contains(1));
+        assertTrue(dto.getMemberIds().contains(2));
+        assertEquals(2, dto.getMemberIds().size());
     }
 
     @Test
@@ -45,7 +61,7 @@ class GroupMapperTest {
     }
 
     @Test
-    void toDTO_NoUsers_ReturnsZeroMemberCount() {
+    void toDTO_NullCreatorAndUsers() {
         Group group = new Group();
         group.setId(5);
         group.setName("Empty Group");
@@ -55,20 +71,29 @@ class GroupMapperTest {
         assertNotNull(dto);
         assertEquals(5, dto.getId());
         assertEquals("Empty Group", dto.getName());
-        assertEquals(0, dto.getMemberCount());
+        assertNull(dto.getCreatorUserId());
+        // Group entity initializes users with empty HashSet (@Builder.Default),
+        // so memberIds will be an empty list, not null
+        assertNotNull(dto.getMemberIds());
+        assertTrue(dto.getMemberIds().isEmpty());
     }
 
     @Test
     void toEntity_Success() {
+        // Arrange
         GroupDTO dto = new GroupDTO();
         dto.setId(10);
         dto.setName("DTO Grup");
+        dto.setImgLink("https://example.com/img.png");
 
+        // Act
         Group entity = groupMapper.toEntity(dto);
 
+        // Assert
         assertNotNull(entity);
         assertEquals(10, entity.getId());
         assertEquals("DTO Grup", entity.getName());
+        assertEquals("https://example.com/img.png", entity.getImgLink());
     }
 
     @Test

@@ -73,20 +73,23 @@ class GroupControllerTest {
         // Arrange
         GroupDTO inputDTO = new GroupDTO();
         inputDTO.setName("Controller Test");
+        inputDTO.setCreatorUserId(1);
+        inputDTO.setMemberIds(List.of(1, 2));
 
         GroupDTO outputDTO = new GroupDTO();
         outputDTO.setId(1);
         outputDTO.setName("Controller Test");
-        outputDTO.setMemberCount(1);
+        outputDTO.setCreatorUserId(1);
+        outputDTO.setMemberIds(List.of(1, 2));
 
-        when(groupService.createGroup(inputDTO, 1)).thenReturn(outputDTO);
+        when(groupService.createGroup(inputDTO)).thenReturn(outputDTO);
 
         // Act
-        ResponseEntity<GroupDTO> response = groupController.createGroup("1", inputDTO);
+        ResponseEntity<GroupDTO> response = groupController.createGroup(inputDTO);
 
         // Assert
         assertNotNull(response);
-        assertEquals(201, response.getStatusCode().value());
+        assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals(1, response.getBody().getId());
         assertEquals("Controller Test", response.getBody().getName());
@@ -99,14 +102,15 @@ class GroupControllerTest {
         // Arrange
         GroupDTO inputDTO = new GroupDTO();
         inputDTO.setName("Fail Test");
+        inputDTO.setCreatorUserId(null);
 
-        when(groupService.createGroup(inputDTO, 1))
-                .thenThrow(new RuntimeException("Authenticated user not found."));
+        when(groupService.createGroup(inputDTO))
+                .thenThrow(new RuntimeException("Creator user ID is required"));
 
         // Act & Assert
         RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                groupController.createGroup("1", inputDTO));
+                groupController.createGroup(inputDTO));
 
-        assertTrue(ex.getMessage().contains("Authenticated user not found."));
+        assertTrue(ex.getMessage().contains("Creator user ID is required"));
     }
 }

@@ -22,6 +22,9 @@ public class Filter {
     @Column(unique = true, nullable = false, length = 45)
     private String name;
 
+    @Column(length = 45)
+    private String category;
+
     @Builder.Default
     @ManyToMany(mappedBy = "filters")
     private Set<User> users = new HashSet<>();

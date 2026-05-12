@@ -7,7 +7,6 @@ import lombok.*;
 import java.util.HashSet;
 import java.util.Set;
 
-
 @Entity
 @Table(name = "users")
 @Getter
@@ -21,14 +20,30 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(unique = true, nullable = false, length = 45)
+    @Column(unique = true, nullable = false, length = 100)
     private String username;
 
+    @Column(nullable = false, length = 100)
+    private String fullname;
+
+    @Column(unique = true, length = 100)
+    private String email;
 
     @JsonIgnore
-    @Column(nullable = false)
+    @Column(nullable = false, length = 256)
     private String password;
 
+    @Column(unique = true, length = 255)
+    private String googleId;
+
+    @Column(name = "profile_img_url", length = 2048)
+    private String profileImgUrl;
+
+    @Column(length = 300)
+    private String bio;
+
+    @Column(name = "profile_picture_url", length = 500)
+    private String profilePictureUrl;
 
     @Builder.Default
     @ManyToMany
@@ -42,9 +57,4 @@ public class User {
     @Builder.Default
     @ManyToMany(mappedBy = "users")
     private Set<Group> groups = new HashSet<>();
-
-    public User(String username, String password) {
-        this.username = username;
-        this.password = password;
-    }
 }

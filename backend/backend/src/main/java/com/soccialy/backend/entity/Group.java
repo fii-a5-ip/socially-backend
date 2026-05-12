@@ -22,6 +22,16 @@ public class Group {
     @Column(nullable = false, length = 45)
     private String name;
 
+    @Column(name = "img_link", length = 2048)
+    private String imgLink;
+
+    @Column(name = "`desc`", columnDefinition = "LONGTEXT")
+    private String desc;
+
+    @ManyToOne
+    @JoinColumn(name = "creator_user_id", nullable = false)
+    private User creator;
+
     @Builder.Default
     @ManyToMany
     @JoinTable(

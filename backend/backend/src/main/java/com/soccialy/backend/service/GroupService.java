@@ -3,48 +3,50 @@ package com.soccialy.backend.service;
 import com.soccialy.backend.dto.GroupDTO;
 import com.soccialy.backend.entity.Group;
 import com.soccialy.backend.entity.User;
-import com.soccialy.backend.exception.GroupNotFoundException;
 import com.soccialy.backend.mapper.GroupMapper;
 import com.soccialy.backend.repository.GroupRepository;
 import com.soccialy.backend.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 @Service
-@RequiredArgsConstructor
 public class GroupService {
 
-    private final GroupRepository groupRepository;
-    private final UserRepository userRepository;
-    private final GroupMapper groupMapper;
+    @Autowired
+    private GroupRepository groupRepository;
 
-    @Transactional(readOnly = true)
-    public List<GroupDTO> findGroupsByUserId(Integer userId) {
-        return groupRepository.findByUsersId(userId).stream()
-                .map(groupMapper::toDTO)
-                .collect(Collectors.toList());
-    }
+    @Autowired
+    private UserRepository userRepository;
 
-    @Transactional(readOnly = true)
-    public List<GroupDTO> searchGroups(String query) {
-        return groupRepository.searchByName(query).stream()
-                .map(groupMapper::toDTO)
-                .collect(Collectors.toList());
-    }
+    @Autowired
+    private GroupMapper groupMapper;
 
-    @Transactional
-    public GroupDTO createGroup(GroupDTO groupDTO, Integer currentUserId) {
+    public GroupDTO createGroup(GroupDTO groupDTO) {
         Group group = groupMapper.toEntity(groupDTO);
-        group.setId(null);
 
-        User currentUser = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found."));
+        // Seteaza creatorul
+        if (groupDTO.getCreatorUserId() != null) {
+            User creator = userRepository.findById(groupDTO.getCreatorUserId())
+                    .orElseThrow(() -> new RuntimeException("Creator not found"));
+            group.setCreator(creator);
+        } else {
+            throw new RuntimeException("Creator user ID is required");
+        }
 
-        group.getUsers().add(currentUser);
+        // Seteaza membrii
+        Set<User> members = new HashSet<>();
+        if (groupDTO.getMemberIds() != null && !groupDTO.getMemberIds().isEmpty()) {
+            List<User> foundUsers = userRepository.findAllById(groupDTO.getMemberIds());
+            members.addAll(foundUsers);
+        }
+        
+        // Asigura-te ca creatorul este adaugat automat in lista de membri
+        members.add(group.getCreator());
+        group.setUsers(members);
 
         Group savedGroup = groupRepository.save(group);
         return groupMapper.toDTO(savedGroup);

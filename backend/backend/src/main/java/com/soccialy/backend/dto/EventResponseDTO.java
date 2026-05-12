@@ -6,15 +6,19 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OutgoingResponseDTO {
+public class EventResponseDTO {
     private Integer id;
     private String name;
     private String url;
+    private String desc;
     private Integer locationId;
+    private Integer creatorUserId;
     private LocalDateTime scheduledDate;
+    private List<FilterDTO> filters;
 }

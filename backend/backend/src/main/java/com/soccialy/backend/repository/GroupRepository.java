@@ -7,12 +7,29 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface GroupRepository extends JpaRepository<Group, Integer> {
+    Optional<Group> findByName(String name);
+    List<Group> findByNameContainingIgnoreCase(String keyword);
 
     List<Group> findByUsersId(Integer userId);
+    List<Group> findByCreatorId(Integer creatorId);
 
-    @Query("select g from UserGroup g where lower(g.name) like lower(concat('%', :query, '%'))")
-    List<Group> searchByName(@Param("query") String query);
+    @Query("SELECT g FROM Group g WHERE LOWER(g.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(g.desc) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    List<Group> searchGroups(@Param("keyword") String keyword);
+
+    @Query(value = """
+        SELECT g.* FROM `groups` g 
+        LEFT JOIN group_users gu ON g.id = gu.group_id 
+        GROUP BY g.id 
+        ORDER BY COUNT(gu.user_id) DESC 
+        LIMIT 50
+        """, nativeQuery = true)
+    List<Group> findTopPopulatedGroups();
+
+    @Query(value = "SELECT COUNT(*) FROM group_users WHERE group_id = ?1", nativeQuery = true)
+    long countMembers(Integer groupId);
 }
