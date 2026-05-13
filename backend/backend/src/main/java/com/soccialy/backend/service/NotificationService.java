@@ -1,10 +1,10 @@
-package com.socially.service;
+package com.soccialy.backend.service;
 
-import com.socially.dto.NotificationDTO;
-import com.socially.entity.Notification;
-import com.socially.entity.NotificationType;
-import com.socially.mapper.NotificationMapper;
-import com.socially.repository.NotificationRepository;
+import comsoccialy.backend.dto.NotificationDTO;
+import com.soccialy.backend.entity.Notification;
+import com.soccialy.backend.entity.NotificationType;
+import com.soccialy.backend.mapper.NotificationMapper;
+import com.soccialy.backend.repository.NotificationRepository;
 
 import lombok.RequiredArgsConstructor;
 
