@@ -1,6 +1,6 @@
 package com.soccialy.backend.controller;
 
-import com.socially.service.NotificationService;
+import com.soccialy.backend.service.NotificationService;
 
 import lombok.RequiredArgsConstructor;
 
