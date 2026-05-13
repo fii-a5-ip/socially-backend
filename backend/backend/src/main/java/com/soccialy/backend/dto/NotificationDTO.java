@@ -1,4 +1,4 @@
-package com.socially.dto;
+package com.soccialy.backend.dto;
 
 import lombok.*;
 
