@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EventService {
 
+    private static final String EVENT_NOT_FOUND_MESSAGE = "Event not found with id: ";
+
     private final EventRepository eventRepository;
     private final AiService aiServiceClient;
     private final UserService userService;
@@ -72,7 +74,7 @@ public class EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "Event not found with id: " + eventId
+                        EVENT_NOT_FOUND_MESSAGE + eventId
                 ));
 
         return eventMapper.toResponseDTO(event);
@@ -82,7 +84,7 @@ public class EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "Event not found with id: " + eventId
+                        EVENT_NOT_FOUND_MESSAGE + eventId
                 ));
 
         ensureCurrentUserOwnsEvent(event);
@@ -112,7 +114,7 @@ public class EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "Event not found with id: " + eventId
+                        EVENT_NOT_FOUND_MESSAGE + eventId
                 ));
 
         ensureCurrentUserOwnsEvent(event);
@@ -167,28 +169,19 @@ public class EventService {
         Map<Integer, Double> distancesMap =
                 aiServiceClient.getDistances(userCoords, uniqueLocationIds);
 
-        candidates.sort((o1, o2) -> {
-            double score1 = calculateCompoundScore(
-                    o1,
-                    userFilters,
-                    searchFilters,
-                    locationFiltersMap,
-                    distancesMap,
-                    maxDistance,
-                    maxDays,
-                    timeOfSearch
-            );
+        ScoringContext scoringContext = new ScoringContext(
+                userFilters,
+                searchFilters,
+                locationFiltersMap,
+                distancesMap,
+                maxDistance,
+                maxDays,
+                timeOfSearch
+        );
 
-            double score2 = calculateCompoundScore(
-                    o2,
-                    userFilters,
-                    searchFilters,
-                    locationFiltersMap,
-                    distancesMap,
-                    maxDistance,
-                    maxDays,
-                    timeOfSearch
-            );
+        candidates.sort((o1, o2) -> {
+            double score1 = calculateCompoundScore(o1, scoringContext);
+            double score2 = calculateCompoundScore(o2, scoringContext);
 
             return Double.compare(score2, score1);
         });
@@ -201,13 +194,7 @@ public class EventService {
 
     private double calculateCompoundScore(
             Event event,
-            List<Integer> userFilters,
-            List<Integer> searchFilters,
-            Map<Integer, List<Integer>> locationFiltersMap,
-            Map<Integer, Double> distancesMap,
-            Double maxDistance,
-            Integer maxDays,
-            LocalDateTime timeOfSearch) {
+            ScoringContext scoringContext) {
 
         Integer locId = event.getLocation() != null
                 ? event.getLocation().getId()
@@ -219,17 +206,27 @@ public class EventService {
                         : new ArrayList<>()
         );
 
-        totalFilters.addAll(locationFiltersMap.getOrDefault(locId, new ArrayList<>()));
-
-        double filterScore = calculateFilterScore(totalFilters, userFilters, searchFilters);
-        double distanceScore = calculateDistanceScore(
-                distancesMap.getOrDefault(locId, maxDistance + 1.0),
-                maxDistance
+        totalFilters.addAll(
+                scoringContext.locationFiltersMap()
+                        .getOrDefault(locId, new ArrayList<>())
         );
+
+        double filterScore = calculateFilterScore(
+                totalFilters,
+                scoringContext.userFilters(),
+                scoringContext.searchFilters()
+        );
+
+        double distanceScore = calculateDistanceScore(
+                scoringContext.distancesMap()
+                        .getOrDefault(locId, scoringContext.maxDistance() + 1.0),
+                scoringContext.maxDistance()
+        );
+
         double timeScore = calculateTimeScore(
-                timeOfSearch,
+                scoringContext.timeOfSearch(),
                 event.getScheduledDate(),
-                maxDays
+                scoringContext.maxDays()
         );
 
         return (0.5 * filterScore) + (0.3 * distanceScore) + (0.2 * timeScore);
@@ -295,5 +292,16 @@ public class EventService {
         }
 
         return 1.0 - ((double) daysUntilEvent / maxDays);
+    }
+
+    private record ScoringContext(
+            List<Integer> userFilters,
+            List<Integer> searchFilters,
+            Map<Integer, List<Integer>> locationFiltersMap,
+            Map<Integer, Double> distancesMap,
+            Double maxDistance,
+            Integer maxDays,
+            LocalDateTime timeOfSearch
+    ) {
     }
 }
