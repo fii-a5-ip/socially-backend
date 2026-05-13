@@ -1,7 +1,7 @@
-package com.socially.mapper;
+package com.soccialy.backend.mapper;
 
-import com.socially.dto.NotificationDTO;
-import com.socially.entity.Notification;
+import com.soccialy.backend.dto.NotificationDTO;
+import com.soccialy.backend.entity.Notification;
 import org.springframework.stereotype.Component;
 
 @Component
