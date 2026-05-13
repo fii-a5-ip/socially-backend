@@ -89,7 +89,7 @@ class UserServiceTest {
         UpdateUserDTO updateDTO = new UpdateUserDTO();
         updateDTO.setEmail("new@email.com");
         updateDTO.setBio("bio");
-        updateDTO.setProfilePictureUrl("url");
+        updateDTO.setProfileImgUrl("url");
         updateDTO.setFilterIds(List.of(1));
         when(userRepository.findByUsername("test")).thenReturn(Optional.of(user));
         when(filterRepository.findAllById(List.of(1))).thenReturn(List.of(new Filter()));

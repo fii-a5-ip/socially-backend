@@ -39,7 +39,7 @@ public class User {
     @Column(name = "profile_img_url", length = 2048)
     private String profileImgUrl;
 
-    @Column(length = 300)
+    @Column(length = 1000)
     private String bio;
 
     @Builder.Default
@@ -52,6 +52,6 @@ public class User {
     private Set<Filter> filters = new HashSet<>();
 
     @Builder.Default
-    @ManyToMany(mappedBy = "users")
-    private Set<Group> groups = new HashSet<>();
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<GroupUser> groupUsers = new HashSet<>();
 }

@@ -18,12 +18,17 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     boolean existsByEmail(String email);
     Optional<User> findByGoogleId(String googleId);
     List<User> findByUsernameStartingWithIgnoreCase(String prefix);
-    List<User> findByGroupsId(Integer groupId);
+
+
+    @Query("SELECT gu.user FROM GroupUser gu WHERE gu.group.id = :groupId")
+    List<User> findUsersByGroupId(@Param("groupId") Integer groupId);
+
+
     List<User> findByFiltersId(Integer filterId);
 
-    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE " +
-           "LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(u.fullname) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%'))")
-    java.util.List<User> searchUsers(@org.springframework.data.repository.query.Param("query") String query);
+    @Query("SELECT u FROM User u WHERE " +
+            "LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(u.fullname) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%'))")
+    List<User> searchUsers(@Param("query") String query);
 }
