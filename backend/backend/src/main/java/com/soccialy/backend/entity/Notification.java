@@ -1,4 +1,4 @@
-package com.socially.entity;
+package com.soccialy.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
