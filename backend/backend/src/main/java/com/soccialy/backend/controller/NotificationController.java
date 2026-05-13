@@ -23,7 +23,7 @@ public class NotificationController {
 
 
     @GetMapping
-    public ResponseEntity<?>
+    public  ResponseEntity<List<NotificationDTO>>
     getNotifications(
             @AuthenticationPrincipal
             String currentUserIdStr
@@ -47,7 +47,7 @@ public class NotificationController {
     @GetMapping(
             "/unread-count"
     )
-    public ResponseEntity<?>
+    public ResponseEntity<Long>
     getUnreadCount(
             @AuthenticationPrincipal
             String currentUserIdStr
@@ -71,7 +71,7 @@ public class NotificationController {
     @PostMapping(
             "/test"
     )
-    public ResponseEntity<?>
+    public   ResponseEntity<NotificationDTO>
     createTestNotification(
             @AuthenticationPrincipal
             String currentUserIdStr
