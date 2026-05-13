@@ -1,6 +1,6 @@
 package com.soccialy.backend.service;
 
-import comsoccialy.backend.dto.NotificationDTO;
+import com.soccialy.backend.dto.NotificationDTO;
 import com.soccialy.backend.entity.Notification;
 import com.soccialy.backend.entity.NotificationType;
 import com.soccialy.backend.mapper.NotificationMapper;
