@@ -1,6 +1,6 @@
-package com.socially.repository;
+package com.soccialy.backend.repository;
 
-import com.socially.entity.Notification;
+import com.soccialy.backend.entity.Notification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
