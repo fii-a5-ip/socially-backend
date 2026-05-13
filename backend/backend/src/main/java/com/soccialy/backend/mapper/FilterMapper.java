@@ -19,6 +19,8 @@ public class FilterMapper {
         }
 
         dto.setName(filter.getName());
+        dto.setCategory(filter.getCategory());
+
         return dto;
     }
 
@@ -34,6 +36,8 @@ public class FilterMapper {
         }
 
         filter.setName(dto.getName());
+        filter.setCategory(dto.getCategory());
+
         return filter;
     }
 }

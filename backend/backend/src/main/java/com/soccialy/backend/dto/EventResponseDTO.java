@@ -20,5 +20,6 @@ public class EventResponseDTO {
     private Integer locationId;
     private Integer creatorUserId;
     private LocalDateTime scheduledDate;
+    private List<Integer> filterIds;
     private List<FilterDTO> filters;
 }
