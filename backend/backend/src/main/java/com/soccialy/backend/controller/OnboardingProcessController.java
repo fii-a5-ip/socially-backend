@@ -43,7 +43,7 @@ public class OnboardingProcessController {
                 .build();
         this.filterRepository = filterRepository;
         this.objectMapper = objectMapper;
-        this.onboardingUrl = aiBaseUrl.replaceAll("/+$", "") + "/api/onboardingProcess/";
+        this.onboardingUrl = removeTrailingSlashes(aiBaseUrl) + "/api/onboardingProcess/";
     }
 
     @PostMapping
@@ -67,6 +67,14 @@ public class OnboardingProcessController {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body("{\"error\":\"Onboarding AI service is unavailable.\"}");
         }
+    }
+
+    private String removeTrailingSlashes(String value) {
+        int end = value.length();
+        while (end > 0 && value.charAt(end - 1) == '/') {
+            end--;
+        }
+        return value.substring(0, end);
     }
 
     private HttpResponse<String> sendWithRetry(String payload) throws IOException, InterruptedException {
