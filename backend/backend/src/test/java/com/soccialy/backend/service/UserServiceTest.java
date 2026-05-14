@@ -86,6 +86,7 @@ class UserServiceTest {
     @Test
     void updateUser_updatesFieldsAndSaves() {
         User user = new User();
+        user.setUsername("test");
         UpdateUserDTO updateDTO = new UpdateUserDTO();
         updateDTO.setEmail("new@email.com");
         updateDTO.setBio("bio");
@@ -98,6 +99,36 @@ class UserServiceTest {
         UserDTO result = userService.updateUser("test", updateDTO);
         assertNotNull(result);
         verify(userRepository).save(user);
+    }
+
+    @Test
+    void updateUserById_updatesFiltersAndSaves() {
+        User user = new User();
+        user.setUsername("test");
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
+        updateDTO.setFilterIds(List.of(1, 2));
+        Filter filter1 = new Filter();
+        filter1.setId(1);
+        filter1.setName("cafe");
+        Filter filter2 = new Filter();
+        filter2.setId(2);
+        filter2.setName("bar");
+        when(userRepository.findById(7)).thenReturn(Optional.of(user));
+        when(filterRepository.findAllById(List.of(1, 2))).thenReturn(List.of(filter1, filter2));
+        when(userRepository.save(user)).thenReturn(user);
+        when(userMapper.toDTO(user)).thenReturn(new UserDTO());
+
+        UserDTO result = userService.updateUserById(7, updateDTO);
+
+        assertNotNull(result);
+        assertEquals(2, user.getFilters().size());
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void updateUserById_throwsWhenNotFound() {
+        when(userRepository.findById(7)).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> userService.updateUserById(7, new UpdateUserDTO()));
     }
 
     @Test

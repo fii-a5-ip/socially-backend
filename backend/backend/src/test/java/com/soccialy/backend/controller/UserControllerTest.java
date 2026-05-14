@@ -49,6 +49,14 @@ class UserControllerTest {
     }
 
     @Test
+    void getMe_returnsCurrentUserByIdPrincipal() {
+        when(userService.findUserById(7)).thenReturn(new UserDTO());
+        var response = userController.getMe(7);
+        assertEquals(200, response.getStatusCode().value());
+        verify(userService).findUserById(7);
+    }
+
+    @Test
     void getById_returnsUser() {
         when(userService.findUserById(1)).thenReturn(new UserDTO());
         var response = userController.getById(1);
@@ -61,6 +69,20 @@ class UserControllerTest {
         when(userService.updateUser(eq("test"), any(UpdateUserDTO.class))).thenReturn(new UserDTO());
         var response = userController.updateMe(userDetails, new UpdateUserDTO());
         assertEquals(200, response.getStatusCode().value());
+    }
+
+    @Test
+    void updateMe_updatesCurrentUserByIdPrincipal() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
+        when(userService.updateUserById(eq(7), eq(updateDTO))).thenReturn(new UserDTO());
+        var response = userController.updateMe(7, updateDTO);
+        assertEquals(200, response.getStatusCode().value());
+        verify(userService).updateUserById(7, updateDTO);
+    }
+
+    @Test
+    void updateMe_throwsWhenPrincipalIsMissing() {
+        assertThrows(RuntimeException.class, () -> userController.updateMe(null, new UpdateUserDTO()));
     }
 
     @Test
