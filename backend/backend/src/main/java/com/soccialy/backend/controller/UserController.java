@@ -15,12 +15,14 @@ import java.util.List;
 @RequestMapping("/api/users")
 public class UserController {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
+    private final CurrentUserService currentUserService;
 
     @Autowired
-    private CurrentUserService currentUserService;
-
+    public UserController(UserService userService, CurrentUserService currentUserService) {
+        this.userService = userService;
+        this.currentUserService = currentUserService;
+    }
     // GET /api/users — toti userii (admin/debug)
     @GetMapping
     public ResponseEntity<List<UserDTO>> getAll() {

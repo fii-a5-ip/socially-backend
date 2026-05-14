@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserService {
-
+    private static final String USER_NOT_FOUND_WITH_ID = "User not found with id: ";
     @Autowired
     private UserRepository userRepository;
 
@@ -36,7 +36,7 @@ public class UserService {
 
     public UserDTO findUserById(Integer id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND_WITH_ID + id));
         return userMapper.toDTO(user);
     }
 
@@ -55,7 +55,7 @@ public class UserService {
 
     public UserDTO updateUserById(Integer userId, UpdateUserDTO updateDTO) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND_WITH_ID + userId));
 
         return updateUserEntity(user, updateDTO);
     }
@@ -79,7 +79,7 @@ public class UserService {
 
     public List<FilterDTO> getUserFilters(Integer userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND_WITH_ID + userId));
         return user.getFilters().stream()
                 .map(f -> {
                     FilterDTO dto = new FilterDTO();

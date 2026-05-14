@@ -135,10 +135,11 @@ class UserServiceTest {
 
     @Test
     void updateUserById_throwsWhenNotFound() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
         when(userRepository.findById(404)).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () ->
-                userService.updateUserById(404, new UpdateUserDTO()));
+                userService.updateUserById(404, updateDTO));
     }
 
     @Test
