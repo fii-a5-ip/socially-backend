@@ -50,6 +50,17 @@ public class UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
+        return updateUserEntity(user, updateDTO);
+    }
+
+    public UserDTO updateUserById(Integer userId, UpdateUserDTO updateDTO) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        return updateUserEntity(user, updateDTO);
+    }
+
+    private UserDTO updateUserEntity(User user, UpdateUserDTO updateDTO) {
         if (updateDTO.getEmail() != null) {
             user.setEmail(updateDTO.getEmail());
         }
@@ -57,7 +68,8 @@ public class UserService {
             user.setBio(updateDTO.getBio());
         }
         if (updateDTO.getFilterIds() != null) {
-            Set<Filter> filters = new HashSet<>(filterRepository.findAllById(updateDTO.getFilterIds()));
+            Set<Filter> filters =
+                    new HashSet<>(filterRepository.findAllById(updateDTO.getFilterIds()));
             user.setFilters(filters);
         }
 
@@ -91,10 +103,10 @@ public class UserService {
     }
 
     public com.soccialy.backend.entity.Coordinates getUserCoordinates(Integer userId) {
-       com.soccialy.backend.entity.Coordinates coords = new com.soccialy.backend.entity.Coordinates();
-       coords.setLatitude(45.0);
-       coords.setLongitude(25.0);
-       return coords;
+        com.soccialy.backend.entity.Coordinates coords = new com.soccialy.backend.entity.Coordinates();
+        coords.setLatitude(45.0);
+        coords.setLongitude(25.0);
+        return coords;
     }
 
 }
