@@ -107,6 +107,41 @@ class UserServiceTest {
     }
 
     @Test
+    void updateUserById_updatesFieldsAndSaves() {
+        User user = new User();
+
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
+        updateDTO.setEmail("updated@email.com");
+        updateDTO.setBio("updated bio");
+        updateDTO.setFilterIds(List.of(1, 2));
+
+        Filter filter1 = new Filter();
+        Filter filter2 = new Filter();
+
+        when(userRepository.findById(7)).thenReturn(Optional.of(user));
+        when(filterRepository.findAllById(List.of(1, 2)))
+                .thenReturn(List.of(filter1, filter2));
+        when(userRepository.save(user)).thenReturn(user);
+        when(userMapper.toDTO(user)).thenReturn(new UserDTO());
+
+        UserDTO result = userService.updateUserById(7, updateDTO);
+
+        assertNotNull(result);
+        verify(userRepository).findById(7);
+        verify(filterRepository).findAllById(List.of(1, 2));
+        verify(userRepository).save(user);
+        verify(userMapper).toDTO(user);
+    }
+
+    @Test
+    void updateUserById_throwsWhenNotFound() {
+        when(userRepository.findById(404)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () ->
+                userService.updateUserById(404, new UpdateUserDTO()));
+    }
+
+    @Test
     void getUserFilters_returnsFilters() {
         User user = new User();
         Filter filter = new Filter();
