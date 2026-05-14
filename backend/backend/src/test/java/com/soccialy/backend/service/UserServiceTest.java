@@ -127,14 +127,16 @@ class UserServiceTest {
 
     @Test
     void updateUserById_throwsWhenNotFound() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
         when(userRepository.findById(7)).thenReturn(Optional.empty());
-        assertThrows(RuntimeException.class, () -> userService.updateUserById(7, new UpdateUserDTO()));
+        assertThrows(RuntimeException.class, () -> userService.updateUserById(7, updateDTO));
     }
 
     @Test
     void updateUser_throwsWhenNotFound() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
         when(userRepository.findByUsername("ghost")).thenReturn(Optional.empty());
-        assertThrows(RuntimeException.class, () -> userService.updateUser("ghost", new UpdateUserDTO()));
+        assertThrows(RuntimeException.class, () -> userService.updateUser("ghost", updateDTO));
     }
 
     @Test

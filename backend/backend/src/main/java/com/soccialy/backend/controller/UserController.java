@@ -66,7 +66,7 @@ public class UserController {
         if (principal instanceof UserDetails userDetails) {
             return userService.findUserByUsername(userDetails.getUsername());
         }
-        throw new RuntimeException("No authenticated user found");
+        throw new IllegalStateException("No authenticated user found");
     }
 
     private UserDTO updateCurrentUser(Object principal, UpdateUserDTO updateDTO) {
@@ -76,6 +76,6 @@ public class UserController {
         if (principal instanceof UserDetails userDetails) {
             return userService.updateUser(userDetails.getUsername(), updateDTO);
         }
-        throw new RuntimeException("No authenticated user found");
+        throw new IllegalStateException("No authenticated user found");
     }
 }

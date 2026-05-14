@@ -65,16 +65,17 @@ class UserControllerTest {
 
     @Test
     void updateMe_returnsUpdatedUser() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
         when(userDetails.getUsername()).thenReturn("test");
-        when(userService.updateUser(eq("test"), any(UpdateUserDTO.class))).thenReturn(new UserDTO());
-        var response = userController.updateMe(userDetails, new UpdateUserDTO());
+        when(userService.updateUser("test", updateDTO)).thenReturn(new UserDTO());
+        var response = userController.updateMe(userDetails, updateDTO);
         assertEquals(200, response.getStatusCode().value());
     }
 
     @Test
     void updateMe_updatesCurrentUserByIdPrincipal() {
         UpdateUserDTO updateDTO = new UpdateUserDTO();
-        when(userService.updateUserById(eq(7), eq(updateDTO))).thenReturn(new UserDTO());
+        when(userService.updateUserById(7, updateDTO)).thenReturn(new UserDTO());
         var response = userController.updateMe(7, updateDTO);
         assertEquals(200, response.getStatusCode().value());
         verify(userService).updateUserById(7, updateDTO);
@@ -82,7 +83,8 @@ class UserControllerTest {
 
     @Test
     void updateMe_throwsWhenPrincipalIsMissing() {
-        assertThrows(RuntimeException.class, () -> userController.updateMe(null, new UpdateUserDTO()));
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
+        assertThrows(IllegalStateException.class, () -> userController.updateMe(null, updateDTO));
     }
 
     @Test
