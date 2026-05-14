@@ -1,7 +1,9 @@
 package com.soccialy.backend.service;
 
 import com.soccialy.backend.dto.GroupDTO;
+import com.soccialy.backend.dto.GroupUserDTO;
 import com.soccialy.backend.entity.Group;
+import com.soccialy.backend.entity.GroupUser;
 import com.soccialy.backend.entity.User;
 import com.soccialy.backend.mapper.GroupMapper;
 import com.soccialy.backend.repository.GroupRepository;
@@ -19,7 +21,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for GroupService — covers group creation logic,
- * creator validation, and member assignment.
+ * creator validation, and member assignment with roles.
  */
 class GroupServiceTest {
 
@@ -59,26 +61,37 @@ class GroupServiceTest {
         GroupDTO inputDTO = new GroupDTO();
         inputDTO.setName("Test Grup");
         inputDTO.setCreatorUserId(1);
-        inputDTO.setMemberIds(List.of(2));
-
-        Group mappedGroup = new Group();
-        mappedGroup.setName("Test Grup");
+        inputDTO.setMembers(List.of(new GroupUserDTO(null, 2, "MEMBER")));
 
         Group savedGroup = new Group();
         savedGroup.setId(1);
         savedGroup.setName("Test Grup");
         savedGroup.setCreator(mockCreator);
-        savedGroup.setUsers(new HashSet<>(Set.of(mockCreator, mockMember)));
+
+        GroupUser adminUser = new GroupUser();
+        adminUser.setGroup(savedGroup);
+        adminUser.setUser(mockCreator);
+        adminUser.setRole("ADMIN");
+
+        GroupUser normalMember = new GroupUser();
+        normalMember.setGroup(savedGroup);
+        normalMember.setUser(mockMember);
+        normalMember.setRole("MEMBER");
+
+        savedGroup.setGroupUsers(new HashSet<>(Set.of(adminUser, normalMember)));
 
         GroupDTO outputDTO = new GroupDTO();
         outputDTO.setId(1);
         outputDTO.setName("Test Grup");
         outputDTO.setCreatorUserId(1);
-        outputDTO.setMemberIds(List.of(1, 2));
+        outputDTO.setMembers(List.of(
+                new GroupUserDTO(1, 1, "ADMIN"),
+                new GroupUserDTO(1, 2, "MEMBER")
+        ));
 
-        when(groupMapper.toEntity(inputDTO)).thenReturn(mappedGroup);
+        // Mocks
         when(userRepository.findById(1)).thenReturn(Optional.of(mockCreator));
-        when(userRepository.findAllById(List.of(2))).thenReturn(List.of(mockMember));
+        when(userRepository.findById(2)).thenReturn(Optional.of(mockMember));
         when(groupRepository.save(any(Group.class))).thenReturn(savedGroup);
         when(groupMapper.toDTO(savedGroup)).thenReturn(outputDTO);
 
@@ -90,11 +103,15 @@ class GroupServiceTest {
         assertEquals(1, result.getId());
         assertEquals("Test Grup", result.getName());
         assertEquals(1, result.getCreatorUserId());
-        assertTrue(result.getMemberIds().contains(1));
-        assertTrue(result.getMemberIds().contains(2));
+        assertNotNull(result.getMembers());
+        assertEquals(2, result.getMembers().size());
+
+        assertTrue(result.getMembers().stream().anyMatch(m -> m.getUserId() == 1 && "ADMIN".equals(m.getRole())));
+        assertTrue(result.getMembers().stream().anyMatch(m -> m.getUserId() == 2 && "MEMBER".equals(m.getRole())));
 
         verify(groupRepository, times(1)).save(any(Group.class));
-        verify(userRepository, times(1)).findById(1);
+        verify(userRepository, times(1)).findById(1); // creator
+        verify(userRepository, times(1)).findById(2); // extra member
     }
 
     @Test
@@ -103,24 +120,25 @@ class GroupServiceTest {
         GroupDTO inputDTO = new GroupDTO();
         inputDTO.setName("Solo Grup");
         inputDTO.setCreatorUserId(1);
-        inputDTO.setMemberIds(Collections.emptyList());
-
-        Group mappedGroup = new Group();
-        mappedGroup.setName("Solo Grup");
+        inputDTO.setMembers(Collections.emptyList());
 
         Group savedGroup = new Group();
         savedGroup.setId(2);
         savedGroup.setName("Solo Grup");
         savedGroup.setCreator(mockCreator);
-        savedGroup.setUsers(new HashSet<>(Set.of(mockCreator)));
+
+        GroupUser adminUser = new GroupUser();
+        adminUser.setGroup(savedGroup);
+        adminUser.setUser(mockCreator);
+        adminUser.setRole("ADMIN");
+        savedGroup.setGroupUsers(new HashSet<>(Set.of(adminUser)));
 
         GroupDTO outputDTO = new GroupDTO();
         outputDTO.setId(2);
         outputDTO.setName("Solo Grup");
         outputDTO.setCreatorUserId(1);
-        outputDTO.setMemberIds(List.of(1));
+        outputDTO.setMembers(List.of(new GroupUserDTO(2, 1, "ADMIN")));
 
-        when(groupMapper.toEntity(inputDTO)).thenReturn(mappedGroup);
         when(userRepository.findById(1)).thenReturn(Optional.of(mockCreator));
         when(groupRepository.save(any(Group.class))).thenReturn(savedGroup);
         when(groupMapper.toDTO(savedGroup)).thenReturn(outputDTO);
@@ -131,8 +149,9 @@ class GroupServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals("Solo Grup", result.getName());
-        assertEquals(1, result.getMemberIds().size());
-        assertTrue(result.getMemberIds().contains(1));
+        assertEquals(1, result.getMembers().size());
+        assertEquals(1, result.getMembers().get(0).getUserId());
+        assertEquals("ADMIN", result.getMembers().get(0).getRole());
     }
 
     @Test
@@ -142,8 +161,6 @@ class GroupServiceTest {
         inputDTO.setName("Fail Grup");
         inputDTO.setCreatorUserId(999);
 
-        Group mappedGroup = new Group();
-        when(groupMapper.toEntity(inputDTO)).thenReturn(mappedGroup);
         when(userRepository.findById(999)).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -160,9 +177,6 @@ class GroupServiceTest {
         GroupDTO inputDTO = new GroupDTO();
         inputDTO.setName("No Creator");
         inputDTO.setCreatorUserId(null);
-
-        Group mappedGroup = new Group();
-        when(groupMapper.toEntity(inputDTO)).thenReturn(mappedGroup);
 
         // Act & Assert
         RuntimeException ex = assertThrows(RuntimeException.class, () ->

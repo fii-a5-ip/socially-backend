@@ -15,6 +15,7 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
     List<Event> findByLocationId(Integer locationId);
     List<Event> findByNameContainingIgnoreCase(String keyword);
     List<Event> findByCreatorId(Integer creatorId);
+    List<Event> findByGroupId(Integer groupId);
     List<Event> findByScheduledDateAfter(LocalDateTime currentDate);
     List<Event> findByLocationIdNot(Integer excludedLocationId);
     long countByLocationId(Integer locationId);
