@@ -50,6 +50,17 @@ public class UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
+        return updateUserEntity(user, updateDTO);
+    }
+
+    public UserDTO updateUserById(Integer userId, UpdateUserDTO updateDTO) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        return updateUserEntity(user, updateDTO);
+    }
+
+    private UserDTO updateUserEntity(User user, UpdateUserDTO updateDTO) {
         if (updateDTO.getEmail() != null) {
             user.setEmail(updateDTO.getEmail());
         }
@@ -59,6 +70,10 @@ public class UserService {
         if (updateDTO.getFilterIds() != null) {
             Set<Filter> filters = new HashSet<>(filterRepository.findAllById(updateDTO.getFilterIds()));
             user.setFilters(filters);
+            System.out.println("Saved filters for user " + user.getUsername() + ": " +
+                    filters.stream()
+                            .map(filter -> filter.getId() + ":" + filter.getName())
+                            .collect(Collectors.toList()));
         }
 
         User saved = userRepository.save(user);

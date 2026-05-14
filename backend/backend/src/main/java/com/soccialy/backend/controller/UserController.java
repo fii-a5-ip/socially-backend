@@ -27,8 +27,8 @@ public class UserController {
 
     // GET /api/users/me — profilul userului logat (din JWT)
     @GetMapping("/me")
-    public ResponseEntity<UserDTO> getMe(@AuthenticationPrincipal UserDetails userDetails) {
-        UserDTO user = userService.findUserByUsername(userDetails.getUsername());
+    public ResponseEntity<UserDTO> getMe(@AuthenticationPrincipal Object principal) {
+        UserDTO user = findCurrentUser(principal);
         return ResponseEntity.ok(user);
     }
 
@@ -41,9 +41,9 @@ public class UserController {
     // PUT /api/users/me — update profil (email, bio, poza, filtre)
     @PutMapping("/me")
     public ResponseEntity<UserDTO> updateMe(
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal Object principal,
             @RequestBody UpdateUserDTO updateDTO) {
-        UserDTO updated = userService.updateUser(userDetails.getUsername(), updateDTO);
+        UserDTO updated = updateCurrentUser(principal, updateDTO);
         return ResponseEntity.ok(updated);
     }
 
@@ -57,5 +57,25 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserDTO> create(@RequestBody UserDTO userDTO) {
         return ResponseEntity.ok(userService.saveUser(userDTO));
+    }
+
+    private UserDTO findCurrentUser(Object principal) {
+        if (principal instanceof Integer userId) {
+            return userService.findUserById(userId);
+        }
+        if (principal instanceof UserDetails userDetails) {
+            return userService.findUserByUsername(userDetails.getUsername());
+        }
+        throw new RuntimeException("No authenticated user found");
+    }
+
+    private UserDTO updateCurrentUser(Object principal, UpdateUserDTO updateDTO) {
+        if (principal instanceof Integer userId) {
+            return userService.updateUserById(userId, updateDTO);
+        }
+        if (principal instanceof UserDetails userDetails) {
+            return userService.updateUser(userDetails.getUsername(), updateDTO);
+        }
+        throw new RuntimeException("No authenticated user found");
     }
 }
