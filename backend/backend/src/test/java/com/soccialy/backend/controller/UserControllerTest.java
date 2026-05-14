@@ -49,6 +49,14 @@ class UserControllerTest {
     }
 
     @Test
+    void getMe_returnsCurrentUserByIdPrincipal() {
+        when(userService.findUserById(7)).thenReturn(new UserDTO());
+        var response = userController.getMe(7);
+        assertEquals(200, response.getStatusCode().value());
+        verify(userService).findUserById(7);
+    }
+
+    @Test
     void getById_returnsUser() {
         when(userService.findUserById(1)).thenReturn(new UserDTO());
         var response = userController.getById(1);
@@ -57,10 +65,26 @@ class UserControllerTest {
 
     @Test
     void updateMe_returnsUpdatedUser() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
         when(userDetails.getUsername()).thenReturn("test");
-        when(userService.updateUser(eq("test"), any(UpdateUserDTO.class))).thenReturn(new UserDTO());
-        var response = userController.updateMe(userDetails, new UpdateUserDTO());
+        when(userService.updateUser("test", updateDTO)).thenReturn(new UserDTO());
+        var response = userController.updateMe(userDetails, updateDTO);
         assertEquals(200, response.getStatusCode().value());
+    }
+
+    @Test
+    void updateMe_updatesCurrentUserByIdPrincipal() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
+        when(userService.updateUserById(7, updateDTO)).thenReturn(new UserDTO());
+        var response = userController.updateMe(7, updateDTO);
+        assertEquals(200, response.getStatusCode().value());
+        verify(userService).updateUserById(7, updateDTO);
+    }
+
+    @Test
+    void updateMe_throwsWhenPrincipalIsMissing() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
+        assertThrows(IllegalStateException.class, () -> userController.updateMe(null, updateDTO));
     }
 
     @Test
