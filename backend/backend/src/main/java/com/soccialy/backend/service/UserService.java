@@ -68,11 +68,14 @@ public class UserService {
         if (updateDTO.getEmail() != null) {
             user.setEmail(updateDTO.getEmail());
         }
+
         if (updateDTO.getBio() != null) {
             user.setBio(updateDTO.getBio());
         }
+
         if (updateDTO.getFilterIds() != null) {
-            Set<Filter> filters = new HashSet<>(filterRepository.findAllById(updateDTO.getFilterIds()));
+            Set<Filter> filters =
+                    new HashSet<>(filterRepository.findAllById(updateDTO.getFilterIds()));
             user.setFilters(filters);
             LOGGER.info("Saved filters for user {}: {}", user.getUsername(),
                     filters.stream()
@@ -110,10 +113,9 @@ public class UserService {
     }
 
     public com.soccialy.backend.entity.Coordinates getUserCoordinates(Integer userId) {
-       com.soccialy.backend.entity.Coordinates coords = new com.soccialy.backend.entity.Coordinates();
-       coords.setLatitude(45.0);
-       coords.setLongitude(25.0);
-       return coords;
+        com.soccialy.backend.entity.Coordinates coords = new com.soccialy.backend.entity.Coordinates();
+        coords.setLatitude(45.0);
+        coords.setLongitude(25.0);
+        return coords;
     }
-
 }
