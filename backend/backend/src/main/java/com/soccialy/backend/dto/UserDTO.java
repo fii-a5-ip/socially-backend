@@ -12,4 +12,5 @@ public class UserDTO {
     private String bio;
     private String profileImgUrl;
     private List<FilterDTO> filters;
+    private List<GroupUserDTO> groupMemberships;
 }

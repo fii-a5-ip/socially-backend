@@ -55,16 +55,38 @@ class EventServiceTest {
         Event eventA = new Event();
         eventA.setId(101);
         eventA.setName("Event A");
-        eventA.setLocation(new com.soccialy.backend.entity.Location(1, "Loc 1", new BigDecimal("0"), new BigDecimal("0"),null, null, null)); // Updated for the real Location entity
+
+        com.soccialy.backend.entity.Location testLocation = new com.soccialy.backend.entity.Location();
+        testLocation.setId(1);
+        testLocation.setName("Loc 1");
+        testLocation.setLatitude(new BigDecimal("0"));
+        testLocation.setLongitude(new BigDecimal("0"));
+
+        eventA.setLocation(testLocation);
+
         eventA.setScheduledDate(LocalDateTime.now().plusDays(1));
         eventA.setFilterIds(List.of(1, 2));
+
+
+
 
         Event eventB = new Event();
         eventB.setId(102);
         eventB.setName("Event B");
-        eventB.setLocation(new com.soccialy.backend.entity.Location(2, "Loc 2", new BigDecimal("0"), new BigDecimal("0"), null, null, null)); // Updated for the real Location entity
+
+        eventB.setLocation(
+                com.soccialy.backend.entity.Location.builder()
+                        .id(2)
+                        .name("Loc 2")
+                        .latitude(new BigDecimal("0"))
+                        .longitude(new BigDecimal("0"))
+                        .build()
+        );
+
         eventB.setScheduledDate(LocalDateTime.now().plusDays(20));
         eventB.setFilterIds(List.of(4, 10));
+
+
 
         when(eventRepository.searchByTextOrFilters(eq(query), anyList()))
                 .thenReturn(new ArrayList<>(List.of(eventA, eventB)));
@@ -106,13 +128,32 @@ class EventServiceTest {
 
         Event eventA = new Event();
         eventA.setId(1);
-        eventA.setLocation(new com.soccialy.backend.entity.Location(1, "Loc", new BigDecimal("0"), new BigDecimal("0"), null, null, null));
+
+        eventA.setLocation(
+                com.soccialy.backend.entity.Location.builder()
+                        .id(1)
+                        .name("Loc")
+                        .latitude(new BigDecimal("0"))
+                        .longitude(new BigDecimal("0"))
+                        .build()
+        );
+
         eventA.setFilterIds(List.of(1, 2));
         eventA.setScheduledDate(LocalDateTime.now().plusDays(3));
 
+
         Event eventB = new Event();
         eventB.setId(2);
-        eventB.setLocation(new com.soccialy.backend.entity.Location(2, "Loc", new BigDecimal("0"), new BigDecimal("0"), null, null, null));
+
+        eventB.setLocation(
+                com.soccialy.backend.entity.Location.builder()
+                        .id(2)
+                        .name("Loc")
+                        .latitude(new BigDecimal("0"))
+                        .longitude(new BigDecimal("0"))
+                        .build()
+        );
+
         eventB.setFilterIds(List.of(1, 2));
         eventB.setScheduledDate(LocalDateTime.now().plusDays(10));
 
@@ -143,7 +184,16 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(1);
-        event.setLocation(new com.soccialy.backend.entity.Location(1, "Loc", new BigDecimal("0"), new BigDecimal("0"), null, null, null));
+
+        event.setLocation(
+                com.soccialy.backend.entity.Location.builder()
+                        .id(1)
+                        .name("Loc")
+                        .latitude(new BigDecimal("0"))
+                        .longitude(new BigDecimal("0"))
+                        .build()
+        );
+
         event.setScheduledDate(LocalDateTime.now().plusDays(15));
 
         when(eventRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(new ArrayList<>(List.of(event)));
@@ -168,7 +218,16 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(99);
-        event.setLocation(new com.soccialy.backend.entity.Location(99, "Loc", new BigDecimal("0"), new BigDecimal("0"), null, null, null));
+
+        event.setLocation(
+                com.soccialy.backend.entity.Location.builder()
+                        .id(99)
+                        .name("Loc")
+                        .latitude(new BigDecimal("0"))
+                        .longitude(new BigDecimal("0"))
+                        .build()
+        );
+
         event.setScheduledDate(LocalDateTime.now());
 
         when(eventRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(new ArrayList<>(List.of(event)));
@@ -192,7 +251,16 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(1);
-        event.setLocation(new com.soccialy.backend.entity.Location(1, "Loc", new BigDecimal("0"), new BigDecimal("0"), null, null, null));
+
+        event.setLocation(
+                com.soccialy.backend.entity.Location.builder()
+                        .id(1)
+                        .name("Loc")
+                        .latitude(new BigDecimal("0"))
+                        .longitude(new BigDecimal("0"))
+                        .build()
+        );
+
         event.setFilterIds(List.of(5, 6, 7));
 
         when(eventRepository.searchByTextOrFilters(eq(query), anyList())).thenReturn(new ArrayList<>(List.of(event)));

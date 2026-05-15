@@ -3,10 +3,11 @@ package com.soccialy.backend.controller;
 import com.soccialy.backend.dto.FilterDTO;
 import com.soccialy.backend.dto.UpdateUserDTO;
 import com.soccialy.backend.dto.UserDTO;
-import com.soccialy.backend.security.CurrentUserService;
 import com.soccialy.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,24 +17,22 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
-    private final CurrentUserService currentUserService;
 
     @Autowired
-    public UserController(UserService userService, CurrentUserService currentUserService) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.currentUserService = currentUserService;
     }
+
     // GET /api/users — toti userii (admin/debug)
     @GetMapping
     public ResponseEntity<List<UserDTO>> getAll() {
         return ResponseEntity.ok(userService.findAllUsers());
     }
 
-    // GET /api/users/me — profilul userului logat (din JWT)
+    // GET /api/users/me — profilul userului logat
     @GetMapping("/me")
-    public ResponseEntity<UserDTO> getMe() {
-        Integer currentUserId = currentUserService.getCurrentUserId();
-        UserDTO user = userService.findUserById(currentUserId);
+    public ResponseEntity<UserDTO> getMe(@AuthenticationPrincipal Object principal) {
+        UserDTO user = findCurrentUser(principal);
         return ResponseEntity.ok(user);
     }
 
@@ -43,11 +42,12 @@ public class UserController {
         return ResponseEntity.ok(userService.findUserById(id));
     }
 
-    // PUT /api/users/me — update profil (email, bio, poza, filtre)
+    // PUT /api/users/me — update profil
     @PutMapping("/me")
-    public ResponseEntity<UserDTO> updateMe(@RequestBody UpdateUserDTO updateDTO) {
-        Integer currentUserId = currentUserService.getCurrentUserId();
-        UserDTO updated = userService.updateUserById(currentUserId, updateDTO);
+    public ResponseEntity<UserDTO> updateMe(
+            @AuthenticationPrincipal Object principal,
+            @RequestBody UpdateUserDTO updateDTO) {
+        UserDTO updated = updateCurrentUser(principal, updateDTO);
         return ResponseEntity.ok(updated);
     }
 
@@ -57,9 +57,33 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserFilters(id));
     }
 
-    // POST /api/users — creare user (pastrat din original)
+    // POST /api/users — creare user
     @PostMapping
     public ResponseEntity<UserDTO> create(@RequestBody UserDTO userDTO) {
         return ResponseEntity.ok(userService.saveUser(userDTO));
+    }
+
+    private UserDTO findCurrentUser(Object principal) {
+        if (principal instanceof Integer userId) {
+            return userService.findUserById(userId);
+        }
+
+        if (principal instanceof UserDetails userDetails) {
+            return userService.findUserByUsername(userDetails.getUsername());
+        }
+
+        throw new IllegalStateException("No authenticated user found");
+    }
+
+    private UserDTO updateCurrentUser(Object principal, UpdateUserDTO updateDTO) {
+        if (principal instanceof Integer userId) {
+            return userService.updateUserById(userId, updateDTO);
+        }
+
+        if (principal instanceof UserDetails userDetails) {
+            return userService.updateUser(userDetails.getUsername(), updateDTO);
+        }
+
+        throw new IllegalStateException("No authenticated user found");
     }
 }

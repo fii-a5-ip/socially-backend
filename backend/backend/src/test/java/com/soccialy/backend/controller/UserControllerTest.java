@@ -3,19 +3,18 @@ package com.soccialy.backend.controller;
 import com.soccialy.backend.dto.FilterDTO;
 import com.soccialy.backend.dto.UpdateUserDTO;
 import com.soccialy.backend.dto.UserDTO;
-import com.soccialy.backend.security.CurrentUserService;
 import com.soccialy.backend.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,7 +24,7 @@ class UserControllerTest {
     private UserService userService;
 
     @Mock
-    private CurrentUserService currentUserService;
+    private UserDetails userDetails;
 
     @InjectMocks
     private UserController userController;
@@ -46,15 +45,30 @@ class UserControllerTest {
     }
 
     @Test
-    void getMe_returnsCurrentUser() {
-        when(currentUserService.getCurrentUserId()).thenReturn(7);
+    void getMe_returnsCurrentUserByIdPrincipal() {
         when(userService.findUserById(7)).thenReturn(new UserDTO());
 
-        var response = userController.getMe();
+        var response = userController.getMe(7);
 
         assertEquals(200, response.getStatusCode().value());
-        verify(currentUserService).getCurrentUserId();
         verify(userService).findUserById(7);
+    }
+
+    @Test
+    void getMe_returnsCurrentUserByUserDetailsPrincipal() {
+        when(userDetails.getUsername()).thenReturn("test");
+        when(userService.findUserByUsername("test")).thenReturn(new UserDTO());
+
+        var response = userController.getMe(userDetails);
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(userDetails).getUsername();
+        verify(userService).findUserByUsername("test");
+    }
+
+    @Test
+    void getMe_throwsWhenPrincipalIsMissing() {
+        assertThrows(IllegalStateException.class, () -> userController.getMe(null));
     }
 
     @Test
@@ -67,16 +81,34 @@ class UserControllerTest {
     }
 
     @Test
-    void updateMe_returnsUpdatedUser() {
-        when(currentUserService.getCurrentUserId()).thenReturn(7);
-        when(userService.updateUserById(eq(7), any(UpdateUserDTO.class)))
-                .thenReturn(new UserDTO());
+    void updateMe_returnsUpdatedUserByUserDetailsPrincipal() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
+        when(userDetails.getUsername()).thenReturn("test");
+        when(userService.updateUser("test", updateDTO)).thenReturn(new UserDTO());
 
-        var response = userController.updateMe(new UpdateUserDTO());
+        var response = userController.updateMe(userDetails, updateDTO);
 
         assertEquals(200, response.getStatusCode().value());
-        verify(currentUserService).getCurrentUserId();
-        verify(userService).updateUserById(eq(7), any(UpdateUserDTO.class));
+        verify(userDetails).getUsername();
+        verify(userService).updateUser("test", updateDTO);
+    }
+
+    @Test
+    void updateMe_updatesCurrentUserByIdPrincipal() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
+        when(userService.updateUserById(7, updateDTO)).thenReturn(new UserDTO());
+
+        var response = userController.updateMe(7, updateDTO);
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(userService).updateUserById(7, updateDTO);
+    }
+
+    @Test
+    void updateMe_throwsWhenPrincipalIsMissing() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
+
+        assertThrows(IllegalStateException.class, () -> userController.updateMe(null, updateDTO));
     }
 
     @Test
