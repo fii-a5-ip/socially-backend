@@ -18,11 +18,11 @@ public class GroupMapper {
         dto.setId(group.getId());
         dto.setName(group.getName());
         dto.setImgLink(group.getImgLink());
-        
+
         if (group.getCreator() != null) {
             dto.setCreatorUserId(group.getCreator().getId());
         }
-        
+
         if (group.getUsers() != null) {
             dto.setMemberIds(group.getUsers().stream().map(User::getId).collect(Collectors.toList()));
         }
@@ -37,7 +37,8 @@ public class GroupMapper {
         group.setId(dto.getId());
         group.setName(dto.getName());
         group.setImgLink(dto.getImgLink());
-        // Relatiile (creator si users) se seteaza in Service unde avem acces la UserRepository
+        // Relatiile (creator si users) se seteaza in Service unde avem acces la
+        // UserRepository
         return group;
     }
 }

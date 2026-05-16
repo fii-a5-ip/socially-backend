@@ -11,15 +11,14 @@ import com.soccialy.backend.entity.Event;
 
 @Repository
 public interface EventRepository extends JpaRepository<Event, Integer> {
-    List<Event> findByLocationId(Integer locationId);
+        List<Event> findByLocationId(Integer locationId);
+        List<Event> findByGroupId(Integer groupId);
 
-    @Query(value = "SELECT DISTINCT e.* FROM events e " +
-            "LEFT JOIN event_filters f ON e.id = f.event_id " +
-            "WHERE MATCH(e.name) AGAINST(:searchString IN NATURAL LANGUAGE MODE) " +
-            "OR f.filter_id IN (:filters) LIMIT 300",
-            nativeQuery = true)
-    List<Event> searchByTextOrFilters(
-            @Param("searchString") String searchString,
-            @Param("filters") List<Integer> filters
-    );
+        @Query(value = "SELECT DISTINCT e.* FROM events e " +
+                        "LEFT JOIN event_filters f ON e.id = f.event_id " +
+                        "WHERE MATCH(e.name) AGAINST(:searchString IN NATURAL LANGUAGE MODE) " +
+                        "OR f.filter_id IN (:filters) LIMIT 300", nativeQuery = true)
+        List<Event> searchByTextOrFilters(
+                        @Param("searchString") String searchString,
+                        @Param("filters") List<Integer> filters);
 }

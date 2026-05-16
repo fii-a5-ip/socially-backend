@@ -1,6 +1,5 @@
 package com.soccialy.backend.mapper;
 
-import com.soccialy.backend.dto.EventRequestDTO;
 import com.soccialy.backend.dto.EventResponseDTO;
 import com.soccialy.backend.entity.Event;
 import org.springframework.stereotype.Component;

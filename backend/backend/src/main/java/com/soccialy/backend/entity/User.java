@@ -7,7 +7,6 @@ import lombok.*;
 import java.util.HashSet;
 import java.util.Set;
 
-
 @Entity
 @Table(name = "users")
 @Getter
@@ -40,24 +39,14 @@ public class User {
     @Column(length = 256)
     private String password;
 
-
     @Builder.Default
     @ManyToMany
-    @JoinTable(
-            name = "user_filters",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "filter_id")
-    )
+    @JoinTable(name = "user_filters", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "filter_id"))
     private Set<Filter> filters = new HashSet<>();
 
     @Builder.Default
-    @ManyToMany
-    @JoinTable(
-            name = "group_users",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "group_id")
-    )
-    private Set<Group> groups = new HashSet<>();
+    @OneToMany(mappedBy = "user")
+    private Set<GroupMember> groupMembers = new HashSet<>();
 
     public User(String username, String password) {
         this.username = username;

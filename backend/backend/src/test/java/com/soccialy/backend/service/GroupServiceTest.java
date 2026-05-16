@@ -2,6 +2,7 @@ package com.soccialy.backend.service;
 
 import com.soccialy.backend.dto.GroupDTO;
 import com.soccialy.backend.entity.Group;
+import com.soccialy.backend.entity.GroupMember;
 import com.soccialy.backend.entity.User;
 import com.soccialy.backend.mapper.GroupMapper;
 import com.soccialy.backend.repository.GroupRepository;
@@ -68,7 +69,17 @@ class GroupServiceTest {
         savedGroup.setId(1);
         savedGroup.setName("Test Grup");
         savedGroup.setCreator(mockCreator);
-        savedGroup.setUsers(new HashSet<>(Set.of(mockCreator, mockMember)));
+        GroupMember adminMember = GroupMember.builder()
+                .group(savedGroup)
+                .user(mockCreator)
+                .role("ADMIN")
+                .build();
+        GroupMember normalMember = GroupMember.builder()
+                .group(savedGroup)
+                .user(mockMember)
+                .role("MEMBER")
+                .build();
+        savedGroup.setMembers(new ArrayList<>(List.of(adminMember, normalMember)));
 
         GroupDTO outputDTO = new GroupDTO();
         outputDTO.setId(1);
@@ -112,7 +123,12 @@ class GroupServiceTest {
         savedGroup.setId(2);
         savedGroup.setName("Solo Grup");
         savedGroup.setCreator(mockCreator);
-        savedGroup.setUsers(new HashSet<>(Set.of(mockCreator)));
+        GroupMember creatorMember = GroupMember.builder()
+                .group(savedGroup)
+                .user(mockCreator)
+                .role("ADMIN")
+                .build();
+        savedGroup.setMembers(new ArrayList<>(List.of(creatorMember)));
 
         GroupDTO outputDTO = new GroupDTO();
         outputDTO.setId(2);

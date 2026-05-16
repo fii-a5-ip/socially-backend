@@ -2,17 +2,19 @@ package com.soccialy.backend.mapper;
 
 import com.soccialy.backend.dto.GroupDTO;
 import com.soccialy.backend.entity.Group;
+import com.soccialy.backend.entity.GroupMember;
 import com.soccialy.backend.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for GroupMapper — covers Entity-to-DTO and DTO-to-Entity conversions.
+ * Unit tests for GroupMapper — covers Entity-to-DTO and DTO-to-Entity
+ * conversions.
  */
 class GroupMapperTest {
 
@@ -39,7 +41,9 @@ class GroupMapperTest {
         group.setName("Test Grup");
         group.setImgLink("https://example.com/img.png");
         group.setCreator(creator);
-        group.setUsers(new HashSet<>(Set.of(creator, member)));
+        GroupMember adminMember = GroupMember.builder().group(group).user(creator).role("ADMIN").build();
+        GroupMember normalMember = GroupMember.builder().group(group).user(member).role("MEMBER").build();
+        group.setMembers(new ArrayList<>(List.of(adminMember, normalMember)));
 
         // Act
         GroupDTO dto = groupMapper.toDTO(group);
@@ -72,7 +76,7 @@ class GroupMapperTest {
         assertEquals(5, dto.getId());
         assertEquals("Empty Group", dto.getName());
         assertNull(dto.getCreatorUserId());
-        // Group entity initializes users with empty HashSet (@Builder.Default),
+        // Group entity initializes members with empty ArrayList (@Builder.Default),
         // so memberIds will be an empty list, not null
         assertNotNull(dto.getMemberIds());
         assertTrue(dto.getMemberIds().isEmpty());
