@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,11 +28,12 @@ public class EventController {
     public ResponseEntity<List<EventResponseDTO>> searchEvents(
             @AuthenticationPrincipal Object principal,
             @RequestParam @NotBlank @Size(max = 150, message = "Search query is too long") String query,
+            @RequestParam(required = false) List<Integer> filterIds,
             @RequestParam(defaultValue = "50.0") Double maxDistance,
             @RequestParam(defaultValue = "30") Integer maxDays,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime localTime,
-            @RequestParam(required = false) Double lat,
-            @RequestParam(required = false) Double lng) {
+            @RequestParam(required = false) BigDecimal lat,
+            @RequestParam(required = false) BigDecimal lng) {
 
         String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
                 ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
@@ -41,7 +43,39 @@ public class EventController {
 
         LocalDateTime searchTime = (localTime != null) ? localTime : LocalDateTime.now();
 
-        List<EventResponseDTO> results = eventService.sortEvents(secureUserId, query, maxDistance, maxDays, searchTime, lat, lng);
+        System.out.println("--- NEW DISCOVERY REQUEST ---");
+        System.out.println("User ID asking: " + secureUserId);
+        System.out.println("Search: " + query);
+        System.out.println("Explicit Filters Received: " + filterIds);
+        System.out.println("Max Distance allowed: " + maxDistance);
+        System.out.println("Latitude Received: " + lat);
+        System.out.println("Longitude Received: " + lng);
+        System.out.println("-----------------------------");
+
+        List<EventResponseDTO> results = eventService.sortEvents(secureUserId, query, filterIds, maxDistance, maxDays, searchTime, lat, lng);
+
+        return ResponseEntity.ok(results);
+    }
+
+    @GetMapping("/discover")
+    public ResponseEntity<List<EventResponseDTO>> discoverEvents(
+            @AuthenticationPrincipal Object principal,
+            @RequestParam(required = false) List<Integer> filterIds,
+            @RequestParam(defaultValue = "50.0") Double maxDistance,
+            @RequestParam(defaultValue = "30") Integer maxDays,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime localTime,
+            @RequestParam(required = false) BigDecimal lat,
+            @RequestParam(required = false) BigDecimal lng) {
+
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+
+        Integer secureUserId = Integer.parseInt(currentUserIdStr);
+
+        LocalDateTime searchTime = (localTime != null) ? localTime : LocalDateTime.now();
+
+        List<EventResponseDTO> results = eventService.discoverEvents(secureUserId, filterIds, maxDistance, maxDays, searchTime, lat, lng);
 
         return ResponseEntity.ok(results);
     }

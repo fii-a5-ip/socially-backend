@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -26,14 +27,25 @@ public class EventService {
 
     private final EventMapper eventMapper;
 
-    public List<EventResponseDTO> sortEvents(Integer userId, String searchString, Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch, Double lat, Double lng) {
+    public List<EventResponseDTO> sortEvents(Integer userId, String searchString, List<Integer> explicitFilters, Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch, BigDecimal lat, BigDecimal lng) {
 
         Coordinates userCoords = (lat != null && lng != null)
                 ? new Coordinates(lat, lng)
-                : new Coordinates(45.0, 45.0);
+                : new Coordinates(BigDecimal.ZERO, BigDecimal.ZERO);
 
-        List<Integer> userFilters = userService.getUserProfileFilters(userId);
-        List<Integer> searchFilters = aiServiceClient.getSearchFilters(searchString);
+        List<Integer> fetchedUserFilters = userService.getUserProfileFilters(userId);
+        final List<Integer> userFilters = (fetchedUserFilters != null) ? fetchedUserFilters : new ArrayList<>();
+
+        List<Integer> searchFilters = new ArrayList<>();
+
+        List<Integer> aiFilters = aiServiceClient.getSearchFilters(searchString);
+        if (aiFilters != null && !aiFilters.isEmpty()) {
+            searchFilters.addAll(aiFilters);
+        }
+
+        if (explicitFilters != null && !explicitFilters.isEmpty()) {
+            searchFilters.addAll(explicitFilters);
+        }
 
         Set<Integer> combinedFilters = new HashSet<>(userFilters);
         combinedFilters.addAll(searchFilters);
@@ -81,7 +93,53 @@ public class EventService {
                 .toList();
     }
 
-    private double calculateCompoundScore(Event event, List<Integer> userFilters, List<Integer> searchFilters, 
+    public List<EventResponseDTO> discoverEvents(Integer userId, List<Integer> explicitFilters, Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch, BigDecimal lat, BigDecimal lng) {
+
+        Coordinates userCoords = (lat != null && lng != null)
+                ? new Coordinates(lat, lng)
+                : new Coordinates(BigDecimal.ZERO, BigDecimal.ZERO);
+
+        List<Integer> fetchedUserFilters = userService.getUserProfileFilters(userId);
+        final List<Integer> userFilters = (fetchedUserFilters != null) ? fetchedUserFilters : new ArrayList<>();
+
+        final List<Integer> searchFilters = (explicitFilters != null) ? explicitFilters : new ArrayList<>();
+
+        List<Event> candidates = eventRepository.findUpcomingEventsForDiscovery(timeOfSearch);
+
+        if (candidates.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Set<Integer> uniqueLocationIds = new HashSet<>();
+        Map<Integer, Coordinates> destinationCoordsMap = new HashMap<>();
+
+        for (Event event : candidates) {
+            if (event.getLocation() != null) {
+                Integer locId = event.getLocation().getId();
+                uniqueLocationIds.add(locId);
+                destinationCoordsMap.put(locId, new Coordinates(
+                        event.getLocation().getLatitude(),
+                        event.getLocation().getLongitude()
+                ));
+            }
+        }
+
+        Map<Integer, List<Integer>> locationFiltersMap = locationServiceClient.getFiltersForLocations(uniqueLocationIds);
+        Map<Integer, Double> distancesMap = aiServiceClient.getDistances(userCoords, destinationCoordsMap);
+
+        candidates.sort((o1, o2) -> {
+            double score1 = calculateCompoundScore(o1, userFilters, searchFilters, locationFiltersMap, distancesMap, maxDistance, maxDays, timeOfSearch);
+            double score2 = calculateCompoundScore(o2, userFilters, searchFilters, locationFiltersMap, distancesMap, maxDistance, maxDays, timeOfSearch);
+            return Double.compare(score2, score1);
+        });
+
+        return candidates.stream()
+                .limit(20)
+                .map(eventMapper::toResponseDTO)
+                .toList();
+    }
+
+    private double calculateCompoundScore(Event event, List<Integer> userFilters, List<Integer> aiFilters,
                                           Map<Integer, List<Integer>> locationFiltersMap,
                                           Map<Integer, Double> distancesMap, Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch) {
 
@@ -90,18 +148,18 @@ public class EventService {
         Set<Integer> totalFilters = new HashSet<>(event.getFilterIds() != null ? event.getFilterIds() : new ArrayList<>());
         totalFilters.addAll(locationFiltersMap.getOrDefault(locId, new ArrayList<>()));
 
-        double filterScore = calculateFilterScore(totalFilters, userFilters, searchFilters);
+        double filterScore = calculateFilterScore(totalFilters, userFilters, aiFilters);
         double distanceScore = calculateDistanceScore(distancesMap.getOrDefault(locId, maxDistance + 1.0), maxDistance);
         double timeScore = calculateTimeScore(timeOfSearch, event.getScheduledDate(), maxDays);
 
         return (0.5 * filterScore) + (0.3 * distanceScore) + (0.2 * timeScore);
     }
 
-    private double calculateFilterScore(Set<Integer> totalFilters, List<Integer> userFilters, List<Integer> searchFilters) {
-        if (userFilters.isEmpty() && searchFilters.isEmpty()) return 1.0;
+    private double calculateFilterScore(Set<Integer> totalFilters, List<Integer> userFilters, List<Integer> aiFilters) {
+        if (userFilters.isEmpty() && aiFilters.isEmpty()) return 1.0;
 
         int totalPossibleScore = userFilters.size();
-        totalPossibleScore += searchFilters.size() * 2;
+        totalPossibleScore += aiFilters.size() * 2;
 
         int score = 0;
 
@@ -111,7 +169,7 @@ public class EventService {
             }
         }
 
-        for (Integer filter : searchFilters) {
+        for (Integer filter : aiFilters) {
             if (totalFilters.contains(filter)) {
                 score+=2;
             }

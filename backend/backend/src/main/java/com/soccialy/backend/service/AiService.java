@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,8 +19,8 @@ public class AiService {
 
     private RestTemplate restTemplate = new RestTemplate();
 
-    private final String AI_SERVER_URL = "http://127.0.0.1:5000/api/searchToFilters/";
-    private final String DISTANCE_API_URL = "http://127.0.0.1:5000/api/findDistanceBetween2Coord/";
+    private final String AI_SERVER_URL = "http://52.58.222.100:5000/api/searchToFilters/";
+    private final String DISTANCE_API_URL = "http://52.58.222.100:5000/api/findDistanceBetween2Coord/";
 
     public void setRestTemplate(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
@@ -75,11 +76,11 @@ public class AiService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            List<Map<String, Double>> sources = List.of(
+            List<Map<String, BigDecimal>> sources = List.of(
                     Map.of("lon", userCoords.getLongitude(), "lat", userCoords.getLatitude())
             );
 
-            List<Map<String, Double>> destinations = new ArrayList<>();
+            List<Map<String, BigDecimal>> destinations = new ArrayList<>();
             List<Integer> orderedLocationIds = new ArrayList<>();
 
             for(Map.Entry<Integer, Coordinates> entry : destinationCoordsMap.entrySet())
