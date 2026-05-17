@@ -35,6 +35,54 @@ class AiServiceTest {
     }
 
     @Test
+    void testGetSearchFilters_NullOrBlank_ReturnsEmptyList() {
+        assertTrue(aiService.getSearchFilters(null).isEmpty());
+        assertTrue(aiService.getSearchFilters("   ").isEmpty());
+    }
+
+    @Test
+    void testGetSearchFilters_Success_ReturnsFiltersList() {
+        AiService.TagDTO tag1 = new AiService.TagDTO();
+        tag1.setId(12);
+        AiService.TagDTO tag2 = new AiService.TagDTO();
+        tag2.setId(34);
+
+        AiService.AiDTO mockAiDto = new AiService.AiDTO();
+        mockAiDto.setTags(java.util.List.of(tag1, tag2));
+
+        when(restTemplate.postForEntity(anyString(), any(), any()))
+                .thenReturn(ResponseEntity.ok(mockAiDto));
+
+        java.util.List<Integer> result = aiService.getSearchFilters("concert party");
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(12, result.get(0));
+        assertEquals(34, result.get(1));
+    }
+
+    @Test
+    void testGetSearchFilters_NullTagsOrNot2xxStatus() {
+        AiService.AiDTO mockAiDto = new AiService.AiDTO();
+        mockAiDto.setTags(null);
+
+        when(restTemplate.postForEntity(anyString(), any(), any()))
+                .thenReturn(ResponseEntity.ok(mockAiDto));
+
+        java.util.List<Integer> result = aiService.getSearchFilters("test");
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testGetSearchFilters_Exception_ReturnsEmptyList() {
+        when(restTemplate.postForEntity(anyString(), any(), any()))
+                .thenThrow(new RuntimeException("AI Python server is timed out"));
+
+        java.util.List<Integer> result = aiService.getSearchFilters("test");
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
     void testGetDistances_ConvertsMetersToKm() {
         Coordinates user = new Coordinates(BigDecimal.valueOf(45.0), BigDecimal.valueOf(25.0));
         Map<Integer, Coordinates> destinations = Map.of(
@@ -84,7 +132,7 @@ class AiServiceTest {
         Map<Integer, Coordinates> destinations = Map.of(
                 101, new Coordinates(BigDecimal.valueOf(45.1), BigDecimal.valueOf(25.1))
         );
-        
+
         Map<String, Object> mockResponseBody = Map.of("0", "not-a-map-structure");
 
         when(restTemplate.exchange(
@@ -98,5 +146,37 @@ class AiServiceTest {
 
         assertNotNull(results);
         assertTrue(results.isEmpty(), "Should safely skip processing and return an empty map for invalid structures");
+    }
+
+    @Test
+    void testGetDistances_NullOrEmptyInput_ReturnsEmptyMap() {
+        assertTrue(aiService.getDistances(null, Map.of()).isEmpty());
+        Coordinates user = new Coordinates(BigDecimal.valueOf(45.0), BigDecimal.valueOf(25.0));
+        assertTrue(aiService.getDistances(user, null).isEmpty());
+        assertTrue(aiService.getDistances(user, Map.of()).isEmpty());
+    }
+
+    @Test
+    void testGetDistances_MissingDistanceMetricInsideLoop_SkipsSafely() {
+        Coordinates user = new Coordinates(BigDecimal.valueOf(45.0), BigDecimal.valueOf(25.0));
+        Map<Integer, Coordinates> destinations = Map.of(
+                101, new Coordinates(BigDecimal.valueOf(45.1), BigDecimal.valueOf(25.1))
+        );
+
+        Map<String, Object> destinationZero = new java.util.HashMap<>();
+        destinationZero.put("0", Map.of("wrong_key", 123));
+        Map<String, Object> mockResponseBody = Map.of("0", destinationZero);
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                any(ParameterizedTypeReference.class)
+        )).thenReturn(ResponseEntity.ok(mockResponseBody));
+
+        Map<Integer, Double> results = aiService.getDistances(user, destinations);
+
+        assertNotNull(results);
+        assertFalse(results.containsKey(101), "Should skip the location if distance data is completely missing");
     }
 }

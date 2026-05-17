@@ -126,7 +126,7 @@ public class AiService {
         }
     }
 
-    private static class AiDTO {
+    static class AiDTO {
         private List<TagDTO> tags;
 
         public List<TagDTO> getTags() {
@@ -138,7 +138,7 @@ public class AiService {
         }
     }
 
-    private static class TagDTO {
+    static class TagDTO {
         private Integer id;
 
         @JsonProperty("tag_name")
