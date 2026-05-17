@@ -14,19 +14,17 @@ import com.soccialy.backend.entity.Event;
 public interface EventRepository extends JpaRepository<Event, Integer> {
     List<Event> findByLocationId(Integer locationId);
 
-//    @Query(value = "SELECT DISTINCT e.* FROM events e " +
-//            "LEFT JOIN event_filters f ON e.id = f.event_id " +
-//            "WHERE MATCH(e.name) AGAINST(:searchString IN NATURAL LANGUAGE MODE) " +
-//            "OR f.filter_id IN (:filters) LIMIT 300",
-//            nativeQuery = true)
     @Query(value = "SELECT DISTINCT e.* FROM events e " +
             "LEFT JOIN event_filters f ON e.id = f.event_id " +
-            "WHERE e.name LIKE CONCAT('%', :searchString, '%') " +
-            "OR f.filter_id IN (:filters) LIMIT 300",
+            "WHERE ((LOWER(e.name) LIKE LOWER(CONCAT('%', :searchString, '%')) " +
+            "   OR LOWER(e.`desc`) LIKE LOWER(CONCAT('%', :searchString, '%'))) " +
+            "   OR f.filter_id IN (:filters)) " +
+            "AND e.date >= :now LIMIT 300",
             nativeQuery = true)
     List<Event> searchByTextOrFilters(
             @Param("searchString") String searchString,
-            @Param("filters") List<Integer> filters
+            @Param("filters") List<Integer> filters,
+            @Param("now") LocalDateTime now
     );
 
     @Query(value = "SELECT * FROM events WHERE date >= :now LIMIT 200", nativeQuery = true)

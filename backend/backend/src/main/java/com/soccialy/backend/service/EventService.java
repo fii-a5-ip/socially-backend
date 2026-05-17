@@ -33,6 +33,9 @@ public class EventService {
                 ? new Coordinates(lat, lng)
                 : new Coordinates(BigDecimal.ZERO, BigDecimal.ZERO);
 
+        final Double actualMaxDistance = (maxDistance != null) ? maxDistance : 20000.0;
+        final Integer actualMaxDays = (maxDays != null) ? maxDays : 3650;
+
         List<Integer> fetchedUserFilters = userService.getUserProfileFilters(userId);
         final List<Integer> userFilters = (fetchedUserFilters != null) ? fetchedUserFilters : new ArrayList<>();
 
@@ -57,7 +60,9 @@ public class EventService {
 
         String safeSearchString = (searchString != null) ? searchString : "";
 
-        List<Event> candidates = eventRepository.searchByTextOrFilters(safeSearchString, new ArrayList<>(combinedFilters));
+        List<Event> candidates = eventRepository.searchByTextOrFilters(safeSearchString, new ArrayList<>(combinedFilters), timeOfSearch);
+
+        candidates.removeIf(event -> event.getScheduledDate() != null && ChronoUnit.DAYS.between(timeOfSearch, event.getScheduledDate()) > actualMaxDays);
 
         if (candidates.isEmpty()) {
             return new ArrayList<>();
@@ -82,8 +87,8 @@ public class EventService {
         Map<Integer, Double> distancesMap = aiServiceClient.getDistances(userCoords, destinationCoordsMap);
 
         candidates.sort((o1, o2) -> {
-            double score1 = calculateCompoundScore(o1, userFilters, searchFilters, locationFiltersMap, distancesMap, maxDistance, maxDays, timeOfSearch);
-            double score2 = calculateCompoundScore(o2, userFilters, searchFilters, locationFiltersMap, distancesMap, maxDistance, maxDays, timeOfSearch);
+            double score1 = calculateCompoundScore(o1, userFilters, searchFilters, locationFiltersMap, distancesMap, actualMaxDistance, actualMaxDays, timeOfSearch);
+            double score2 = calculateCompoundScore(o2, userFilters, searchFilters, locationFiltersMap, distancesMap, actualMaxDistance, actualMaxDays, timeOfSearch);
             return Double.compare(score2, score1);
         });
 
@@ -99,12 +104,17 @@ public class EventService {
                 ? new Coordinates(lat, lng)
                 : new Coordinates(BigDecimal.ZERO, BigDecimal.ZERO);
 
+        final Double actualMaxDistance = (maxDistance != null) ? maxDistance : 20000.0;
+        final Integer actualMaxDays = (maxDays != null) ? maxDays : 3650;
+
         List<Integer> fetchedUserFilters = userService.getUserProfileFilters(userId);
         final List<Integer> userFilters = (fetchedUserFilters != null) ? fetchedUserFilters : new ArrayList<>();
 
         final List<Integer> searchFilters = (explicitFilters != null) ? explicitFilters : new ArrayList<>();
 
         List<Event> candidates = eventRepository.findUpcomingEventsForDiscovery(timeOfSearch);
+
+        candidates.removeIf(event -> event.getScheduledDate() != null && ChronoUnit.DAYS.between(timeOfSearch, event.getScheduledDate()) > actualMaxDays);
 
         if (candidates.isEmpty()) {
             return new ArrayList<>();
@@ -128,8 +138,8 @@ public class EventService {
         Map<Integer, Double> distancesMap = aiServiceClient.getDistances(userCoords, destinationCoordsMap);
 
         candidates.sort((o1, o2) -> {
-            double score1 = calculateCompoundScore(o1, userFilters, searchFilters, locationFiltersMap, distancesMap, maxDistance, maxDays, timeOfSearch);
-            double score2 = calculateCompoundScore(o2, userFilters, searchFilters, locationFiltersMap, distancesMap, maxDistance, maxDays, timeOfSearch);
+            double score1 = calculateCompoundScore(o1, userFilters, searchFilters, locationFiltersMap, distancesMap, actualMaxDistance, actualMaxDays, timeOfSearch);
+            double score2 = calculateCompoundScore(o2, userFilters, searchFilters, locationFiltersMap, distancesMap, actualMaxDistance, actualMaxDays, timeOfSearch);
             return Double.compare(score2, score1);
         });
 

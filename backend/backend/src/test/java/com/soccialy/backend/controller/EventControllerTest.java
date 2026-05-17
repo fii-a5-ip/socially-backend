@@ -6,16 +6,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -24,20 +26,27 @@ class EventControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private EventService eventService;
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser
     void testSearchEvents_ReturnsOk() throws Exception {
         EventResponseDTO dto = new EventResponseDTO();
         dto.setId(1);
         dto.setName("Test Event");
 
-        when(eventService.sortEvents(anyInt(), anyString(), anyDouble(), anyInt(), any(), anyDouble(), anyDouble()))
-                .thenReturn(List.of(dto));
+        when(eventService.sortEvents(
+                nullable(Integer.class),
+                nullable(String.class),
+                nullable(List.class),
+                nullable(Double.class),
+                nullable(Integer.class),
+                nullable(LocalDateTime.class),
+                nullable(BigDecimal.class),
+                nullable(BigDecimal.class)
+        )).thenReturn(List.of(dto));
 
-        // Use a custom RequestPostProcessor to set the principal as a String "1"
-        // This matches the behavior of our JwtAuthenticationFilter
         mockMvc.perform(get("/api/events/search")
                         .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("1").roles("USER"))
                         .param("query", "concert")
@@ -48,6 +57,7 @@ class EventControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser
     void testSearchEvents_MissingQuery_ReturnsBadRequest() throws Exception {
         mockMvc.perform(get("/api/events/search")
                         .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("1").roles("USER")))
@@ -55,15 +65,23 @@ class EventControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser
     void testSearchEvents_WithStringPrincipal_ReturnsOk() throws Exception {
         EventResponseDTO dto = new EventResponseDTO();
         dto.setId(1);
         dto.setName("Test Event");
 
-        when(eventService.sortEvents(anyInt(), anyString(), anyDouble(), anyInt(), any(), anyDouble(), anyDouble()))
-                .thenReturn(List.of(dto));
+        when(eventService.sortEvents(
+                nullable(Integer.class),
+                nullable(String.class),
+                nullable(List.class),
+                nullable(Double.class),
+                nullable(Integer.class),
+                nullable(LocalDateTime.class),
+                nullable(BigDecimal.class),
+                nullable(BigDecimal.class)
+        )).thenReturn(List.of(dto));
 
-        // Use a real UsernamePasswordAuthenticationToken with a String principal
         mockMvc.perform(get("/api/events/search")
                         .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication(
                                 new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
@@ -75,6 +93,3 @@ class EventControllerTest {
                 .andExpect(jsonPath("$[0].name").value("Test Event"));
     }
 }
-
-
-

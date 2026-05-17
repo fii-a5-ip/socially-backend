@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,8 +34,10 @@ class AiServiceTest {
 
     @Test
     void testGetDistances_ConvertsMetersToKm() {
-        Coordinates user = new Coordinates(45.0, 25.0);
-        Map<Integer, Coordinates> destinations = Map.of(101, new Coordinates(45.1, 25.1));
+        Coordinates user = new Coordinates(BigDecimal.valueOf(45.0), BigDecimal.valueOf(25.0));
+        Map<Integer, Coordinates> destinations = Map.of(
+                101, new Coordinates(BigDecimal.valueOf(45.1), BigDecimal.valueOf(25.1))
+        );
 
         Map<String, Object> metrics = Map.of("distance", 5500.0);
         Map<String, Object> destinationZero = Map.of("0", metrics);
@@ -50,8 +53,10 @@ class AiServiceTest {
 
     @Test
     void testGetDistances_ApiError_ReturnsFiveKmFallback() {
-        Coordinates user = new Coordinates(45.0, 25.0);
-        Map<Integer, Coordinates> destinations = Map.of(999, new Coordinates(46.0, 26.0));
+        Coordinates user = new Coordinates(BigDecimal.valueOf(45.0), BigDecimal.valueOf(25.0));
+        Map<Integer, Coordinates> destinations = Map.of(
+                999, new Coordinates(BigDecimal.valueOf(46.0), BigDecimal.valueOf(26.0))
+        );
 
         when(restTemplate.postForEntity(anyString(), any(), eq(Map.class)))
                 .thenThrow(new RuntimeException("Python server is down"));

@@ -1,6 +1,9 @@
 package com.soccialy.backend.service;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.soccialy.backend.entity.Coordinates;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -13,17 +16,21 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class AiService {
 
     private RestTemplate restTemplate = new RestTemplate();
-
-    private final String AI_SERVER_URL = "http://52.58.222.100:5000/api/searchToFilters/";
-    private final String DISTANCE_API_URL = "http://52.58.222.100:5000/api/findDistanceBetween2Coord/";
+    private final String baseUrl;
 
     public void setRestTemplate(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
+    }
+
+    public AiService(@Value("${app.ai.base-url}") String baseUrl) {
+        this.baseUrl = baseUrl;
     }
 
     public List<Integer> getSearchFilters(String searchString)
@@ -32,6 +39,12 @@ public class AiService {
         {
             return List.of();
         }
+
+        String fullUrl = this.baseUrl + "/api/searchToFilters/";
+
+        log.info("\n=== [DEBUG AI SERVICE - SEARCH FILTERS] ===");
+
+        log.info("1. Trimit prompt-ul catre Python: [" + searchString + "]");
 
         try
         {
@@ -44,32 +57,54 @@ public class AiService {
             HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<AiDTO> response = restTemplate.postForEntity(
-                    AI_SERVER_URL,
+                    fullUrl,
                     request,
                     AiDTO.class
             );
 
-            if(response.getStatusCode().is2xxSuccessful() && response.getBody() != null)
-            {
-                return response.getBody().getFiltre_id();
+            log.info("2. Status code primit de la Python: " + response.getStatusCode());
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                List<TagDTO> tags = response.getBody().getTags();
+
+                if (tags != null) {
+                    List<Integer> filtre = tags.stream()
+                            .map(TagDTO::getId)
+                            .collect(Collectors.toList());
+
+                    log.info("3. Lista de ID-uri extrasa cu succes: " + filtre);
+                    return filtre;
+                } else {
+                    log.info("3. Lista de 'tags' este null in JSON!");
+                }
+            } else {
+                log.info("3. EROARE LOGICA: Răspunsul e null sau nu e 2xx!");
             }
         }
         catch(Exception e)
         {
-            System.err.println("AI Service Error: " + e.getMessage());
+            log.error("AI Service Error: " + e.getMessage());
         }
-
+        log.info("=== [END DEBUG AI SERVICE - SEARCH FILTERS] ===\n");
         return List.of();
     }
 
     public Map<Integer, Double> getDistances(Coordinates userCoords, Map<Integer, Coordinates> destinationCoordsMap)
     {
+        log.info("\n=== [DEBUG AI API - GET DISTANCES] ===");
         Map<Integer, Double> distances = new HashMap<>();
+
+        String fullUrl = this.baseUrl + "/api/findDistanceBetween2Coord/";
 
         if(userCoords == null || destinationCoordsMap == null || destinationCoordsMap.isEmpty())
         {
+            log.info("-> Date de intrare lipsa. Returnez Map gol.");
+            log.info("=== [END DEBUG DISTANCE API] ===\n");
             return distances;
         }
+
+        log.info("1. Coordonate User: Lat=" + userCoords.getLatitude() + ", Lon=" + userCoords.getLongitude());
+        log.info("2. Numar de locatii de calculat: " + destinationCoordsMap.size());
 
         try
         {
@@ -98,11 +133,16 @@ public class AiService {
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
+            log.info("3. Trimit request catre Python...");
+
             ResponseEntity<Map> response = restTemplate.postForEntity(
-                    DISTANCE_API_URL,
+                    fullUrl,
                     request,
                     Map.class
             );
+
+            log.info("4. Status code primit: " + response.getStatusCode());
+            log.info("5. Body-ul primit (Map.toString): " + response.getBody());
 
             if(response.getStatusCode().is2xxSuccessful() && response.getBody() != null)
             {
@@ -118,35 +158,63 @@ public class AiService {
                         if(metrics != null && metrics.get("distance") != null)
                         {
                             double distanceInMeters = metrics.get("distance").doubleValue();
-                            distances.put(locationId, distanceInMeters / 1000.0);
+                            double distanceInKm = distanceInMeters / 1000.0;
+                            distances.put(locationId, distanceInKm);
+                            log.info("   -> Pentru Locatia ID " + locationId + " distanta e: " + distanceInKm + " km");
+                        } else {
+                            log.info("   -> AVERTISMENT: Nu am gasit 'distance' pentru Locatia ID " + locationId);
                         }
                     }
+                } else {
+                    log.info("6. EROARE LOGICA: Cheia '0' nu exista in raspunsul Python!");
                 }
             }
         }
         catch(Exception e)
         {
-            System.err.println("Distance API Error: " + e.getMessage());
+            log.error("Distance API Error: " + e.getMessage());
             for(Integer id : destinationCoordsMap.keySet())
             {
                 distances.put(id, 5.0);
             }
         }
 
+        log.info("=== [END DEBUG DISTANCE API] ===\n");
         return distances;
     }
 
     private static class AiDTO {
-        private List<Integer> filtre_id;
+        private List<TagDTO> tags;
 
-        public List<Integer> getFiltre_id()
-        {
-            return filtre_id;
+        public List<TagDTO> getTags() {
+            return tags;
         }
 
-        public void setFiltre_id(List<Integer> filtre_id)
-        {
-            this.filtre_id = filtre_id;
+        public void setTags(List<TagDTO> tags) {
+            this.tags = tags;
+        }
+    }
+
+    private static class TagDTO {
+        private Integer id;
+
+        @JsonProperty("tag_name")
+        private String tagName;
+
+        public Integer getId() {
+            return id;
+        }
+
+        public void setId(Integer id) {
+            this.id = id;
+        }
+
+        public String getTagName() {
+            return tagName;
+        }
+
+        public void setTagName(String tagName) {
+            this.tagName = tagName;
         }
     }
 }
