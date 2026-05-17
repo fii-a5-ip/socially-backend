@@ -264,8 +264,7 @@ class EventServiceTest {
     void testSortEvents_NoFilters_ReturnsPerfectFilterScore() {
         Integer userId = 1;
         String query = "";
-
-        when(userService.getUserCoordinates(userId)).thenReturn(new Coordinates(BigDecimal.valueOf(45.0), BigDecimal.valueOf(25.0)));
+        
         LocalDateTime now = LocalDateTime.now();
 
         when(userService.getUserProfileFilters(userId)).thenReturn(new ArrayList<>());
