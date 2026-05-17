@@ -7,11 +7,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -43,11 +45,16 @@ class AiServiceTest {
         Map<String, Object> destinationZero = Map.of("0", metrics);
         Map<String, Object> mockResponseBody = Map.of("0", destinationZero);
 
-        when(restTemplate.postForEntity(anyString(), any(), eq(Map.class)))
-                .thenReturn(ResponseEntity.ok(mockResponseBody));
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                any(ParameterizedTypeReference.class)
+        )).thenReturn(ResponseEntity.ok(mockResponseBody));
 
         Map<Integer, Double> results = aiService.getDistances(user, destinations);
 
+        assertNotNull(results);
         assertEquals(5.5, results.get(101), "Should convert 5500 meters to 5.5 kilometers");
     }
 
@@ -58,8 +65,12 @@ class AiServiceTest {
                 999, new Coordinates(BigDecimal.valueOf(46.0), BigDecimal.valueOf(26.0))
         );
 
-        when(restTemplate.postForEntity(anyString(), any(), eq(Map.class)))
-                .thenThrow(new RuntimeException("Python server is down"));
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                any(ParameterizedTypeReference.class)
+        )).thenThrow(new RuntimeException("Python server is down"));
 
         Map<Integer, Double> results = aiService.getDistances(user, destinations);
 

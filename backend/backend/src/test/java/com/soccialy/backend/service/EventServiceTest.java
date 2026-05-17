@@ -1,5 +1,6 @@
 package com.soccialy.backend.service;
 
+import com.soccialy.backend.dto.EventDiscoverFieldsDTO;
 import com.soccialy.backend.dto.EventRequestDTO;
 import com.soccialy.backend.dto.EventResponseDTO;
 import com.soccialy.backend.dto.EventSearchFieldsDTO;
@@ -19,7 +20,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -345,6 +345,40 @@ class EventServiceTest {
         List<EventResponseDTO> results = eventService.sortEvents(userId, fields);
 
         assertEquals(3, results.size());
+    }
+
+    @Test
+    void testDiscoverEvents_Success() {
+        Integer userId = 1;
+        LocalDateTime now = LocalDateTime.now();
+
+        when(userService.getUserProfileFilters(userId)).thenReturn(List.of(1));
+
+        Event event = new Event();
+        event.setId(201);
+        event.setName("Discoverable Event");
+        event.setLocation(Location.builder()
+                .id(10)
+                .latitude(BigDecimal.ZERO)
+                .longitude(BigDecimal.ZERO)
+                .build());
+        event.setScheduledDate(now.plusDays(2));
+
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
+                .thenReturn(new ArrayList<>(List.of(event)));
+        when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
+        when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(Map.of(10, 2.5));
+
+        EventDiscoverFieldsDTO fields = new EventDiscoverFieldsDTO();
+        fields.setMaxDistance(50.0);
+        fields.setMaxDays(10);
+        fields.setLocalTime(now);
+
+        List<EventResponseDTO> results = eventService.discoverEvents(userId, fields);
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals(201, results.get(0).getId());
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.soccialy.backend.controller;
 
 import com.soccialy.backend.dto.EventResponseDTO;
 import com.soccialy.backend.dto.EventSearchFieldsDTO;
+import com.soccialy.backend.dto.EventDiscoverFieldsDTO;
 import com.soccialy.backend.service.EventService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,5 +73,22 @@ class EventControllerTest {
                         .param("query", "concert"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Test Event"));
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser
+    void testDiscoverEvents_ReturnsOk() throws Exception {
+        EventResponseDTO dto = new EventResponseDTO();
+        dto.setId(2);
+        dto.setName("Discovery Event");
+
+        when(eventService.discoverEvents(any(), any(EventDiscoverFieldsDTO.class))).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/events/discover")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("1").roles("USER"))
+                        .param("maxDistance", "25.0")
+                        .param("maxDays", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Discovery Event"));
     }
 }

@@ -10,13 +10,14 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -33,21 +34,13 @@ public class AiService {
         this.baseUrl = baseUrl;
     }
 
-    public List<Integer> getSearchFilters(String searchString)
-    {
-        if(searchString == null || searchString.isBlank())
-        {
+    public List<Integer> getSearchFilters(String searchString) {
+        if (searchString == null || searchString.isBlank()) {
             return List.of();
         }
 
         String fullUrl = this.baseUrl + "/api/searchToFilters/";
-
-        log.info("\n=== [DEBUG AI SERVICE - SEARCH FILTERS] ===");
-
-        log.info("1. Trimit prompt-ul catre Python: [" + searchString + "]");
-
-        try
-        {
+        try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
@@ -55,74 +48,40 @@ public class AiService {
             requestBody.put("prompt", searchString);
 
             HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
-
-            ResponseEntity<AiDTO> response = restTemplate.postForEntity(
-                    fullUrl,
-                    request,
-                    AiDTO.class
-            );
-
-            log.info("2. Status code primit de la Python: " + response.getStatusCode());
+            ResponseEntity<AiDTO> response = restTemplate.postForEntity(fullUrl, request, AiDTO.class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 List<TagDTO> tags = response.getBody().getTags();
-
                 if (tags != null) {
-                    List<Integer> filtre = tags.stream().map(TagDTO::getId).toList();
-
-                    log.info("3. Lista de ID-uri extrasa cu succes: " + filtre);
-                    return filtre;
-                } else {
-                    log.info("3. Lista de 'tags' este null in JSON!");
+                    return tags.stream().map(TagDTO::getId).toList();
                 }
-            } else {
-                log.info("3. EROARE LOGICA: Răspunsul e null sau nu e 2xx!");
             }
+        } catch (Exception e) {
+            log.error("AI Service Error: {}", e.getMessage());
         }
-        catch(Exception e)
-        {
-            log.error("AI Service Error: " + e.getMessage());
-        }
-        log.info("=== [END DEBUG AI SERVICE - SEARCH FILTERS] ===\n");
         return List.of();
     }
 
-    public Map<Integer, Double> getDistances(Coordinates userCoords, Map<Integer, Coordinates> destinationCoordsMap)
-    {
+    public Map<Integer, Double> getDistances(Coordinates userCoords, Map<Integer, Coordinates> destinationCoordsMap) {
         log.info("\n=== [DEBUG AI API - GET DISTANCES] ===");
         Map<Integer, Double> distances = new HashMap<>();
-
         String fullUrl = this.baseUrl + "/api/findDistanceBetween2Coord/";
 
-        if(userCoords == null || destinationCoordsMap == null || destinationCoordsMap.isEmpty())
-        {
-            log.info("-> Date de intrare lipsa. Returnez Map gol.");
-            log.info("=== [END DEBUG DISTANCE API] ===\n");
+        if (userCoords == null || destinationCoordsMap == null || destinationCoordsMap.isEmpty()) {
             return distances;
         }
 
-        log.info("1. Coordonate User: Lat=" + userCoords.getLatitude() + ", Lon=" + userCoords.getLongitude());
-        log.info("2. Numar de locatii de calculat: " + destinationCoordsMap.size());
-
-        try
-        {
+        try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            List<Map<String, BigDecimal>> sources = List.of(
-                    Map.of("lon", userCoords.getLongitude(), "lat", userCoords.getLatitude())
-            );
-
+            List<Map<String, BigDecimal>> sources = List.of(Map.of("lon", userCoords.getLongitude(), "lat", userCoords.getLatitude()));
             List<Map<String, BigDecimal>> destinations = new ArrayList<>();
             List<Integer> orderedLocationIds = new ArrayList<>();
 
-            for(Map.Entry<Integer, Coordinates> entry : destinationCoordsMap.entrySet())
-            {
+            for (Map.Entry<Integer, Coordinates> entry : destinationCoordsMap.entrySet()) {
                 orderedLocationIds.add(entry.getKey());
-                destinations.add(Map.of(
-                        "lon", entry.getValue().getLongitude(),
-                        "lat", entry.getValue().getLatitude()
-                ));
+                destinations.add(Map.of("lon", entry.getValue().getLongitude(), "lat", entry.getValue().getLatitude()));
             }
 
             Map<String, Object> requestBody = new HashMap<>();
@@ -131,54 +90,40 @@ public class AiService {
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
-            log.info("3. Trimit request catre Python...");
-
-            ResponseEntity<Map> response = restTemplate.postForEntity(
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     fullUrl,
+                    HttpMethod.POST,
                     request,
-                    Map.class
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
             );
 
-            log.info("4. Status code primit: " + response.getStatusCode());
-            log.info("5. Body-ul primit (Map.toString): " + response.getBody());
-
-            if(response.getStatusCode().is2xxSuccessful() && response.getBody() != null)
-            {
-                Map<String, Map<String, Number>> sourceZero = (Map<String, Map<String, Number>>) response.getBody().get("0");
-
-                if(sourceZero != null)
-                {
-                    for(int i = 0; i < orderedLocationIds.size(); i++)
-                    {
-                        Integer locationId = orderedLocationIds.get(i);
-                        Map<String, Number> metrics = sourceZero.get(String.valueOf(i));
-
-                        if(metrics != null && metrics.get("distance") != null)
-                        {
-                            double distanceInMeters = metrics.get("distance").doubleValue();
-                            double distanceInKm = distanceInMeters / 1000.0;
-                            distances.put(locationId, distanceInKm);
-                            log.info("   -> Pentru Locatia ID " + locationId + " distanta e: " + distanceInKm + " km");
-                        } else {
-                            log.info("   -> AVERTISMENT: Nu am gasit 'distance' pentru Locatia ID " + locationId);
-                        }
-                    }
-                } else {
-                    log.info("6. EROARE LOGICA: Cheia '0' nu exista in raspunsul Python!");
-                }
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                processDistanceResponse(response.getBody(), orderedLocationIds, distances);
             }
-        }
-        catch(Exception e)
-        {
-            log.error("Distance API Error: " + e.getMessage());
-            for(Integer id : destinationCoordsMap.keySet())
-            {
+        } catch (Exception e) {
+            log.error("Distance API Error: {}", e.getMessage());
+            for (Integer id : destinationCoordsMap.keySet()) {
                 distances.put(id, 5.0);
             }
         }
-
-        log.info("=== [END DEBUG DISTANCE API] ===\n");
         return distances;
+    }
+
+    private void processDistanceResponse(Map<?, ?> responseBody, List<Integer> orderedLocationIds, Map<Integer, Double> distances) {
+        Object sourceZeroObj = responseBody.get("0");
+        if (sourceZeroObj instanceof Map<?, ?> sourceZero) {
+            for (int i = 0; i < orderedLocationIds.size(); i++) {
+                Integer locationId = orderedLocationIds.get(i);
+                Object metricsObj = sourceZero.get(String.valueOf(i));
+
+                if (metricsObj instanceof Map<?, ?> metrics) {
+                    Object distanceObj = metrics.get("distance");
+                    if (distanceObj instanceof Number distanceNum) {
+                        distances.put(locationId, distanceNum.doubleValue() / 1000.0);
+                    }
+                }
+            }
+        }
     }
 
     private static class AiDTO {

@@ -27,6 +27,8 @@ import java.util.*;
 @RequiredArgsConstructor
 public class EventService {
 
+    private static final String EVENT_NOT_FOUND = "Event not found";
+
     private final EventRepository eventRepository;
     private final AiService aiServiceClient;
     private final UserService userService;
@@ -59,13 +61,13 @@ public class EventService {
 
     public EventResponseDTO getEventById(Integer id) {
         Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND));
         return eventMapper.toResponseDTO(event);
     }
 
     public EventResponseDTO updateEvent(Integer id, EventRequestDTO requestDTO) {
         Event existingEvent = eventRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND));
 
         Integer currentUserId = currentUserService.getCurrentUserId();
         if (!existingEvent.getCreator().getId().equals(currentUserId)) {
@@ -88,7 +90,7 @@ public class EventService {
 
     public void deleteEvent(Integer id) {
         Event existingEvent = eventRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND));
 
         Integer currentUserId = currentUserService.getCurrentUserId();
         if (!existingEvent.getCreator().getId().equals(currentUserId)) {
@@ -178,8 +180,8 @@ public class EventService {
     ) {}
 
     private double calculateCompoundScore(Event event, ScoringContext ctx) {
-        double aiScore = 0.0;
-        double eventScore = 0.0;
+        double aiScore;
+        double eventScore;
         double finalLocationScore = 0.0;
 
         List<Integer> finalFilterIds = new ArrayList<>();
