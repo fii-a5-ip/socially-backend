@@ -31,11 +31,15 @@ public class GroupService {
 
     @Transactional
     public GroupDTO createGroup(GroupDTO groupDTO) {
-        return createGroup(groupDTO, groupDTO.getCreatorUserId());
+        return createGroupInternal(groupDTO, groupDTO.getCreatorUserId());
     }
 
     @Transactional
     public GroupDTO createGroup(GroupDTO groupDTO, Integer creatorUserId) {
+        return createGroupInternal(groupDTO, creatorUserId);
+    }
+
+    private GroupDTO createGroupInternal(GroupDTO groupDTO, Integer creatorUserId) {
         if (creatorUserId == null) {
             throw new RuntimeException("Creator user ID is required");
         }
