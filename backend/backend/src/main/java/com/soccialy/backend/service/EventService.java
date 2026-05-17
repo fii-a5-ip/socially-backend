@@ -136,12 +136,7 @@ public class EventService {
             );
         }
     }
-
-    public List<EventResponseDTO> sortEvents(
-            Integer userId,
-            String searchString,
-            Double maxDistance,
-            Integer maxDays) {
+    
     public List<EventResponseDTO> sortEvents(Integer userId, String searchString, List<Integer> explicitFilters, Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch, BigDecimal lat, BigDecimal lng) {
 
         Coordinates userCoords = (lat != null && lng != null)
