@@ -62,8 +62,11 @@ public class SecurityConfig
                 .csrf(AbstractHttpConfigurer::disable) // NOSONAR
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/groups/search").permitAll()
+                        .requestMatchers("/api/groups/{groupId}").permitAll()
+                        .requestMatchers("/api/groups").authenticated()
                         .requestMatchers("/api/users/me").authenticated()
-                        .requestMatchers("/api/users/**", "/api/groups/**").permitAll()
+                        .requestMatchers("/api/users/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )

@@ -36,11 +36,14 @@ public class GroupService {
 
     @Transactional
     public GroupDTO createGroup(GroupDTO groupDTO, Integer creatorUserId) {
-        Group group = groupMapper.toEntity(groupDTO);
-
         if (creatorUserId == null) {
             throw new RuntimeException("Creator user ID is required");
         }
+
+        Group group = new Group();
+        group.setName(groupDTO.getName());
+        group.setDesc(groupDTO.getDesc());
+        group.setImgLink(groupDTO.getImgLink());
 
         User creator = userRepository.findById(creatorUserId)
                 .orElseThrow(() -> new RuntimeException("Creator not found"));
