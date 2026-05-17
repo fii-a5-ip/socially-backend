@@ -85,8 +85,6 @@ class EventServiceTest {
         eventA.setLocation(testLocation);
 
         eventA.setScheduledDate(LocalDateTime.now().plusDays(1));
-        eventA.setLocation(new Location(1, "Loc 1", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
-        eventA.setScheduledDate(now.plusDays(1));
         eventA.setFilterIds(List.of(1, 2));
 
 
@@ -106,13 +104,10 @@ class EventServiceTest {
         );
 
         eventB.setScheduledDate(LocalDateTime.now().plusDays(20));
-        eventB.setLocation(new Location(2, "Loc 2", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
-        eventB.setScheduledDate(now.plusDays(20));
         eventB.setFilterIds(List.of(4, 10));
 
 
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList()))
         when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>(List.of(eventA, eventB)));
 
@@ -161,7 +156,6 @@ class EventServiceTest {
                         .build()
         );
 
-        eventA.setLocation(new Location(1, "Loc", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
         eventA.setFilterIds(List.of(1, 2));
         eventA.setScheduledDate(now.plusDays(3));
 
@@ -178,7 +172,6 @@ class EventServiceTest {
                         .build()
         );
 
-        eventB.setLocation(new Location(2, "Loc", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
         eventB.setFilterIds(List.of(1, 2));
         eventB.setScheduledDate(now.plusDays(10));
 
@@ -221,8 +214,6 @@ class EventServiceTest {
         );
 
         event.setScheduledDate(LocalDateTime.now().plusDays(15));
-        event.setLocation(new Location(1, "Loc", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
-        event.setScheduledDate(now.plusDays(15));
 
         when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
@@ -257,7 +248,6 @@ class EventServiceTest {
         );
 
         event.setScheduledDate(LocalDateTime.now());
-        event.setLocation(new Location(99, "Loc", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
         event.setScheduledDate(now);
 
         when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
@@ -275,7 +265,7 @@ class EventServiceTest {
         Integer userId = 1;
         String query = "";
 
-        when(userService.getUserCoordinates(userId)).thenReturn(new Coordinates(45.0, 25.0));
+        when(userService.getUserCoordinates(userId)).thenReturn(new Coordinates(BigDecimal.valueOf(45.0), BigDecimal.valueOf(25.0)));
         LocalDateTime now = LocalDateTime.now();
 
         when(userService.getUserProfileFilters(userId)).thenReturn(new ArrayList<>());
@@ -293,7 +283,6 @@ class EventServiceTest {
                         .build()
         );
 
-        event.setLocation(new Location(1, "Loc", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
         event.setFilterIds(List.of(5, 6, 7));
         event.setScheduledDate(now.plusDays(5));
 
