@@ -16,5 +16,5 @@ public class GroupDTO {
     private String imgLink;
     private String desc;
     private Integer creatorUserId;
-    private List<Integer> memberIds;
+    private List<GroupUserDTO> members;
 }

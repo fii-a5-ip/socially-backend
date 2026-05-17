@@ -14,7 +14,9 @@ public interface GroupRepository extends JpaRepository<Group, Integer> {
     Optional<Group> findByName(String name);
     List<Group> findByNameContainingIgnoreCase(String keyword);
 
-    List<Group> findByUsersId(Integer userId);
+    @Query("SELECT gu.group FROM GroupUser gu WHERE gu.user.id = :userId")
+    List<Group> findGroupsByUserId(@Param("userId") Integer userId);
+
     List<Group> findByCreatorId(Integer creatorId);
 
     @Query("SELECT g FROM UserGroup g WHERE LOWER(g.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +

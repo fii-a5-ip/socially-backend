@@ -7,6 +7,6 @@ import java.util.List;
 public class UpdateUserDTO {
     private String email;
     private String bio;
-    private String profilePictureUrl;
+    private String profileImgUrl;
     private List<Integer> filterIds;
 }

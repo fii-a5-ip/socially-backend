@@ -1,6 +1,7 @@
 package com.soccialy.backend.controller;
 
 import com.soccialy.backend.dto.GroupDTO;
+import com.soccialy.backend.dto.GroupUserDTO;
 import com.soccialy.backend.service.GroupService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,13 +75,21 @@ class GroupControllerTest {
         GroupDTO inputDTO = new GroupDTO();
         inputDTO.setName("Controller Test");
         inputDTO.setCreatorUserId(1);
-        inputDTO.setMemberIds(List.of(1, 2));
+
+        inputDTO.setMembers(List.of(
+                new GroupUserDTO(null, 1, "ADMIN"),
+                new GroupUserDTO(null, 2, "MEMBER")
+        ));
 
         GroupDTO outputDTO = new GroupDTO();
         outputDTO.setId(1);
         outputDTO.setName("Controller Test");
         outputDTO.setCreatorUserId(1);
-        outputDTO.setMemberIds(List.of(1, 2));
+
+        outputDTO.setMembers(List.of(
+                new GroupUserDTO(1, 1, "ADMIN"),
+                new GroupUserDTO(1, 2, "MEMBER")
+        ));
 
         when(groupService.createGroup(inputDTO, 1)).thenReturn(outputDTO);
 

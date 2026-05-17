@@ -16,8 +16,12 @@ import java.util.List;
 @RequestMapping("/api/users")
 public class UserController {
 
+    private final UserService userService;
+
     @Autowired
-    private UserService userService;
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     // GET /api/users — toti userii (admin/debug)
     @GetMapping
@@ -25,10 +29,10 @@ public class UserController {
         return ResponseEntity.ok(userService.findAllUsers());
     }
 
-    // GET /api/users/me — profilul userului logat (din JWT)
+    // GET /api/users/me — profilul userului logat
     @GetMapping("/me")
-    public ResponseEntity<UserDTO> getMe(@AuthenticationPrincipal UserDetails userDetails) {
-        UserDTO user = userService.findUserByUsername(userDetails.getUsername());
+    public ResponseEntity<UserDTO> getMe(@AuthenticationPrincipal Object principal) {
+        UserDTO user = findCurrentUser(principal);
         return ResponseEntity.ok(user);
     }
 
@@ -38,12 +42,12 @@ public class UserController {
         return ResponseEntity.ok(userService.findUserById(id));
     }
 
-    // PUT /api/users/me — update profil (email, bio, poza, filtre)
+    // PUT /api/users/me — update profil
     @PutMapping("/me")
     public ResponseEntity<UserDTO> updateMe(
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal Object principal,
             @RequestBody UpdateUserDTO updateDTO) {
-        UserDTO updated = userService.updateUser(userDetails.getUsername(), updateDTO);
+        UserDTO updated = updateCurrentUser(principal, updateDTO);
         return ResponseEntity.ok(updated);
     }
 
@@ -53,9 +57,33 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserFilters(id));
     }
 
-    // POST /api/users — creare user (pastrat din original)
+    // POST /api/users — creare user
     @PostMapping
     public ResponseEntity<UserDTO> create(@RequestBody UserDTO userDTO) {
         return ResponseEntity.ok(userService.saveUser(userDTO));
+    }
+
+    private UserDTO findCurrentUser(Object principal) {
+        if (principal instanceof Integer userId) {
+            return userService.findUserById(userId);
+        }
+
+        if (principal instanceof UserDetails userDetails) {
+            return userService.findUserByUsername(userDetails.getUsername());
+        }
+
+        throw new IllegalStateException("No authenticated user found");
+    }
+
+    private UserDTO updateCurrentUser(Object principal, UpdateUserDTO updateDTO) {
+        if (principal instanceof Integer userId) {
+            return userService.updateUserById(userId, updateDTO);
+        }
+
+        if (principal instanceof UserDetails userDetails) {
+            return userService.updateUser(userDetails.getUsername(), updateDTO);
+        }
+
+        throw new IllegalStateException("No authenticated user found");
     }
 }

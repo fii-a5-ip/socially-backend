@@ -1,8 +1,8 @@
 package com.soccialy.backend.mapper;
 
 import com.soccialy.backend.dto.GroupDTO;
+import com.soccialy.backend.dto.GroupUserDTO;
 import com.soccialy.backend.entity.Group;
-import com.soccialy.backend.entity.User;
 import org.springframework.stereotype.Component;
 
 import java.util.stream.Collectors;
@@ -17,15 +17,21 @@ public class GroupMapper {
         GroupDTO dto = new GroupDTO();
         dto.setId(group.getId());
         dto.setName(group.getName());
-        dto.setImgLink(group.getImgLink());
         dto.setDesc(group.getDesc());
-        
+        dto.setImgLink(group.getImgLink());
+
         if (group.getCreator() != null) {
             dto.setCreatorUserId(group.getCreator().getId());
         }
-        
-        if (group.getUsers() != null) {
-            dto.setMemberIds(group.getUsers().stream().map(User::getId).collect(Collectors.toList()));
+
+        if (group.getGroupUsers() != null) {
+            dto.setMembers(group.getGroupUsers().stream()
+                    .map(gu -> new GroupUserDTO(
+                            gu.getGroup().getId(),
+                            gu.getUser().getId(),
+                            gu.getRole()
+                    ))
+                    .collect(Collectors.toList()));
         }
         return dto;
     }
@@ -37,9 +43,9 @@ public class GroupMapper {
         Group group = new Group();
         group.setId(dto.getId());
         group.setName(dto.getName());
-        group.setImgLink(dto.getImgLink());
         group.setDesc(dto.getDesc());
-        // Relatiile (creator si users) se seteaza in Service unde avem acces la UserRepository
+        group.setImgLink(dto.getImgLink());
+
         return group;
     }
 }

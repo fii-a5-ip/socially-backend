@@ -28,18 +28,13 @@ public class Group {
     @Column(name = "`desc`", columnDefinition = "LONGTEXT")
     private String desc;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_user_id", nullable = false)
     private User creator;
 
     @Builder.Default
-    @ManyToMany
-    @JoinTable(
-            name = "group_users",
-            joinColumns = @JoinColumn(name = "group_id"),
-            inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
-    private Set<User> users = new HashSet<>();
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<GroupUser> groupUsers = new HashSet<>();
 
     public Group(String name) {
         this.name = name;

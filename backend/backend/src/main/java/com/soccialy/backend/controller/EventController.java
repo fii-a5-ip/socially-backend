@@ -1,15 +1,17 @@
 package com.soccialy.backend.controller;
 
+import com.soccialy.backend.dto.EventRequestDTO;
 import com.soccialy.backend.dto.EventResponseDTO;
 import com.soccialy.backend.service.EventService;
-
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.util.List;
 
@@ -20,6 +22,39 @@ import java.util.List;
 public class EventController {
 
     private final EventService eventService;
+
+    @PostMapping
+    public ResponseEntity<EventResponseDTO> createEvent(
+            @Valid @RequestBody EventRequestDTO requestDTO) {
+
+        EventResponseDTO createdEvent = eventService.createEvent(requestDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdEvent);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<EventResponseDTO> getEventById(
+            @PathVariable Integer id) {
+
+        EventResponseDTO event = eventService.getEventById(id);
+        return ResponseEntity.ok(event);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<EventResponseDTO> updateEvent(
+            @PathVariable Integer id,
+            @Valid @RequestBody EventRequestDTO requestDTO) {
+
+        EventResponseDTO updatedEvent = eventService.updateEvent(id, requestDTO);
+        return ResponseEntity.ok(updatedEvent);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteEvent(
+            @PathVariable Integer id) {
+
+        eventService.deleteEvent(id);
+        return ResponseEntity.noContent().build();
+    }
 
     @GetMapping("/search")
     public ResponseEntity<List<EventResponseDTO>> searchEvents(

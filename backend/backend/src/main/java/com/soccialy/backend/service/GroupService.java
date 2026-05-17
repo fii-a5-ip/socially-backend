@@ -1,7 +1,9 @@
 package com.soccialy.backend.service;
 
 import com.soccialy.backend.dto.GroupDTO;
+import com.soccialy.backend.dto.GroupUserDTO;
 import com.soccialy.backend.entity.Group;
+import com.soccialy.backend.entity.GroupUser;
 import com.soccialy.backend.entity.User;
 import com.soccialy.backend.exception.GroupNotFoundException;
 import com.soccialy.backend.mapper.GroupMapper;
@@ -27,40 +29,63 @@ public class GroupService {
     @Autowired
     private GroupMapper groupMapper;
 
+    @Transactional
     public GroupDTO createGroup(GroupDTO groupDTO) {
         return createGroup(groupDTO, groupDTO.getCreatorUserId());
     }
 
+    @Transactional
     public GroupDTO createGroup(GroupDTO groupDTO, Integer creatorUserId) {
         Group group = groupMapper.toEntity(groupDTO);
 
-        // Seteaza creatorul
-        if (creatorUserId != null) {
-            User creator = userRepository.findById(creatorUserId)
-                    .orElseThrow(() -> new RuntimeException("Creator not found"));
-            group.setCreator(creator);
-        } else {
+        if (creatorUserId == null) {
             throw new RuntimeException("Creator user ID is required");
         }
 
-        // Seteaza membrii
-        Set<User> members = new HashSet<>();
-        if (groupDTO.getMemberIds() != null && !groupDTO.getMemberIds().isEmpty()) {
-            List<User> foundUsers = userRepository.findAllById(groupDTO.getMemberIds());
-            members.addAll(foundUsers);
+        User creator = userRepository.findById(creatorUserId)
+                .orElseThrow(() -> new RuntimeException("Creator not found"));
+        group.setCreator(creator);
+
+        Set<GroupUser> groupUsers = new HashSet<>();
+
+        GroupUser creatorMember = new GroupUser();
+        creatorMember.setGroup(group);
+        creatorMember.setUser(creator);
+        creatorMember.setRole("ADMIN");
+        groupUsers.add(creatorMember);
+
+        if (groupDTO.getMembers() != null && !groupDTO.getMembers().isEmpty()) {
+            for (GroupUserDTO memberDTO : groupDTO.getMembers()) {
+                if (memberDTO.getUserId().equals(creator.getId())) {
+                    continue;
+                }
+
+                User user = userRepository.findById(memberDTO.getUserId())
+                        .orElseThrow(() -> new RuntimeException("User not found with id: " + memberDTO.getUserId()));
+
+                GroupUser groupUser = new GroupUser();
+                groupUser.setGroup(group);
+                groupUser.setUser(user);
+
+                String role = (memberDTO.getRole() != null && !memberDTO.getRole().isBlank())
+                        ? memberDTO.getRole()
+                        : "MEMBER";
+                groupUser.setRole(role);
+
+                groupUsers.add(groupUser);
+            }
         }
-        
-        // Asigura-te ca creatorul este adaugat automat in lista de membri
-        members.add(group.getCreator());
-        group.setUsers(members);
+
+        group.setGroupUsers(groupUsers);
 
         Group savedGroup = groupRepository.save(group);
+
         return groupMapper.toDTO(savedGroup);
     }
 
     @Transactional(readOnly = true)
     public List<GroupDTO> findGroupsByUserId(Integer userId) {
-        return groupRepository.findByUsersId(userId).stream()
+        return groupRepository.findGroupsByUserId(userId).stream()
                 .map(groupMapper::toDTO)
                 .toList();
     }

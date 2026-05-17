@@ -10,7 +10,7 @@ public class UserDTO {
     private String fullname;
     private String email;
     private String bio;
-    private String profilePictureUrl;
     private String profileImgUrl;
     private List<FilterDTO> filters;
+    private List<GroupUserDTO> groupMemberships;
 }

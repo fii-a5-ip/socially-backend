@@ -3,7 +3,6 @@ package com.soccialy.backend.config;
 import com.soccialy.backend.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -60,11 +59,10 @@ public class SecurityConfig
     {
         http
                 .cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(AbstractHttpConfigurer::disable) // NOSONAR
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/groups").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/groups").authenticated()
+                        .requestMatchers("/api/users/me").authenticated()
                         .requestMatchers("/api/users/**", "/api/groups/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
