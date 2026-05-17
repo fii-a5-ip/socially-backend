@@ -124,7 +124,7 @@ public class EventService {
         return processAndSortCandidates(candidates, userFilters, searchFilters, timeOfSearch, fields);
     }
 
-    public List<EventResponseDTO> discoverEvents(Integer userId, EventSearchFieldsDTO fields) {
+    public List<EventResponseDTO> discoverEvents(Integer userId, EventDiscoverFieldsDTO fields) {
         LocalDateTime timeOfSearch = (fields.getLocalTime() != null) ? fields.getLocalTime() : LocalDateTime.now();
         List<Integer> fetchedUserFilters = userService.getUserProfileFilters(userId);
         List<Integer> userFilters = (fetchedUserFilters != null) ? fetchedUserFilters : new ArrayList<>();
