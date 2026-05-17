@@ -348,6 +348,43 @@ class EventServiceTest {
     }
 
     @Test
+    void testSortEvents_WithNullFields_UsesDefaultValues() {
+        Integer userId = 1;
+        String query = "test";
+
+        when(userService.getUserProfileFilters(userId)).thenReturn(new ArrayList<>());
+        when(aiServiceClient.getSearchFilters(query)).thenReturn(new ArrayList<>());
+
+        Event event = new Event();
+        event.setId(555);
+        event.setLocation(Location.builder()
+                .id(55)
+                .latitude(BigDecimal.ZERO)
+                .longitude(BigDecimal.ZERO)
+                .build());
+        event.setScheduledDate(LocalDateTime.now().plusDays(5));
+
+        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class)))
+                .thenReturn(new ArrayList<>(List.of(event)));
+        when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
+        when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(Map.of(55, 10.0));
+
+        EventSearchFieldsDTO fields = new EventSearchFieldsDTO();
+        fields.setQuery(query);
+        fields.setMaxDistance(null);
+        fields.setMaxDays(null);
+        fields.setLocalTime(null);
+        fields.setLat(null);
+        fields.setLng(null);
+
+        List<EventResponseDTO> results = eventService.sortEvents(userId, fields);
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals(555, results.get(0).getId());
+    }
+
+    @Test
     void testDiscoverEvents_Success() {
         Integer userId = 1;
         LocalDateTime now = LocalDateTime.now();

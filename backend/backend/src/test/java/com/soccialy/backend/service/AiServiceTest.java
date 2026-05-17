@@ -77,4 +77,26 @@ class AiServiceTest {
         assertNotNull(results);
         assertEquals(5.0, results.get(999), "Should return the 5.0km fallback when the API fails");
     }
+
+    @Test
+    void testGetDistances_MalformedResponseBody_HandlesGracefully() {
+        Coordinates user = new Coordinates(BigDecimal.valueOf(45.0), BigDecimal.valueOf(25.0));
+        Map<Integer, Coordinates> destinations = Map.of(
+                101, new Coordinates(BigDecimal.valueOf(45.1), BigDecimal.valueOf(25.1))
+        );
+        
+        Map<String, Object> mockResponseBody = Map.of("0", "not-a-map-structure");
+
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                any(ParameterizedTypeReference.class)
+        )).thenReturn(ResponseEntity.ok(mockResponseBody));
+
+        Map<Integer, Double> results = aiService.getDistances(user, destinations);
+
+        assertNotNull(results);
+        assertTrue(results.isEmpty(), "Should safely skip processing and return an empty map for invalid structures");
+    }
 }
