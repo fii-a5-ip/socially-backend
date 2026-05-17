@@ -3,11 +3,13 @@ package com.soccialy.backend.service;
 import com.soccialy.backend.dto.GroupDTO;
 import com.soccialy.backend.entity.Group;
 import com.soccialy.backend.entity.User;
+import com.soccialy.backend.exception.GroupNotFoundException;
 import com.soccialy.backend.mapper.GroupMapper;
 import com.soccialy.backend.repository.GroupRepository;
 import com.soccialy.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
@@ -26,11 +28,15 @@ public class GroupService {
     private GroupMapper groupMapper;
 
     public GroupDTO createGroup(GroupDTO groupDTO) {
+        return createGroup(groupDTO, groupDTO.getCreatorUserId());
+    }
+
+    public GroupDTO createGroup(GroupDTO groupDTO, Integer creatorUserId) {
         Group group = groupMapper.toEntity(groupDTO);
 
         // Seteaza creatorul
-        if (groupDTO.getCreatorUserId() != null) {
-            User creator = userRepository.findById(groupDTO.getCreatorUserId())
+        if (creatorUserId != null) {
+            User creator = userRepository.findById(creatorUserId)
                     .orElseThrow(() -> new RuntimeException("Creator not found"));
             group.setCreator(creator);
         } else {
@@ -50,6 +56,20 @@ public class GroupService {
 
         Group savedGroup = groupRepository.save(group);
         return groupMapper.toDTO(savedGroup);
+    }
+
+    @Transactional(readOnly = true)
+    public List<GroupDTO> findGroupsByUserId(Integer userId) {
+        return groupRepository.findByUsersId(userId).stream()
+                .map(groupMapper::toDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<GroupDTO> searchGroups(String query) {
+        return groupRepository.searchGroups(query.trim()).stream()
+                .map(groupMapper::toDTO)
+                .toList();
     }
 
     @Transactional(readOnly = true)

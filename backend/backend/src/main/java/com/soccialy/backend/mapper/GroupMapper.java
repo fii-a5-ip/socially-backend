@@ -18,6 +18,7 @@ public class GroupMapper {
         dto.setId(group.getId());
         dto.setName(group.getName());
         dto.setImgLink(group.getImgLink());
+        dto.setDesc(group.getDesc());
         
         if (group.getCreator() != null) {
             dto.setCreatorUserId(group.getCreator().getId());
@@ -37,6 +38,7 @@ public class GroupMapper {
         group.setId(dto.getId());
         group.setName(dto.getName());
         group.setImgLink(dto.getImgLink());
+        group.setDesc(dto.getDesc());
         // Relatiile (creator si users) se seteaza in Service unde avem acces la UserRepository
         return group;
     }

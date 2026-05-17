@@ -82,14 +82,14 @@ class GroupControllerTest {
         outputDTO.setCreatorUserId(1);
         outputDTO.setMemberIds(List.of(1, 2));
 
-        when(groupService.createGroup(inputDTO)).thenReturn(outputDTO);
+        when(groupService.createGroup(inputDTO, 1)).thenReturn(outputDTO);
 
         // Act
-        ResponseEntity<GroupDTO> response = groupController.createGroup(inputDTO);
+        ResponseEntity<GroupDTO> response = groupController.createGroup("1", inputDTO);
 
         // Assert
         assertNotNull(response);
-        assertEquals(200, response.getStatusCode().value());
+        assertEquals(201, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals(1, response.getBody().getId());
         assertEquals("Controller Test", response.getBody().getName());
@@ -104,12 +104,12 @@ class GroupControllerTest {
         inputDTO.setName("Fail Test");
         inputDTO.setCreatorUserId(null);
 
-        when(groupService.createGroup(inputDTO))
+        when(groupService.createGroup(inputDTO, 1))
                 .thenThrow(new RuntimeException("Creator user ID is required"));
 
         // Act & Assert
         RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                groupController.createGroup(inputDTO));
+                groupController.createGroup("1", inputDTO));
 
         assertTrue(ex.getMessage().contains("Creator user ID is required"));
     }
