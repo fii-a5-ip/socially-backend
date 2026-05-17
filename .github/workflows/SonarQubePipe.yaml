@@ -6,6 +6,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch: # Permite declanșarea manuală din GitHub Actions
+  repository_dispatch:
+    types: [ec2_instance_ready]
 
 jobs:
   build-and-analyze:
@@ -35,8 +37,7 @@ jobs:
   build-and-deploy:
     needs: build-and-analyze # Așteaptă ca Job-ul de analiză să treacă
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' 
-    # Deploy se face DOAR pe push în main
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'repository_dispatch' || github.event_name == 'workflow_dispatch' 
 
     steps:
       - name: Checkout Code
@@ -88,8 +89,8 @@ jobs:
             echo 'JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}' >> .env
             
             # 4. Oprirea și ștergerea containerului vechi
-            docker stop spring-backend-app || true
-            docker rm spring-backend-app || true
+            docker stop java-backend || true
+            docker rm java-backend || true
             
             # 5. Pornirea noului container citind din fisierul .env
-            docker run -d --name spring-backend-app --env-file .env -p 9090:9090 ${{ steps.login-ecr.outputs.registry }}/backend-core:latest
+            docker run -d --name java-backend --network retea-proiect --env-file .env ${{ steps.login-ecr.outputs.registry }}/backend-core:latest

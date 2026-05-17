@@ -59,10 +59,15 @@ public class SecurityConfig
     {
         http
                 .cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(AbstractHttpConfigurer::disable) // NOSONAR
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers("/api/users/**", "/api/groups/**").permitAll()
+                        .requestMatchers("/api/groups/search").permitAll()
+                        .requestMatchers("/api/groups/{groupId}").permitAll()
+                        .requestMatchers("/api/groups").authenticated()
+                        .requestMatchers("/api/users/me").authenticated()
+                        .requestMatchers("/api/users/**").permitAll()
+                        .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

@@ -1,25 +1,33 @@
 package com.soccialy.backend.service;
 
+import com.soccialy.backend.dto.EventRequestDTO;
 import com.soccialy.backend.dto.EventResponseDTO;
 import com.soccialy.backend.entity.Coordinates;
 import com.soccialy.backend.entity.Event;
 import com.soccialy.backend.entity.Location;
+import com.soccialy.backend.entity.User;
 import com.soccialy.backend.mapper.EventMapper;
 import com.soccialy.backend.repository.EventRepository;
+import com.soccialy.backend.repository.LocationRepository;
+import com.soccialy.backend.repository.UserRepository;
+import com.soccialy.backend.security.CurrentUserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.math.BigDecimal;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class EventServiceTest {
@@ -35,6 +43,15 @@ class EventServiceTest {
 
     @Mock
     private LocationService locationServiceClient;
+
+    @Mock
+    private LocationRepository locationRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private CurrentUserService currentUserService;
 
     @Spy
     private EventMapper eventMapper = new EventMapper();
@@ -58,17 +75,44 @@ class EventServiceTest {
         Event eventA = new Event();
         eventA.setId(101);
         eventA.setName("Event A");
+
+        com.soccialy.backend.entity.Location testLocation = new com.soccialy.backend.entity.Location();
+        testLocation.setId(1);
+        testLocation.setName("Loc 1");
+        testLocation.setLatitude(new BigDecimal("0"));
+        testLocation.setLongitude(new BigDecimal("0"));
+
+        eventA.setLocation(testLocation);
+
+        eventA.setScheduledDate(LocalDateTime.now().plusDays(1));
         eventA.setLocation(new Location(1, "Loc 1", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
         eventA.setScheduledDate(now.plusDays(1));
         eventA.setFilterIds(List.of(1, 2));
 
+
+
+
         Event eventB = new Event();
         eventB.setId(102);
         eventB.setName("Event B");
+
+        eventB.setLocation(
+                com.soccialy.backend.entity.Location.builder()
+                        .id(2)
+                        .name("Loc 2")
+                        .latitude(new BigDecimal("0"))
+                        .longitude(new BigDecimal("0"))
+                        .build()
+        );
+
+        eventB.setScheduledDate(LocalDateTime.now().plusDays(20));
         eventB.setLocation(new Location(2, "Loc 2", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
         eventB.setScheduledDate(now.plusDays(20));
         eventB.setFilterIds(List.of(4, 10));
 
+
+
+        when(eventRepository.searchByTextOrFilters(eq(query), anyList()))
         when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>(List.of(eventA, eventB)));
 
@@ -107,12 +151,33 @@ class EventServiceTest {
 
         Event eventA = new Event();
         eventA.setId(1);
+
+        eventA.setLocation(
+                com.soccialy.backend.entity.Location.builder()
+                        .id(1)
+                        .name("Loc")
+                        .latitude(new BigDecimal("0"))
+                        .longitude(new BigDecimal("0"))
+                        .build()
+        );
+
         eventA.setLocation(new Location(1, "Loc", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
         eventA.setFilterIds(List.of(1, 2));
         eventA.setScheduledDate(now.plusDays(3));
 
+
         Event eventB = new Event();
         eventB.setId(2);
+
+        eventB.setLocation(
+                com.soccialy.backend.entity.Location.builder()
+                        .id(2)
+                        .name("Loc")
+                        .latitude(new BigDecimal("0"))
+                        .longitude(new BigDecimal("0"))
+                        .build()
+        );
+
         eventB.setLocation(new Location(2, "Loc", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
         eventB.setFilterIds(List.of(1, 2));
         eventB.setScheduledDate(now.plusDays(10));
@@ -145,6 +210,17 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(1);
+
+        event.setLocation(
+                com.soccialy.backend.entity.Location.builder()
+                        .id(1)
+                        .name("Loc")
+                        .latitude(new BigDecimal("0"))
+                        .longitude(new BigDecimal("0"))
+                        .build()
+        );
+
+        event.setScheduledDate(LocalDateTime.now().plusDays(15));
         event.setLocation(new Location(1, "Loc", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
         event.setScheduledDate(now.plusDays(15));
 
@@ -170,6 +246,17 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(99);
+
+        event.setLocation(
+                com.soccialy.backend.entity.Location.builder()
+                        .id(99)
+                        .name("Loc")
+                        .latitude(new BigDecimal("0"))
+                        .longitude(new BigDecimal("0"))
+                        .build()
+        );
+
+        event.setScheduledDate(LocalDateTime.now());
         event.setLocation(new Location(99, "Loc", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
         event.setScheduledDate(now);
 
@@ -187,6 +274,8 @@ class EventServiceTest {
     void testSortEvents_NoFilters_ReturnsPerfectFilterScore() {
         Integer userId = 1;
         String query = "";
+
+        when(userService.getUserCoordinates(userId)).thenReturn(new Coordinates(45.0, 25.0));
         LocalDateTime now = LocalDateTime.now();
 
         when(userService.getUserProfileFilters(userId)).thenReturn(new ArrayList<>());
@@ -194,6 +283,16 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(1);
+
+        event.setLocation(
+                com.soccialy.backend.entity.Location.builder()
+                        .id(1)
+                        .name("Loc")
+                        .latitude(new BigDecimal("0"))
+                        .longitude(new BigDecimal("0"))
+                        .build()
+        );
+
         event.setLocation(new Location(1, "Loc", BigDecimal.ZERO, BigDecimal.ZERO, null, null, null));
         event.setFilterIds(List.of(5, 6, 7));
         event.setScheduledDate(now.plusDays(5));
@@ -262,5 +361,312 @@ class EventServiceTest {
         List<EventResponseDTO> results = eventService.sortEvents(userId, query, null, 50.0, 30, now, BigDecimal.ZERO, BigDecimal.ZERO);
 
         assertEquals(3, results.size());
+    }
+
+    @Test
+    void testCreateEvent_SavesAndReturnsCreatedEvent() {
+        EventRequestDTO requestDTO = buildEventRequest(List.of(60, 78));
+        User creator = buildUser(60003);
+        Location location = buildLocation(10);
+
+        when(currentUserService.getCurrentUserId()).thenReturn(60003);
+        when(userRepository.findById(60003)).thenReturn(Optional.of(creator));
+        when(locationRepository.findById(10)).thenReturn(Optional.of(location));
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> {
+            Event savedEvent = invocation.getArgument(0);
+            savedEvent.setId(20);
+            return savedEvent;
+        });
+
+        EventResponseDTO result = eventService.createEvent(requestDTO);
+
+        assertNotNull(result);
+        assertEquals(20, result.getId());
+        assertEquals("Test Event", result.getName());
+        assertEquals("https://example.com/test-event", result.getUrl());
+        assertEquals("Eveniment creat strict pentru testare", result.getDesc());
+        assertEquals(10, result.getLocationId());
+        assertEquals(60003, result.getCreatorUserId());
+        assertEquals(List.of(60, 78), result.getFilterIds());
+
+        ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+        verify(eventRepository).save(eventCaptor.capture());
+
+        Event savedEvent = eventCaptor.getValue();
+        assertEquals("Test Event", savedEvent.getName());
+        assertEquals("https://example.com/test-event", savedEvent.getUrl());
+        assertEquals("Eveniment creat strict pentru testare", savedEvent.getDesc());
+        assertEquals(location, savedEvent.getLocation());
+        assertEquals(creator, savedEvent.getCreator());
+        assertEquals(List.of(60, 78), savedEvent.getFilterIds());
+    }
+
+    @Test
+    void testCreateEvent_WithNullFilterIds_SavesEmptyFilterList() {
+        EventRequestDTO requestDTO = buildEventRequest(null);
+        User creator = buildUser(60003);
+        Location location = buildLocation(10);
+
+        when(currentUserService.getCurrentUserId()).thenReturn(60003);
+        when(userRepository.findById(60003)).thenReturn(Optional.of(creator));
+        when(locationRepository.findById(10)).thenReturn(Optional.of(location));
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> {
+            Event savedEvent = invocation.getArgument(0);
+            savedEvent.setId(21);
+            return savedEvent;
+        });
+
+        EventResponseDTO result = eventService.createEvent(requestDTO);
+
+        assertNotNull(result);
+        assertEquals(21, result.getId());
+        assertNotNull(result.getFilterIds());
+        assertEquals(0, result.getFilterIds().size());
+    }
+
+    @Test
+    void testCreateEvent_WhenAuthenticatedUserDoesNotExist_ThrowsNotFound() {
+        EventRequestDTO requestDTO = buildEventRequest(List.of(60, 78));
+
+        when(currentUserService.getCurrentUserId()).thenReturn(60003);
+        when(userRepository.findById(60003)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.createEvent(requestDTO)
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        verify(eventRepository, never()).save(any(Event.class));
+    }
+
+    @Test
+    void testCreateEvent_WhenLocationDoesNotExist_ThrowsNotFound() {
+        EventRequestDTO requestDTO = buildEventRequest(List.of(60, 78));
+        User creator = buildUser(60003);
+
+        when(currentUserService.getCurrentUserId()).thenReturn(60003);
+        when(userRepository.findById(60003)).thenReturn(Optional.of(creator));
+        when(locationRepository.findById(10)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.createEvent(requestDTO)
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        verify(eventRepository, never()).save(any(Event.class));
+    }
+
+    @Test
+    void testGetEventById_ReturnsMappedEvent() {
+        Event event = buildStoredEvent(20, buildUser(60003), buildLocation(10), List.of(60, 78));
+
+        when(eventRepository.findById(20)).thenReturn(Optional.of(event));
+
+        EventResponseDTO result = eventService.getEventById(20);
+
+        assertNotNull(result);
+        assertEquals(20, result.getId());
+        assertEquals("Stored Event", result.getName());
+        assertEquals("https://example.com/stored-event", result.getUrl());
+        assertEquals("Eveniment deja salvat", result.getDesc());
+        assertEquals(10, result.getLocationId());
+        assertEquals(60003, result.getCreatorUserId());
+        assertEquals(List.of(60, 78), result.getFilterIds());
+    }
+
+    @Test
+    void testGetEventById_WhenEventDoesNotExist_ThrowsNotFound() {
+        when(eventRepository.findById(999)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.getEventById(999)
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    @Test
+    void testUpdateEvent_WhenCurrentUserOwnsEvent_UpdatesAndReturnsEvent() {
+        Event existingEvent = buildStoredEvent(20, buildUser(60003), buildLocation(10), List.of(60, 78));
+        EventRequestDTO requestDTO = buildEventRequest(List.of(27, 80));
+        requestDTO.setName("Test Event Modificat");
+        requestDTO.setLocationId(11);
+
+        Location updatedLocation = buildLocation(11);
+
+        when(eventRepository.findById(20)).thenReturn(Optional.of(existingEvent));
+        when(currentUserService.getCurrentUserId()).thenReturn(60003);
+        when(locationRepository.findById(11)).thenReturn(Optional.of(updatedLocation));
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventResponseDTO result = eventService.updateEvent(20, requestDTO);
+
+        assertNotNull(result);
+        assertEquals(20, result.getId());
+        assertEquals("Test Event Modificat", result.getName());
+        assertEquals("https://example.com/test-event", result.getUrl());
+        assertEquals("Eveniment creat strict pentru testare", result.getDesc());
+        assertEquals(11, result.getLocationId());
+        assertEquals(60003, result.getCreatorUserId());
+        assertEquals(List.of(27, 80), result.getFilterIds());
+
+        verify(eventRepository).save(existingEvent);
+    }
+
+    @Test
+    void testUpdateEvent_WithNullFilterIds_SetsEmptyFilterList() {
+        Event existingEvent = buildStoredEvent(20, buildUser(60003), buildLocation(10), List.of(60, 78));
+        EventRequestDTO requestDTO = buildEventRequest(null);
+        requestDTO.setLocationId(11);
+
+        Location updatedLocation = buildLocation(11);
+
+        when(eventRepository.findById(20)).thenReturn(Optional.of(existingEvent));
+        when(currentUserService.getCurrentUserId()).thenReturn(60003);
+        when(locationRepository.findById(11)).thenReturn(Optional.of(updatedLocation));
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventResponseDTO result = eventService.updateEvent(20, requestDTO);
+
+        assertNotNull(result);
+        assertNotNull(result.getFilterIds());
+        assertEquals(0, result.getFilterIds().size());
+    }
+
+    @Test
+    void testUpdateEvent_WhenEventDoesNotExist_ThrowsNotFound() {
+        EventRequestDTO requestDTO = buildEventRequest(List.of(27, 80));
+
+        when(eventRepository.findById(999)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.updateEvent(999, requestDTO)
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        verify(eventRepository, never()).save(any(Event.class));
+    }
+
+    @Test
+    void testUpdateEvent_WhenCurrentUserIsNotOwner_ThrowsForbidden() {
+        Event existingEvent = buildStoredEvent(20, buildUser(60003), buildLocation(10), List.of(60, 78));
+        EventRequestDTO requestDTO = buildEventRequest(List.of(27, 80));
+
+        when(eventRepository.findById(20)).thenReturn(Optional.of(existingEvent));
+        when(currentUserService.getCurrentUserId()).thenReturn(70000);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.updateEvent(20, requestDTO)
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        verify(locationRepository, never()).findById(anyInt());
+        verify(eventRepository, never()).save(any(Event.class));
+    }
+
+    @Test
+    void testUpdateEvent_WhenLocationDoesNotExist_ThrowsNotFound() {
+        Event existingEvent = buildStoredEvent(20, buildUser(60003), buildLocation(10), List.of(60, 78));
+        EventRequestDTO requestDTO = buildEventRequest(List.of(27, 80));
+
+        when(eventRepository.findById(20)).thenReturn(Optional.of(existingEvent));
+        when(currentUserService.getCurrentUserId()).thenReturn(60003);
+        when(locationRepository.findById(10)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.updateEvent(20, requestDTO)
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        verify(eventRepository, never()).save(any(Event.class));
+    }
+
+    @Test
+    void testDeleteEvent_WhenCurrentUserOwnsEvent_DeletesEvent() {
+        Event existingEvent = buildStoredEvent(20, buildUser(60003), buildLocation(10), List.of(60, 78));
+
+        when(eventRepository.findById(20)).thenReturn(Optional.of(existingEvent));
+        when(currentUserService.getCurrentUserId()).thenReturn(60003);
+
+        eventService.deleteEvent(20);
+
+        verify(eventRepository).delete(existingEvent);
+    }
+
+    @Test
+    void testDeleteEvent_WhenEventDoesNotExist_ThrowsNotFound() {
+        when(eventRepository.findById(999)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.deleteEvent(999)
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        verify(eventRepository, never()).delete(any(Event.class));
+    }
+
+    @Test
+    void testDeleteEvent_WhenCurrentUserIsNotOwner_ThrowsForbidden() {
+        Event existingEvent = buildStoredEvent(20, buildUser(60003), buildLocation(10), List.of(60, 78));
+
+        when(eventRepository.findById(20)).thenReturn(Optional.of(existingEvent));
+        when(currentUserService.getCurrentUserId()).thenReturn(70000);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.deleteEvent(20)
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        verify(eventRepository, never()).delete(any(Event.class));
+    }
+
+    private EventRequestDTO buildEventRequest(List<Integer> filterIds) {
+        EventRequestDTO requestDTO = new EventRequestDTO();
+        requestDTO.setName("Test Event");
+        requestDTO.setUrl("https://example.com/test-event");
+        requestDTO.setDesc("Eveniment creat strict pentru testare");
+        requestDTO.setLocationId(10);
+        requestDTO.setScheduledDate(LocalDateTime.of(2026, 6, 10, 18, 30));
+        requestDTO.setFilterIds(filterIds);
+        return requestDTO;
+    }
+
+    private User buildUser(Integer id) {
+        User user = new User();
+        user.setId(id);
+        return user;
+    }
+
+    private Location buildLocation(Integer id) {
+        Location location = new Location();
+        location.setId(id);
+        location.setName("Location " + id);
+        return location;
+    }
+
+    private Event buildStoredEvent(
+            Integer id,
+            User creator,
+            Location location,
+            List<Integer> filterIds) {
+
+        Event event = new Event();
+        event.setId(id);
+        event.setName("Stored Event");
+        event.setUrl("https://example.com/stored-event");
+        event.setDesc("Eveniment deja salvat");
+        event.setLocation(location);
+        event.setCreator(creator);
+        event.setScheduledDate(LocalDateTime.of(2026, 6, 10, 18, 30));
+        event.setFilterIds(filterIds);
+        return event;
     }
 }

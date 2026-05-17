@@ -1,14 +1,20 @@
 package com.soccialy.backend.service;
 
+import com.soccialy.backend.dto.EventRequestDTO;
 import com.soccialy.backend.dto.EventResponseDTO;
 import com.soccialy.backend.entity.Coordinates;
 import com.soccialy.backend.entity.Event;
-import com.soccialy.backend.repository.EventRepository;
+import com.soccialy.backend.entity.Location;
+import com.soccialy.backend.entity.User;
 import com.soccialy.backend.mapper.EventMapper;
-import com.soccialy.backend.service.LocationService;
+import com.soccialy.backend.repository.EventRepository;
+import com.soccialy.backend.repository.LocationRepository;
+import com.soccialy.backend.repository.UserRepository;
+import com.soccialy.backend.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
-
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,13 +26,122 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EventService {
 
+    private static final String EVENT_NOT_FOUND_MESSAGE = "Event not found with id: ";
+
     private final EventRepository eventRepository;
     private final AiService aiServiceClient;
     private final UserService userService;
     private final LocationService locationServiceClient;
-
     private final EventMapper eventMapper;
 
+    private final LocationRepository locationRepository;
+    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
+
+    public EventResponseDTO createEvent(EventRequestDTO requestDTO) {
+        Integer currentUserId = currentUserService.getCurrentUserId();
+
+        User creator = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Authenticated user not found"
+                ));
+
+        Location location = locationRepository.findById(requestDTO.getLocationId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Location not found with id: " + requestDTO.getLocationId()
+                ));
+
+        Event event = Event.builder()
+                .name(requestDTO.getName())
+                .url(requestDTO.getUrl())
+                .desc(requestDTO.getDesc())
+                .location(location)
+                .creator(creator)
+                .scheduledDate(requestDTO.getScheduledDate())
+                .filterIds(
+                        requestDTO.getFilterIds() == null
+                                ? new ArrayList<>()
+                                : new ArrayList<>(requestDTO.getFilterIds())
+                )
+                .build();
+
+        Event savedEvent = eventRepository.save(event);
+        return eventMapper.toResponseDTO(savedEvent);
+    }
+
+    public EventResponseDTO getEventById(Integer eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        EVENT_NOT_FOUND_MESSAGE + eventId
+                ));
+
+        return eventMapper.toResponseDTO(event);
+    }
+
+    public EventResponseDTO updateEvent(Integer eventId, EventRequestDTO requestDTO) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        EVENT_NOT_FOUND_MESSAGE + eventId
+                ));
+
+        ensureCurrentUserOwnsEvent(event);
+
+        Location location = locationRepository.findById(requestDTO.getLocationId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Location not found with id: " + requestDTO.getLocationId()
+                ));
+
+        event.setName(requestDTO.getName());
+        event.setUrl(requestDTO.getUrl());
+        event.setDesc(requestDTO.getDesc());
+        event.setLocation(location);
+        event.setScheduledDate(requestDTO.getScheduledDate());
+        event.setFilterIds(
+                requestDTO.getFilterIds() == null
+                        ? new ArrayList<>()
+                        : new ArrayList<>(requestDTO.getFilterIds())
+        );
+
+        Event updatedEvent = eventRepository.save(event);
+        return eventMapper.toResponseDTO(updatedEvent);
+    }
+
+    public void deleteEvent(Integer eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        EVENT_NOT_FOUND_MESSAGE + eventId
+                ));
+
+        ensureCurrentUserOwnsEvent(event);
+        eventRepository.delete(event);
+    }
+
+    private void ensureCurrentUserOwnsEvent(Event event) {
+        Integer currentUserId = currentUserService.getCurrentUserId();
+
+        Integer creatorId = event.getCreator() != null
+                ? event.getCreator().getId()
+                : null;
+
+        if (!Objects.equals(currentUserId, creatorId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only modify your own events"
+            );
+        }
+    }
+
+    public List<EventResponseDTO> sortEvents(
+            Integer userId,
+            String searchString,
+            Double maxDistance,
+            Integer maxDays) {
     public List<EventResponseDTO> sortEvents(Integer userId, String searchString, List<Integer> explicitFilters, Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch, BigDecimal lat, BigDecimal lng) {
 
         Coordinates userCoords = (lat != null && lng != null)

@@ -6,8 +6,8 @@ import lombok.*;
 import java.util.HashSet;
 import java.util.Set;
 
-@Entity
-@Table(name = "`groups`") // 'groups' e cuvânt rezervat în MySQL — backtick-urile forțează Hibernate să-l escape corect
+@Entity(name = "UserGroup")
+@Table(name = "groups") // Notă: 'groups' este cuvânt rezervat în MySQL, dar JPA se descurcă dacă e setat corect.
 @Getter
 @Setter
 @NoArgsConstructor
@@ -28,18 +28,13 @@ public class Group {
     @Column(name = "`desc`", columnDefinition = "LONGTEXT")
     private String desc;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_user_id", nullable = false)
     private User creator;
 
     @Builder.Default
-    @ManyToMany
-    @JoinTable(
-            name = "group_users",
-            joinColumns = @JoinColumn(name = "group_id"),
-            inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
-    private Set<User> users = new HashSet<>();
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<GroupUser> groupUsers = new HashSet<>();
 
     public Group(String name) {
         this.name = name;
