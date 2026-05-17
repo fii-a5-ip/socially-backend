@@ -1,7 +1,9 @@
 package com.soccialy.backend.service;
 
+import com.soccialy.backend.dto.EventDiscoverFieldsDTO;
 import com.soccialy.backend.dto.EventRequestDTO;
 import com.soccialy.backend.dto.EventResponseDTO;
+import com.soccialy.backend.dto.EventSearchFieldsDTO;
 import com.soccialy.backend.entity.Coordinates;
 import com.soccialy.backend.entity.Event;
 import com.soccialy.backend.entity.Location;
@@ -20,210 +22,126 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class EventService {
 
-    private static final String EVENT_NOT_FOUND_MESSAGE = "Event not found with id: ";
-
     private final EventRepository eventRepository;
     private final AiService aiServiceClient;
     private final UserService userService;
     private final LocationService locationServiceClient;
-    private final EventMapper eventMapper;
-
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
+    private final EventMapper eventMapper;
 
     public EventResponseDTO createEvent(EventRequestDTO requestDTO) {
         Integer currentUserId = currentUserService.getCurrentUserId();
-
         User creator = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Authenticated user not found"
-                ));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         Location location = locationRepository.findById(requestDTO.getLocationId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Location not found with id: " + requestDTO.getLocationId()
-                ));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Location not found"));
 
-        Event event = Event.builder()
-                .name(requestDTO.getName())
-                .url(requestDTO.getUrl())
-                .desc(requestDTO.getDesc())
-                .location(location)
-                .creator(creator)
-                .scheduledDate(requestDTO.getScheduledDate())
-                .filterIds(
-                        requestDTO.getFilterIds() == null
-                                ? new ArrayList<>()
-                                : new ArrayList<>(requestDTO.getFilterIds())
-                )
-                .build();
+        Event event = new Event();
+        event.setName(requestDTO.getName());
+        event.setUrl(requestDTO.getUrl());
+        event.setDesc(requestDTO.getDesc());
+        event.setScheduledDate(requestDTO.getScheduledDate());
+        event.setLocation(location);
+        event.setCreator(creator);
+        event.setFilterIds(requestDTO.getFilterIds() != null ? requestDTO.getFilterIds() : new ArrayList<>());
 
         Event savedEvent = eventRepository.save(event);
         return eventMapper.toResponseDTO(savedEvent);
     }
 
-    public EventResponseDTO getEventById(Integer eventId) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        EVENT_NOT_FOUND_MESSAGE + eventId
-                ));
-
+    public EventResponseDTO getEventById(Integer id) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
         return eventMapper.toResponseDTO(event);
     }
 
-    public EventResponseDTO updateEvent(Integer eventId, EventRequestDTO requestDTO) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        EVENT_NOT_FOUND_MESSAGE + eventId
-                ));
+    public EventResponseDTO updateEvent(Integer id, EventRequestDTO requestDTO) {
+        Event existingEvent = eventRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
 
-        ensureCurrentUserOwnsEvent(event);
+        Integer currentUserId = currentUserService.getCurrentUserId();
+        if (!existingEvent.getCreator().getId().equals(currentUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized to update this event");
+        }
 
         Location location = locationRepository.findById(requestDTO.getLocationId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Location not found with id: " + requestDTO.getLocationId()
-                ));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Location not found"));
 
-        event.setName(requestDTO.getName());
-        event.setUrl(requestDTO.getUrl());
-        event.setDesc(requestDTO.getDesc());
-        event.setLocation(location);
-        event.setScheduledDate(requestDTO.getScheduledDate());
-        event.setFilterIds(
-                requestDTO.getFilterIds() == null
-                        ? new ArrayList<>()
-                        : new ArrayList<>(requestDTO.getFilterIds())
-        );
+        existingEvent.setName(requestDTO.getName());
+        existingEvent.setUrl(requestDTO.getUrl());
+        existingEvent.setDesc(requestDTO.getDesc());
+        existingEvent.setScheduledDate(requestDTO.getScheduledDate());
+        existingEvent.setLocation(location);
+        existingEvent.setFilterIds(requestDTO.getFilterIds() != null ? requestDTO.getFilterIds() : new ArrayList<>());
 
-        Event updatedEvent = eventRepository.save(event);
-        return eventMapper.toResponseDTO(updatedEvent);
+        Event savedEvent = eventRepository.save(existingEvent);
+        return eventMapper.toResponseDTO(savedEvent);
     }
 
-    public void deleteEvent(Integer eventId) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        EVENT_NOT_FOUND_MESSAGE + eventId
-                ));
+    public void deleteEvent(Integer id) {
+        Event existingEvent = eventRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
 
-        ensureCurrentUserOwnsEvent(event);
-        eventRepository.delete(event);
-    }
-
-    private void ensureCurrentUserOwnsEvent(Event event) {
         Integer currentUserId = currentUserService.getCurrentUserId();
-
-        Integer creatorId = event.getCreator() != null
-                ? event.getCreator().getId()
-                : null;
-
-        if (!Objects.equals(currentUserId, creatorId)) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "You can only modify your own events"
-            );
+        if (!existingEvent.getCreator().getId().equals(currentUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized to delete this event");
         }
+
+        eventRepository.delete(existingEvent);
     }
 
-    public List<EventResponseDTO> sortEvents(Integer userId, String searchString, List<Integer> explicitFilters, Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch, BigDecimal lat, BigDecimal lng) {
-
-        Coordinates userCoords = (lat != null && lng != null)
-                ? new Coordinates(lat, lng)
-                : new Coordinates(BigDecimal.ZERO, BigDecimal.ZERO);
-
-        final Double actualMaxDistance = (maxDistance != null) ? maxDistance : 20000.0;
-        final Integer actualMaxDays = (maxDays != null) ? maxDays : 3650;
-
+    public List<EventResponseDTO> sortEvents(Integer userId, EventSearchFieldsDTO fields) {
+        LocalDateTime timeOfSearch = (fields.getLocalTime() != null) ? fields.getLocalTime() : LocalDateTime.now();
         List<Integer> fetchedUserFilters = userService.getUserProfileFilters(userId);
-        final List<Integer> userFilters = (fetchedUserFilters != null) ? fetchedUserFilters : new ArrayList<>();
+        List<Integer> userFilters = (fetchedUserFilters != null) ? fetchedUserFilters : new ArrayList<>();
 
         List<Integer> searchFilters = new ArrayList<>();
-
-        List<Integer> aiFilters = aiServiceClient.getSearchFilters(searchString);
+        List<Integer> aiFilters = aiServiceClient.getSearchFilters(fields.getQuery());
         if (aiFilters != null && !aiFilters.isEmpty()) {
             searchFilters.addAll(aiFilters);
         }
-
-        if (explicitFilters != null && !explicitFilters.isEmpty()) {
-            searchFilters.addAll(explicitFilters);
+        if (fields.getFilterIds() != null && !fields.getFilterIds().isEmpty()) {
+            searchFilters.addAll(fields.getFilterIds());
         }
 
         Set<Integer> combinedFilters = new HashSet<>(userFilters);
         combinedFilters.addAll(searchFilters);
-
-        if(combinedFilters.isEmpty())
-        {
+        if (combinedFilters.isEmpty()) {
             combinedFilters.add(-1);
         }
 
-        String safeSearchString = (searchString != null) ? searchString : "";
-
+        String safeSearchString = (fields.getQuery() != null) ? fields.getQuery() : "";
         List<Event> candidates = eventRepository.searchByTextOrFilters(safeSearchString, new ArrayList<>(combinedFilters), timeOfSearch);
 
-        candidates.removeIf(event -> event.getScheduledDate() != null && ChronoUnit.DAYS.between(timeOfSearch, event.getScheduledDate()) > actualMaxDays);
-
-        if (candidates.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        Set<Integer> uniqueLocationIds = new HashSet<>();
-        Map<Integer, Coordinates> destinationCoordsMap = new HashMap<>();
-
-        for (Event event : candidates) {
-            if (event.getLocation() != null) {
-                Integer locId = event.getLocation().getId();
-                uniqueLocationIds.add(locId);
-
-                destinationCoordsMap.put(locId, new Coordinates(
-                        event.getLocation().getLatitude(),
-                        event.getLocation().getLongitude()
-                ));
-            }
-        }
-
-        Map<Integer, List<Integer>> locationFiltersMap = locationServiceClient.getFiltersForLocations(uniqueLocationIds);
-        Map<Integer, Double> distancesMap = aiServiceClient.getDistances(userCoords, destinationCoordsMap);
-
-        candidates.sort((o1, o2) -> {
-            double score1 = calculateCompoundScore(o1, userFilters, searchFilters, locationFiltersMap, distancesMap, actualMaxDistance, actualMaxDays, timeOfSearch);
-            double score2 = calculateCompoundScore(o2, userFilters, searchFilters, locationFiltersMap, distancesMap, actualMaxDistance, actualMaxDays, timeOfSearch);
-            return Double.compare(score2, score1);
-        });
-
-        return candidates.stream()
-                .limit(20)
-                .map(eventMapper::toResponseDTO)
-                .toList();
+        return processAndSortCandidates(candidates, userFilters, searchFilters, timeOfSearch, fields);
     }
 
-    public List<EventResponseDTO> discoverEvents(Integer userId, List<Integer> explicitFilters, Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch, BigDecimal lat, BigDecimal lng) {
-
-        Coordinates userCoords = (lat != null && lng != null)
-                ? new Coordinates(lat, lng)
-                : new Coordinates(BigDecimal.ZERO, BigDecimal.ZERO);
-
-        final Double actualMaxDistance = (maxDistance != null) ? maxDistance : 20000.0;
-        final Integer actualMaxDays = (maxDays != null) ? maxDays : 3650;
-
+    public List<EventResponseDTO> discoverEvents(Integer userId, EventSearchFieldsDTO fields) {
+        LocalDateTime timeOfSearch = (fields.getLocalTime() != null) ? fields.getLocalTime() : LocalDateTime.now();
         List<Integer> fetchedUserFilters = userService.getUserProfileFilters(userId);
-        final List<Integer> userFilters = (fetchedUserFilters != null) ? fetchedUserFilters : new ArrayList<>();
-
-        final List<Integer> searchFilters = (explicitFilters != null) ? explicitFilters : new ArrayList<>();
+        List<Integer> userFilters = (fetchedUserFilters != null) ? fetchedUserFilters : new ArrayList<>();
+        List<Integer> searchFilters = (fields.getFilterIds() != null) ? fields.getFilterIds() : new ArrayList<>();
 
         List<Event> candidates = eventRepository.findUpcomingEventsForDiscovery(timeOfSearch);
 
+        return processAndSortCandidates(candidates, userFilters, searchFilters, timeOfSearch, fields);
+    }
+
+    private List<EventResponseDTO> processAndSortCandidates(List<Event> candidates, List<Integer> userFilters, List<Integer> searchFilters, LocalDateTime timeOfSearch, EventDiscoverFieldsDTO fields) {
+        Double actualMaxDistance = (fields.getMaxDistance() != null) ? fields.getMaxDistance() : 20000.0;
+        Integer actualMaxDays = (fields.getMaxDays() != null) ? fields.getMaxDays() : 3650;
+        Coordinates userCoords = (fields.getLat() != null && fields.getLng() != null)
+                ? new Coordinates(fields.getLat(), fields.getLng())
+                : new Coordinates(BigDecimal.ZERO, BigDecimal.ZERO);
+
         candidates.removeIf(event -> event.getScheduledDate() != null && ChronoUnit.DAYS.between(timeOfSearch, event.getScheduledDate()) > actualMaxDays);
 
         if (candidates.isEmpty()) {
@@ -237,79 +155,76 @@ public class EventService {
             if (event.getLocation() != null) {
                 Integer locId = event.getLocation().getId();
                 uniqueLocationIds.add(locId);
-                destinationCoordsMap.put(locId, new Coordinates(
-                        event.getLocation().getLatitude(),
-                        event.getLocation().getLongitude()
-                ));
+                destinationCoordsMap.put(locId, new Coordinates(event.getLocation().getLatitude(), event.getLocation().getLongitude()));
             }
         }
 
-        Map<Integer, List<Integer>> locationFiltersMap = locationServiceClient.getFiltersForLocations(uniqueLocationIds);
-        Map<Integer, Double> distancesMap = aiServiceClient.getDistances(userCoords, destinationCoordsMap);
+        ScoringContext context = new ScoringContext(
+                userFilters, searchFilters,
+                locationServiceClient.getFiltersForLocations(uniqueLocationIds),
+                aiServiceClient.getDistances(userCoords, destinationCoordsMap),
+                actualMaxDistance, actualMaxDays, timeOfSearch
+        );
 
-        candidates.sort((o1, o2) -> {
-            double score1 = calculateCompoundScore(o1, userFilters, searchFilters, locationFiltersMap, distancesMap, actualMaxDistance, actualMaxDays, timeOfSearch);
-            double score2 = calculateCompoundScore(o2, userFilters, searchFilters, locationFiltersMap, distancesMap, actualMaxDistance, actualMaxDays, timeOfSearch);
-            return Double.compare(score2, score1);
-        });
+        candidates.sort((o1, o2) -> Double.compare(calculateCompoundScore(o2, context), calculateCompoundScore(o1, context)));
 
-        return candidates.stream()
-                .limit(20)
-                .map(eventMapper::toResponseDTO)
-                .toList();
+        return candidates.stream().limit(20).map(eventMapper::toResponseDTO).toList();
     }
 
-    private double calculateCompoundScore(Event event, List<Integer> userFilters, List<Integer> aiFilters,
-                                          Map<Integer, List<Integer>> locationFiltersMap,
-                                          Map<Integer, Double> distancesMap, Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch) {
+    private record ScoringContext(
+            List<Integer> userFilters, List<Integer> searchFilters,
+            Map<Integer, List<Integer>> locationFiltersMap, Map<Integer, Double> distancesMap,
+            Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch
+    ) {}
 
-        Integer locId = event.getLocation() != null ? event.getLocation().getId() : null;
+    private double calculateCompoundScore(Event event, ScoringContext ctx) {
+        double aiScore = 0.0;
+        double eventScore = 0.0;
+        double finalLocationScore = 0.0;
 
-        Set<Integer> totalFilters = new HashSet<>(event.getFilterIds() != null ? event.getFilterIds() : new ArrayList<>());
-        totalFilters.addAll(locationFiltersMap.getOrDefault(locId, new ArrayList<>()));
+        List<Integer> finalFilterIds = new ArrayList<>();
+        if (event.getFilterIds() != null) {
+            finalFilterIds.addAll(event.getFilterIds());
+        }
 
-        double filterScore = calculateFilterScore(totalFilters, userFilters, aiFilters);
-        double distanceScore = calculateDistanceScore(distancesMap.getOrDefault(locId, maxDistance + 1.0), maxDistance);
-        double timeScore = calculateTimeScore(timeOfSearch, event.getScheduledDate(), maxDays);
-
-        return (0.5 * filterScore) + (0.3 * distanceScore) + (0.2 * timeScore);
-    }
-
-    private double calculateFilterScore(Set<Integer> totalFilters, List<Integer> userFilters, List<Integer> aiFilters) {
-        if (userFilters.isEmpty() && aiFilters.isEmpty()) return 1.0;
-
-        int totalPossibleScore = userFilters.size();
-        totalPossibleScore += aiFilters.size() * 2;
-
-        int score = 0;
-
-        for (Integer filter : userFilters) {
-            if (totalFilters.contains(filter)) {
-                score++;
+        if (event.getLocation() != null) {
+            Integer locId = event.getLocation().getId();
+            List<Integer> lf = ctx.locationFiltersMap().get(locId);
+            if (lf != null) {
+                finalFilterIds.addAll(lf);
             }
         }
 
-        for (Integer filter : aiFilters) {
-            if (totalFilters.contains(filter)) {
-                score+=2;
+        if (!ctx.searchFilters().isEmpty()) {
+            long matches = finalFilterIds.stream().filter(ctx.searchFilters()::contains).count();
+            aiScore = (double) matches / ctx.searchFilters().size();
+        } else {
+            aiScore = 1.0;
+        }
+
+        if (!ctx.userFilters().isEmpty()) {
+            long matchEv = finalFilterIds.stream().filter(ctx.userFilters()::contains).count();
+            eventScore = (double) matchEv / ctx.userFilters().size();
+        } else {
+            eventScore = 1.0;
+        }
+
+        if (event.getLocation() != null) {
+            Integer locId = event.getLocation().getId();
+            Double distanceKm = ctx.distancesMap().getOrDefault(locId, 0.0);
+            double normalizedDist = (ctx.maxDistance() - distanceKm) / ctx.maxDistance();
+            finalLocationScore = Math.max(0.0, Math.min(1.0, normalizedDist));
+        }
+
+        double timeScore = 1.0;
+        if (event.getScheduledDate() != null) {
+            long daysUntil = ChronoUnit.DAYS.between(ctx.timeOfSearch(), event.getScheduledDate());
+            if (ctx.maxDays() > 0) {
+                double timeNormalized = (ctx.maxDays() - daysUntil) / (double) ctx.maxDays();
+                timeScore = Math.max(0.0, Math.min(1.0, timeNormalized));
             }
         }
-        return (double) score / totalPossibleScore;
-    }
 
-    private double calculateDistanceScore(Double distanceInKm, Double maxDistance) {
-        if (distanceInKm >= maxDistance) return 0.0;
-        return 1.0 - (distanceInKm / maxDistance);
-    }
-
-    private double calculateTimeScore(LocalDateTime timeOfSearch, LocalDateTime scheduledDate, Integer maxDays) {
-        if (scheduledDate == null) return 0.5;
-
-        long daysUntilEvent = ChronoUnit.DAYS.between(timeOfSearch, scheduledDate);
-        if (daysUntilEvent < 0) return 0.0;
-
-        if (daysUntilEvent >= maxDays) return 0.0;
-
-        return 1.0 - ((double)daysUntilEvent / maxDays);
+        return (aiScore * 0.4) + (eventScore * 0.3) + (finalLocationScore * 0.2) + (timeScore * 0.1);
     }
 }

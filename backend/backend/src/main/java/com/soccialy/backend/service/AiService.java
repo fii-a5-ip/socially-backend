@@ -68,9 +68,7 @@ public class AiService {
                 List<TagDTO> tags = response.getBody().getTags();
 
                 if (tags != null) {
-                    List<Integer> filtre = tags.stream()
-                            .map(TagDTO::getId)
-                            .collect(Collectors.toList());
+                    List<Integer> filtre = tags.stream().map(TagDTO::getId).toList();
 
                     log.info("3. Lista de ID-uri extrasa cu succes: " + filtre);
                     return filtre;
