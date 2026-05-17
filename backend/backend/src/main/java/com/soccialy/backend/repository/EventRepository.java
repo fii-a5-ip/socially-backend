@@ -1,7 +1,7 @@
 package com.soccialy.backend.repository;
 
-import java.util.List;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -33,11 +33,17 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
 
     @Query(value = "SELECT DISTINCT e.* FROM events e " +
             "LEFT JOIN event_filters f ON e.id = f.event_id " +
-            "WHERE MATCH(e.name) AGAINST(:searchString IN NATURAL LANGUAGE MODE) " +
-            "OR f.filter_id IN (:filters) LIMIT 300",
+            "WHERE ((LOWER(e.name) LIKE LOWER(CONCAT('%', :searchString, '%')) " +
+            "   OR LOWER(e.`desc`) LIKE LOWER(CONCAT('%', :searchString, '%'))) " +
+            "   OR f.filter_id IN (:filters)) " +
+            "AND e.date >= :now LIMIT 300",
             nativeQuery = true)
     List<Event> searchByTextOrFilters(
             @Param("searchString") String searchString,
-            @Param("filters") List<Integer> filters
+            @Param("filters") List<Integer> filters,
+            @Param("now") LocalDateTime now
     );
+
+    @Query(value = "SELECT * FROM events WHERE date >= :now LIMIT 200", nativeQuery = true)
+    List<Event> findUpcomingEventsForDiscovery(@Param("now") LocalDateTime now);
 }
