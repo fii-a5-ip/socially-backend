@@ -4,6 +4,8 @@ import com.soccialy.backend.dto.EventResponseDTO;
 import com.soccialy.backend.entity.Event;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+
 @Component
 public class EventMapper {
 
@@ -16,8 +18,23 @@ public class EventMapper {
                 .id(event.getId())
                 .name(event.getName())
                 .url(event.getUrl())
-                .locationId(event.getLocation() != null ? event.getLocation().getId() : null)
+                .desc(event.getDesc())
+                .locationId(
+                        event.getLocation() != null
+                                ? event.getLocation().getId()
+                                : null
+                )
+                .creatorUserId(
+                        event.getCreator() != null
+                                ? event.getCreator().getId()
+                                : null
+                )
                 .scheduledDate(event.getScheduledDate())
+                .filterIds(
+                        event.getFilterIds() != null
+                                ? new ArrayList<>(event.getFilterIds())
+                                : new ArrayList<>()
+                )
                 .build();
     }
 }

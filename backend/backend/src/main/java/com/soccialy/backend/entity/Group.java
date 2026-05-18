@@ -9,9 +9,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Entity
-@Table(name = "`groups`") // 'groups' e cuvânt rezervat în MySQL — backtick-urile forțează Hibernate să-l
-                          // escape corect
+@Entity(name = "UserGroup")
+@Table(name = "groups") // Notă: 'groups' este cuvânt rezervat în MySQL, dar JPA se descurcă dacă e setat corect.
 @Getter
 @Setter
 @NoArgsConstructor
@@ -30,6 +29,10 @@ public class Group {
     private String imgLink;
 
     @ManyToOne
+    @Column(name = "`desc`", columnDefinition = "LONGTEXT")
+    private String desc;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_user_id", nullable = false)
     private User creator;
 

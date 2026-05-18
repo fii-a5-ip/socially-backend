@@ -34,6 +34,10 @@ public class Event {
     @JoinColumn(name = "creator_user_id", nullable = false)
     private User creator;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id")
+    private Group group;
+
     @Column(name = "`desc`", columnDefinition = "LONGTEXT", nullable = false)
     private String desc;
 

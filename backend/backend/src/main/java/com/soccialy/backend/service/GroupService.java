@@ -3,12 +3,18 @@ package com.soccialy.backend.service;
 import com.soccialy.backend.dto.*;
 import com.soccialy.backend.entity.Group;
 import com.soccialy.backend.entity.GroupMember;
+import com.soccialy.backend.dto.GroupDTO;
+import com.soccialy.backend.dto.GroupUserDTO;
+import com.soccialy.backend.entity.Group;
+import com.soccialy.backend.entity.GroupUser;
 import com.soccialy.backend.entity.User;
+import com.soccialy.backend.exception.GroupNotFoundException;
 import com.soccialy.backend.mapper.GroupMapper;
 import com.soccialy.backend.repository.GroupRepository;
 import com.soccialy.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;

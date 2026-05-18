@@ -1,8 +1,10 @@
 package com.soccialy.backend.mapper;
 
 import com.soccialy.backend.dto.GroupDTO;
+import com.soccialy.backend.dto.GroupUserDTO;
 import com.soccialy.backend.entity.Group;
 import com.soccialy.backend.entity.GroupMember;
+import com.soccialy.backend.entity.GroupUser;
 import com.soccialy.backend.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,11 +41,21 @@ class GroupMapperTest {
         Group group = new Group();
         group.setId(10);
         group.setName("Test Grup");
+        group.setDesc("Test Descriere");
         group.setImgLink("https://example.com/img.png");
         group.setCreator(creator);
-        GroupMember adminMember = GroupMember.builder().group(group).user(creator).role("ADMIN").build();
-        GroupMember normalMember = GroupMember.builder().group(group).user(member).role("MEMBER").build();
-        group.setMembers(new ArrayList<>(List.of(adminMember, normalMember)));
+
+        GroupUser gu1 = new GroupUser();
+        gu1.setGroup(group);
+        gu1.setUser(creator);
+        gu1.setRole("ADMIN");
+
+        GroupUser gu2 = new GroupUser();
+        gu2.setGroup(group);
+        gu2.setUser(member);
+        gu2.setRole("MEMBER");
+
+        group.setGroupUsers(new HashSet<>(Set.of(gu1, gu2)));
 
         // Act
         GroupDTO dto = groupMapper.toDTO(group);
@@ -52,11 +64,20 @@ class GroupMapperTest {
         assertNotNull(dto);
         assertEquals(10, dto.getId());
         assertEquals("Test Grup", dto.getName());
+        assertEquals("Test Descriere", dto.getDesc());
         assertEquals("https://example.com/img.png", dto.getImgLink());
         assertEquals(1, dto.getCreatorUserId());
-        assertTrue(dto.getMemberIds().contains(1));
-        assertTrue(dto.getMemberIds().contains(2));
-        assertEquals(2, dto.getMemberIds().size());
+
+        assertNotNull(dto.getMembers());
+        assertEquals(2, dto.getMembers().size());
+
+        boolean hasAdmin = dto.getMembers().stream()
+                .anyMatch(m -> m.getUserId() == 1 && "ADMIN".equals(m.getRole()));
+        boolean hasMember = dto.getMembers().stream()
+                .anyMatch(m -> m.getUserId() == 2 && "MEMBER".equals(m.getRole()));
+
+        assertTrue(hasAdmin);
+        assertTrue(hasMember);
     }
 
     @Test
@@ -76,10 +97,25 @@ class GroupMapperTest {
         assertEquals(5, dto.getId());
         assertEquals("Empty Group", dto.getName());
         assertNull(dto.getCreatorUserId());
-        // Group entity initializes members with empty ArrayList (@Builder.Default),
-        // so memberIds will be an empty list, not null
-        assertNotNull(dto.getMemberIds());
-        assertTrue(dto.getMemberIds().isEmpty());
+        // Group entity initializes groupUsers with empty HashSet (@Builder.Default),
+        // so members will be an empty list, not null
+        assertNotNull(dto.getMembers());
+        assertTrue(dto.getMembers().isEmpty());
+    }
+
+    @Test
+    void toDTO_NullGroupUsers_ReturnsNullMembers() {
+        Group group = new Group();
+        group.setId(6);
+        group.setName("No Members");
+        group.setGroupUsers(null);
+
+        GroupDTO dto = groupMapper.toDTO(group);
+
+        assertNotNull(dto);
+        assertEquals(6, dto.getId());
+        assertEquals("No Members", dto.getName());
+        assertNull(dto.getMembers());
     }
 
     @Test
@@ -88,6 +124,7 @@ class GroupMapperTest {
         GroupDTO dto = new GroupDTO();
         dto.setId(10);
         dto.setName("DTO Grup");
+        dto.setDesc("DTO Descriere");
         dto.setImgLink("https://example.com/img.png");
 
         // Act
@@ -97,6 +134,7 @@ class GroupMapperTest {
         assertNotNull(entity);
         assertEquals(10, entity.getId());
         assertEquals("DTO Grup", entity.getName());
+        assertEquals("DTO Descriere", entity.getDesc());
         assertEquals("https://example.com/img.png", entity.getImgLink());
     }
 
