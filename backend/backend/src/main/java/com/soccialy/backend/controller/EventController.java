@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import com.soccialy.backend.dto.EventDetailsRequestDTO;
+import jakarta.servlet.http.HttpSession;
 
 import java.util.List;
 
@@ -22,6 +24,15 @@ import java.util.List;
 public class EventController {
 
     private final EventService eventService;
+
+    @PostMapping("/draft/details")
+    public ResponseEntity<String> storeDraftDetails(
+            @Valid @RequestBody EventDetailsRequestDTO requestDTO,
+            HttpSession session) {
+
+        eventService.saveDraftDetails(requestDTO, session);
+        return ResponseEntity.ok("Detaliile evenimentului au fost procesate de AI si retinute in memorie!");
+    }
 
     @PostMapping
     public ResponseEntity<EventResponseDTO> createEvent(
