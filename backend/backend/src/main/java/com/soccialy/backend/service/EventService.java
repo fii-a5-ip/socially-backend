@@ -18,6 +18,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.soccialy.backend.dto.EventDetailsRequestDTO;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.web.client.RestTemplate;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -229,4 +237,33 @@ public class EventService {
 
         return (aiScore * 0.4) + (eventScore * 0.3) + (finalLocationScore * 0.2) + (timeScore * 0.1);
     }
+
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final String AI_SERVER_URL = "http://52.58.222.100:5000/api/searchToFilters/";
+
+    public void saveDraftDetails(EventDetailsRequestDTO request, HttpSession session) {
+        List<Integer> filterIds = new ArrayList<>();
+
+        // 1. Pregătim JSON-ul pentru serverul de Python al echipei de AI
+        Map<String, String> aiRequestBody = new HashMap<>();
+        aiRequestBody.put("prompt", request.getDesc());
+
+        try {
+            // 2. Apelăm serverul lor de AI pus pe AWS
+            Map<String, Object> aiResponse = restTemplate.postForObject(AI_SERVER_URL, aiRequestBody, Map.class);
+
+            if (aiResponse != null && aiResponse.containsKey("filtre_id")) {
+                filterIds = (List<Integer>) aiResponse.get("filtre_id");
+            }
+        } catch (Exception e) {
+            // Dacă serverul de Python e oprit, logăm eroarea dar nu blocăm rularea Java
+            System.err.println("Eroare la comunicarea cu AI-ul: " + e.getMessage());
+        }
+
+        // 3. Salvăm/Suprascriem în memoria RAM a serverului (HttpSession)
+        session.setAttribute("draft_event_name", request.getName());
+        session.setAttribute("draft_event_desc", request.getDesc());
+        session.setAttribute("draft_event_filters", filterIds);
+    }
+
 }
