@@ -8,6 +8,7 @@ import com.soccialy.backend.entity.Location;
 import com.soccialy.backend.entity.User;
 import com.soccialy.backend.mapper.EventMapper;
 import com.soccialy.backend.repository.EventRepository;
+import com.soccialy.backend.repository.FilterRepository;
 import com.soccialy.backend.repository.LocationRepository;
 import com.soccialy.backend.repository.UserRepository;
 import com.soccialy.backend.security.CurrentUserService;
@@ -36,6 +37,7 @@ public class EventService {
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
+    private final FilterRepository filterRepository;
 
     public EventResponseDTO createEvent(EventRequestDTO requestDTO) {
         Integer currentUserId = currentUserService.getCurrentUserId();
@@ -52,6 +54,14 @@ public class EventService {
                         "Location not found with id: " + requestDTO.getLocationId()
                 ));
 
+        List<Integer> validFilterIds = new ArrayList<>();
+        if (requestDTO.getFilterIds() != null && !requestDTO.getFilterIds().isEmpty()) {
+            validFilterIds = filterRepository.findAllById(requestDTO.getFilterIds())
+                    .stream()
+                    .map(filter -> filter.getId())
+                    .toList();
+        }
+
         Event event = Event.builder()
                 .name(requestDTO.getName())
                 .url(requestDTO.getUrl())
@@ -59,11 +69,7 @@ public class EventService {
                 .location(location)
                 .creator(creator)
                 .scheduledDate(requestDTO.getScheduledDate())
-                .filterIds(
-                        requestDTO.getFilterIds() == null
-                                ? new ArrayList<>()
-                                : new ArrayList<>(requestDTO.getFilterIds())
-                )
+                .filterIds(validFilterIds)
                 .build();
 
         Event savedEvent = eventRepository.save(event);

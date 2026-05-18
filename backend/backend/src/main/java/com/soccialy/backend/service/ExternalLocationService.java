@@ -8,6 +8,7 @@ import com.soccialy.backend.dto.LocationSuggestionDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -23,13 +24,16 @@ public class ExternalLocationService {
     private String aiApiUrl;
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper()
+            .configure(com.fasterxml.jackson.core.JsonParser.Feature.ALLOW_NON_NUMERIC_NUMBERS, true);
 
     public List<LocationSuggestionDTO> autocomplete(String partialName, Double lat, Double lon) {
         try {
+            String encodedName = java.net.URLEncoder.encode(partialName, java.nio.charset.StandardCharsets.UTF_8);
+
             StringBuilder url = new StringBuilder(aiApiUrl)
                     .append("/api/autocompleteLocationName/?partialName=")
-                    .append(partialName);
+                    .append(encodedName);
 
             if (lat != null && lon != null) {
                 url.append("&userLatCoord=").append(lat)
@@ -53,12 +57,19 @@ public class ExternalLocationService {
                 dto.setName((String) location.get("name"));
                 dto.setPlaceId((String) location.get("place_id"));
                 dto.setFullAddress((String) location.get("full_address"));
-                dto.setDistanceMeters(location.get("distance_meters"));
+
+                if (location.get("distance_meters") != null) {
+                    dto.setDistanceMeters(((Number) location.get("distance_meters")).intValue());
+                }
 
                 Map<String, Object> coords = (Map<String, Object>) location.get("coordinates");
                 if (coords != null) {
-                    dto.setLat((Double) coords.get("lat"));
-                    dto.setLon((Double) coords.get("lon"));
+                    if (coords.get("lat") != null) {
+                        dto.setLat(BigDecimal.valueOf(((Number) coords.get("lat")).doubleValue()));
+                    }
+                    if (coords.get("lon") != null) {
+                        dto.setLon(BigDecimal.valueOf(((Number) coords.get("lon")).doubleValue()));
+                    }
                 }
 
                 Map<String, Object> address = (Map<String, Object>) location.get("address");
@@ -74,6 +85,8 @@ public class ExternalLocationService {
             return suggestions;
 
         } catch (Exception e) {
+            System.err.println("Eroare in autocomplete: " + e.getMessage());
+            e.printStackTrace();
             return new ArrayList<>();
         }
     }
@@ -129,6 +142,11 @@ public class ExternalLocationService {
                 }
                 dto.setTags(tags);
             }
+
+            JsonNode mapNode = loc.path("map");
+            if (!mapNode.isMissingNode()) {
+                dto.setMapHtml(mapNode.path("html").asText(null));
+            }   
 
             return dto;
 

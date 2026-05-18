@@ -2,12 +2,14 @@ package com.soccialy.backend.dto;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 @Data
 public class LocationSuggestionDTO {
     private String name;
     private String placeId;
-    private Double lat;
-    private Double lon;
+    private BigDecimal lat;
+    private BigDecimal lon;
     private String fullAddress;
     private String city;
     private String street;

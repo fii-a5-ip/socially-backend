@@ -17,4 +17,5 @@ public class LocationDetailDTO {
     private String phone;
     private String website;
     private List<String> tags;
+    private String mapHtml;
 }
