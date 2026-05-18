@@ -69,14 +69,7 @@ public class EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
 
-        Integer voteInt;
-        if ("Da".equalsIgnoreCase(voteTypeStr)) {
-            voteInt = 1;
-        } else if ("Nu".equalsIgnoreCase(voteTypeStr)) {
-            voteInt = 2;
-        } else if ("Poate".equalsIgnoreCase(voteTypeStr)) {
-            voteInt = 3;
-        } else {
+        if (!List.of("Da", "Nu", "Poate").contains(voteTypeStr)) {
             throw new IllegalArgumentException("Invalid vote type: " + voteTypeStr);
         }
 
@@ -85,14 +78,14 @@ public class EventService {
 
         if (existingVoteOpt.isPresent()) {
             com.soccialy.backend.entity.UserVote existingVote = existingVoteOpt.get();
-            existingVote.setVote(voteInt);
+            existingVote.setVoteType(voteTypeStr);
             userVoteRepository.save(existingVote);
         } else {
             // Create new vote
             com.soccialy.backend.entity.UserVote newVote = com.soccialy.backend.entity.UserVote.builder()
                     .user(user)
                     .event(event)
-                    .vote(voteInt)
+                    .voteType(voteTypeStr)
                     .build();
             userVoteRepository.save(newVote);
         }

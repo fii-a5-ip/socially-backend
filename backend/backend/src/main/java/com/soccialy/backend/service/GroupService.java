@@ -108,30 +108,17 @@ public class GroupService {
 
                 List<GroupEventDTO> events = allEvents.stream()
                                 .map(event -> {
-                                        int daVotes = userVoteRepository.countByEventIdAndVote(event.getId(), 1);
-                                        int nuVotes = userVoteRepository.countByEventIdAndVote(event.getId(), 2);
-                                        int poateVotes = userVoteRepository.countByEventIdAndVote(event.getId(), 3);
+                                         int daVotes = userVoteRepository.countByEventIdAndVoteType(event.getId(), "Da");
+                                         int nuVotes = userVoteRepository.countByEventIdAndVoteType(event.getId(), "Nu");
+                                         int poateVotes = userVoteRepository.countByEventIdAndVoteType(event.getId(), "Poate");
 
-                                        String myVoteStr = null;
-                                        if (userId != null) {
-                                                Integer myVoteInt = userVoteRepository
-                                                                .findByUserIdAndEventId(userId, event.getId())
-                                                                .map(com.soccialy.backend.entity.UserVote::getVote)
-                                                                .orElse(null);
-                                                if (myVoteInt != null) {
-                                                        switch (myVoteInt) {
-                                                                case 1:
-                                                                        myVoteStr = "Da";
-                                                                        break;
-                                                                case 2:
-                                                                        myVoteStr = "Nu";
-                                                                        break;
-                                                                case 3:
-                                                                        myVoteStr = "Poate";
-                                                                        break;
-                                                        }
-                                                }
-                                        }
+                                         String myVoteStr = null;
+                                         if (userId != null) {
+                                                 myVoteStr = userVoteRepository
+                                                                 .findByUserIdAndEventId(userId, event.getId())
+                                                                 .map(com.soccialy.backend.entity.UserVote::getVoteType)
+                                                                 .orElse(null);
+                                         }
 
                                         return GroupEventDTO.builder()
                                                         .id(String.valueOf(event.getId()))

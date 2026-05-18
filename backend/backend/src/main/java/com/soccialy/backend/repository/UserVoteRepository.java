@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface UserVoteRepository extends JpaRepository<UserVote, Integer> {
     Optional<UserVote> findByUserIdAndEventId(Integer userId, Integer eventId);
+    int countByEventIdAndVoteType(Integer eventId, String voteType);
 }
