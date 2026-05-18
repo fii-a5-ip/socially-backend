@@ -19,7 +19,7 @@ public class WebConfig {
                                 "https://socially-frontend-lovat.vercel.app"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("*")
+                        .allowedHeaders("Authorization", "Content-Type")
                         .allowCredentials(true);
             }
         };

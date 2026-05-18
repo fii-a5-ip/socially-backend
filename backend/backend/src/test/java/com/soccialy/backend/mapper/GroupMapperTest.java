@@ -102,6 +102,21 @@ class GroupMapperTest {
     }
 
     @Test
+    void toDTO_NullGroupUsers_ReturnsNullMembers() {
+        Group group = new Group();
+        group.setId(6);
+        group.setName("No Members");
+        group.setGroupUsers(null);
+
+        GroupDTO dto = groupMapper.toDTO(group);
+
+        assertNotNull(dto);
+        assertEquals(6, dto.getId());
+        assertEquals("No Members", dto.getName());
+        assertNull(dto.getMembers());
+    }
+
+    @Test
     void toEntity_Success() {
         // Arrange
         GroupDTO dto = new GroupDTO();

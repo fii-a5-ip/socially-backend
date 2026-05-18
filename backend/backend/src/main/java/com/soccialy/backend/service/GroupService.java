@@ -5,6 +5,7 @@ import com.soccialy.backend.dto.GroupUserDTO;
 import com.soccialy.backend.entity.Group;
 import com.soccialy.backend.entity.GroupUser;
 import com.soccialy.backend.entity.User;
+import com.soccialy.backend.exception.GroupNotFoundException;
 import com.soccialy.backend.mapper.GroupMapper;
 import com.soccialy.backend.repository.GroupRepository;
 import com.soccialy.backend.repository.UserRepository;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -29,15 +31,25 @@ public class GroupService {
 
     @Transactional
     public GroupDTO createGroup(GroupDTO groupDTO) {
+        return createGroupInternal(groupDTO, groupDTO.getCreatorUserId());
+    }
+
+    @Transactional
+    public GroupDTO createGroup(GroupDTO groupDTO, Integer creatorUserId) {
+        return createGroupInternal(groupDTO, creatorUserId);
+    }
+
+    private GroupDTO createGroupInternal(GroupDTO groupDTO, Integer creatorUserId) {
+        if (creatorUserId == null) {
+            throw new RuntimeException("Creator user ID is required");
+        }
+
         Group group = new Group();
         group.setName(groupDTO.getName());
         group.setDesc(groupDTO.getDesc());
         group.setImgLink(groupDTO.getImgLink());
 
-        if (groupDTO.getCreatorUserId() == null) {
-            throw new RuntimeException("Creator user ID is required");
-        }
-        User creator = userRepository.findById(groupDTO.getCreatorUserId())
+        User creator = userRepository.findById(creatorUserId)
                 .orElseThrow(() -> new RuntimeException("Creator not found"));
         group.setCreator(creator);
 
@@ -76,5 +88,27 @@ public class GroupService {
         Group savedGroup = groupRepository.save(group);
 
         return groupMapper.toDTO(savedGroup);
+    }
+
+    @Transactional(readOnly = true)
+    public List<GroupDTO> findGroupsByUserId(Integer userId) {
+        return groupRepository.findGroupsByUserId(userId).stream()
+                .map(groupMapper::toDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<GroupDTO> searchGroups(String query) {
+        return groupRepository.searchGroups(query.trim()).stream()
+                .map(groupMapper::toDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public GroupDTO findGroupById(Integer groupId) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new GroupNotFoundException(groupId));
+
+        return groupMapper.toDTO(group);
     }
 }

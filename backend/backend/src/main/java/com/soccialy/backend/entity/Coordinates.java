@@ -6,12 +6,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 @Embeddable
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Coordinates {
-    private Double latitude;
-    private Double longitude;
+    private BigDecimal latitude;
+    private BigDecimal longitude;
 }

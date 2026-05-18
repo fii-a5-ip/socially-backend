@@ -6,8 +6,8 @@ import lombok.*;
 import java.util.HashSet;
 import java.util.Set;
 
-@Entity
-@Table(name = "`groups`") // 'groups' e cuvânt rezervat în MySQL — backtick-urile forțează Hibernate să-l escape corect
+@Entity(name = "UserGroup")
+@Table(name = "groups") // Notă: 'groups' este cuvânt rezervat în MySQL, dar JPA se descurcă dacă e setat corect.
 @Getter
 @Setter
 @NoArgsConstructor

@@ -19,7 +19,7 @@ public interface GroupRepository extends JpaRepository<Group, Integer> {
 
     List<Group> findByCreatorId(Integer creatorId);
 
-    @Query("SELECT g FROM Group g WHERE LOWER(g.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+    @Query("SELECT g FROM UserGroup g WHERE LOWER(g.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(g.desc) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Group> searchGroups(@Param("keyword") String keyword);
 
