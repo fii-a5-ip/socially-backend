@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -45,17 +47,17 @@ class GroupMapperTest {
         group.setImgLink("https://example.com/img.png");
         group.setCreator(creator);
 
-        GroupUser gu1 = new GroupUser();
+        GroupMember gu1 = new GroupMember();
         gu1.setGroup(group);
         gu1.setUser(creator);
         gu1.setRole("ADMIN");
 
-        GroupUser gu2 = new GroupUser();
+        GroupMember gu2 = new GroupMember();
         gu2.setGroup(group);
         gu2.setUser(member);
         gu2.setRole("MEMBER");
 
-        group.setGroupUsers(new HashSet<>(Set.of(gu1, gu2)));
+        group.setMembers(List.of(gu1, gu2));
 
         // Act
         GroupDTO dto = groupMapper.toDTO(group);
@@ -108,7 +110,7 @@ class GroupMapperTest {
         Group group = new Group();
         group.setId(6);
         group.setName("No Members");
-        group.setGroupUsers(null);
+        group.setMembers(null);
 
         GroupDTO dto = groupMapper.toDTO(group);
 

@@ -71,17 +71,17 @@ class GroupServiceTest {
         savedGroup.setName("Test Grup");
         savedGroup.setCreator(mockCreator);
 
-        GroupUser adminUser = new GroupUser();
+        GroupMember adminUser = new GroupMember();
         adminUser.setGroup(savedGroup);
         adminUser.setUser(mockCreator);
         adminUser.setRole("ADMIN");
 
-        GroupUser normalMember = new GroupUser();
+        GroupMember normalMember = new GroupMember();
         normalMember.setGroup(savedGroup);
         normalMember.setUser(mockMember);
         normalMember.setRole("MEMBER");
 
-        savedGroup.setGroupUsers(new HashSet<>(Set.of(adminUser, normalMember)));
+        savedGroup.setMembers(new ArrayList<>(List.of(adminUser, normalMember)));
 
         GroupDTO outputDTO = new GroupDTO();
         outputDTO.setId(1);
@@ -130,11 +130,11 @@ class GroupServiceTest {
         savedGroup.setName("Solo Grup");
         savedGroup.setCreator(mockCreator);
 
-        GroupUser adminUser = new GroupUser();
+        GroupMember adminUser = new GroupMember();
         adminUser.setGroup(savedGroup);
         adminUser.setUser(mockCreator);
         adminUser.setRole("ADMIN");
-        savedGroup.setGroupUsers(new HashSet<>(Set.of(adminUser)));
+        savedGroup.setMembers(new ArrayList<>(List.of(adminUser)));
 
         GroupDTO outputDTO = new GroupDTO();
         outputDTO.setId(2);
@@ -186,10 +186,10 @@ class GroupServiceTest {
         assertEquals("Created from authenticated user", savedGroup.getDesc());
         assertEquals("https://example.com/group.png", savedGroup.getImgLink());
         assertEquals(mockCreator, savedGroup.getCreator());
-        assertEquals(2, savedGroup.getGroupUsers().size());
-        assertTrue(savedGroup.getGroupUsers().stream()
+        assertEquals(2, savedGroup.getMembers().size());
+        assertTrue(savedGroup.getMembers().stream()
                 .anyMatch(gu -> gu.getUser().equals(mockCreator) && "ADMIN".equals(gu.getRole())));
-        assertTrue(savedGroup.getGroupUsers().stream()
+        assertTrue(savedGroup.getMembers().stream()
                 .anyMatch(gu -> gu.getUser().equals(mockMember) && "MEMBER".equals(gu.getRole())));
 
         verify(userRepository, never()).findById(999);
@@ -215,8 +215,8 @@ class GroupServiceTest {
         verify(groupRepository).save(groupCaptor.capture());
 
         Group savedGroup = groupCaptor.getValue();
-        assertEquals(1, savedGroup.getGroupUsers().size());
-        assertTrue(savedGroup.getGroupUsers().stream()
+        assertEquals(1, savedGroup.getMembers().size());
+        assertTrue(savedGroup.getMembers().stream()
                 .allMatch(gu -> gu.getUser().equals(mockCreator) && "ADMIN".equals(gu.getRole())));
         verify(userRepository, times(1)).findById(1);
     }
