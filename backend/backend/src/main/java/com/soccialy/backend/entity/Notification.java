@@ -2,13 +2,11 @@ package com.soccialy.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name="notifications")
-@Getter
-@Setter
+@Table(name = "notifications")
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -18,24 +16,45 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable=false)
+    @Column(name = "recipient_user_id", nullable = false)
     private Integer recipientUserId;
 
+    @Column(name = "person_user_id") 
     private Integer actorUserId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable=false)
+    @Column(nullable = false)
     private NotificationType type;
 
-    @Column(nullable=false,length=255)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
+    @Column(name = "reference_id")
     private Integer referenceId;
 
+    @Column(name = "reference_type")
     private String referenceType;
 
-    @Builder.Default
-    private Boolean read=false;
+    @Column(name = "is_read", nullable = false)
+    private boolean isRead = false;
 
+    public boolean getRead() {
+    return this.isRead;
+    }
+
+    public void setRead(boolean read) {
+    this.isRead = read;
+    }
+
+    public void setIsRead(boolean isRead) {
+    this.isRead = isRead;
+    }
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    private String actions;
+
+    @Column(name = "external_link")
+    private String externalLink;
 }
