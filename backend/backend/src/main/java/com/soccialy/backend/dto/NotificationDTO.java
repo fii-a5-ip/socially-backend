@@ -14,6 +14,10 @@ public class NotificationDTO {
 
     private Integer actorUserId;
 
+    private String username;
+
+    private String profileImageUrl;
+
     private String type;
 
     private String message;
