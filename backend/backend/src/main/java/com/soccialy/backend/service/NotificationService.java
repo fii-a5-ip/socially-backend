@@ -91,7 +91,7 @@ public class NotificationService {
                         )
                         .orElseThrow();
 
-        notification.setRead(
+        notification.setIsRead(
                 true
         );
 
@@ -107,7 +107,7 @@ public class NotificationService {
     ){
 
         return notificationRepository
-                .countByRecipientUserIdAndReadFalse(
+                .countByRecipientUserIdAndIsReadFalse(
                         userId
                 );
 
