@@ -15,7 +15,7 @@ public interface NotificationRepository
             Integer userId
     );
 
-    long countByRecipientUserIdAndReadFalse(
+    long countByRecipientUserIdAndIsReadFalse(
             Integer userId
     );
 
