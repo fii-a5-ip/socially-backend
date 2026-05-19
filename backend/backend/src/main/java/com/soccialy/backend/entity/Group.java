@@ -28,7 +28,6 @@ public class Group {
     @Column(name = "img_link", length = 2048)
     private String imgLink;
 
-    @ManyToOne
     @Column(name = "`desc`", columnDefinition = "LONGTEXT")
     private String desc;
 

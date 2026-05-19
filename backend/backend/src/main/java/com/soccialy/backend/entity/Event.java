@@ -50,9 +50,7 @@ public class Event {
     @Column(name = "filter_id")
     private List<Integer> filterIds = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id")
-    private Group group;
+
 
     @Builder.Default
     @ManyToMany(fetch = FetchType.LAZY)

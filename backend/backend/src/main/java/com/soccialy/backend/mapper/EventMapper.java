@@ -29,6 +29,11 @@ public class EventMapper {
                                 ? event.getCreator().getId()
                                 : null
                 )
+                .groupId(
+                        event.getGroup() != null
+                                ? event.getGroup().getId()
+                                : null
+                )
                 .scheduledDate(event.getScheduledDate())
                 .filterIds(
                         event.getFilterIds() != null

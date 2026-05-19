@@ -24,8 +24,8 @@ public class GroupMapper {
             dto.setCreatorUserId(group.getCreator().getId());
         }
 
-        if (group.getGroupUsers() != null) {
-            dto.setMembers(group.getGroupUsers().stream()
+        if (group.getMembers() != null) {
+            dto.setMembers(group.getMembers().stream()
                     .map(gu -> new GroupUserDTO(
                             gu.getGroup().getId(),
                             gu.getUser().getId(),

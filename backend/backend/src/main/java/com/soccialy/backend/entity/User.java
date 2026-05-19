@@ -39,9 +39,7 @@ public class User {
     @Column(name = "profile_img_url", length = 2048)
     private String profileImgUrl;
 
-    @JsonIgnore
-    @Column(length = 256)
-    private String password;
+
     @Column(length = 1000)
     private String bio;
 

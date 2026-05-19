@@ -38,10 +38,14 @@ public class GroupService {
         @Autowired
         private com.soccialy.backend.repository.UserVoteRepository userVoteRepository;
 
+        public GroupDTO createGroup(GroupDTO groupDTO, Integer creatorUserId) {
+                groupDTO.setCreatorUserId(creatorUserId);
+                return createGroup(groupDTO);
+        }
+
         public GroupDTO createGroup(GroupDTO groupDTO) {
                 Group group = groupMapper.toEntity(groupDTO);
 
-                // Seteaza creatorul
                 if (groupDTO.getCreatorUserId() != null) {
                         User creator = userRepository.findById(groupDTO.getCreatorUserId())
                                         .orElseThrow(() -> new RuntimeException("Creator not found"));
@@ -50,9 +54,9 @@ public class GroupService {
                         throw new RuntimeException("Creator user ID is required");
                 }
 
-                // Seteaza membrii
-                if (groupDTO.getMemberIds() != null && !groupDTO.getMemberIds().isEmpty()) {
-                        List<User> foundUsers = userRepository.findAllById(groupDTO.getMemberIds());
+                if (groupDTO.getMembers() != null && !groupDTO.getMembers().isEmpty()) {
+                        List<Integer> memberIds = groupDTO.getMembers().stream().map(GroupUserDTO::getUserId).collect(Collectors.toList());
+                        List<User> foundUsers = userRepository.findAllById(memberIds);
                         for (User user : foundUsers) {
                                 group.getMembers().add(GroupMember.builder()
                                                 .group(group)
@@ -62,7 +66,6 @@ public class GroupService {
                         }
                 }
 
-                // Asigura-te ca creatorul este adaugat automat in lista de membri (ca ADMIN)
                 boolean creatorIsMember = group.getMembers().stream()
                                 .anyMatch(m -> m.getUser().getId().equals(group.getCreator().getId()));
 
@@ -183,5 +186,27 @@ public class GroupService {
                 
                 group.getMembers().removeIf(m -> m.getUser().getId().equals(userId));
                 groupRepository.save(group);
+        }
+
+        @Transactional(readOnly = true)
+        public List<GroupDTO> findGroupsByUserId(Integer userId) {
+                return groupRepository.findGroupsByUserId(userId).stream()
+                        .map(groupMapper::toDTO)
+                        .toList();
+        }
+
+        @Transactional(readOnly = true)
+        public List<GroupDTO> searchGroups(String query) {
+                return groupRepository.searchGroups(query.trim()).stream()
+                        .map(groupMapper::toDTO)
+                        .toList();
+        }
+
+        @Transactional(readOnly = true)
+        public GroupDTO findGroupById(Integer groupId) {
+                Group group = groupRepository.findById(groupId)
+                        .orElseThrow(() -> new GroupNotFoundException(groupId));
+
+                return groupMapper.toDTO(group);
         }
 }

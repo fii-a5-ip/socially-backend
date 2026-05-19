@@ -6,9 +6,6 @@ import com.soccialy.backend.dto.EventResponseDTO;
 import com.soccialy.backend.dto.EventSearchFieldsDTO;
 import com.soccialy.backend.entity.Coordinates;
 import com.soccialy.backend.entity.Event;
-import com.soccialy.backend.entity.User;
-import com.soccialy.backend.repository.EventRepository;
-import com.soccialy.backend.mapper.EventMapper;
 import com.soccialy.backend.entity.Location;
 import com.soccialy.backend.entity.User;
 import com.soccialy.backend.mapper.EventMapper;
@@ -36,10 +33,12 @@ public class EventService {
     private final AiService aiServiceClient;
     private final UserService userService;
     private final LocationService locationServiceClient;
-    private final com.soccialy.backend.repository.UserRepository userRepository;
-    private final com.soccialy.backend.repository.UserVoteRepository userVoteRepository;
-
+    private final LocationRepository locationRepository;
+    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
     private final EventMapper eventMapper;
+    private final com.soccialy.backend.repository.UserVoteRepository userVoteRepository;
+    private final com.soccialy.backend.repository.GroupRepository groupRepository;
 
     public void joinEvent(Integer userId, Integer eventId) {
         com.soccialy.backend.entity.Event event = eventRepository.findById(eventId)
@@ -91,12 +90,6 @@ public class EventService {
         }
     }
 
-    public List<EventResponseDTO> sortEvents(Integer userId, String searchString, Double maxDistance, Integer maxDays) {
-    private final LocationRepository locationRepository;
-    private final UserRepository userRepository;
-    private final CurrentUserService currentUserService;
-    private final EventMapper eventMapper;
-
     public EventResponseDTO createEvent(EventRequestDTO requestDTO) {
         Integer currentUserId = currentUserService.getCurrentUserId();
         User creator = userRepository.findById(currentUserId)
@@ -113,6 +106,12 @@ public class EventService {
         event.setLocation(location);
         event.setCreator(creator);
         event.setFilterIds(requestDTO.getFilterIds() != null ? requestDTO.getFilterIds() : new ArrayList<>());
+        
+        if (requestDTO.getGroupId() != null) {
+            com.soccialy.backend.entity.Group group = groupRepository.findById(requestDTO.getGroupId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Group not found"));
+            event.setGroup(group);
+        }
 
         Event savedEvent = eventRepository.save(event);
         return eventMapper.toResponseDTO(savedEvent);
@@ -147,17 +146,6 @@ public class EventService {
         return eventMapper.toResponseDTO(savedEvent);
     }
 
-        Map<Integer, List<Integer>> locationFiltersMap = locationServiceClient
-                .getFiltersForLocations(uniqueLocationIds);
-        Map<Integer, Double> distancesMap = aiServiceClient.getDistances(userCoords, uniqueLocationIds);
-
-        candidates.sort((o1, o2) -> {
-            double score1 = calculateCompoundScore(o1, userFilters, searchFilters, locationFiltersMap, distancesMap,
-                    maxDistance, maxDays, timeOfSearch);
-            double score2 = calculateCompoundScore(o2, userFilters, searchFilters, locationFiltersMap, distancesMap,
-                    maxDistance, maxDays, timeOfSearch);
-            return Double.compare(score2, score1);
-        });
     public void deleteEvent(Integer id) {
         Event existingEvent = eventRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND));
@@ -170,9 +158,6 @@ public class EventService {
         eventRepository.delete(existingEvent);
     }
 
-    private double calculateCompoundScore(Event event, List<Integer> userFilters, List<Integer> searchFilters,
-            Map<Integer, List<Integer>> locationFiltersMap,
-            Map<Integer, Double> distancesMap, Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch) {
     public List<EventResponseDTO> sortEvents(Integer userId, EventSearchFieldsDTO fields) {
         LocalDateTime timeOfSearch = (fields.getLocalTime() != null) ? fields.getLocalTime() : LocalDateTime.now();
         List<Integer> fetchedUserFilters = userService.getUserProfileFilters(userId);
@@ -187,9 +172,6 @@ public class EventService {
             searchFilters.addAll(fields.getFilterIds());
         }
 
-        Set<Integer> totalFilters = new HashSet<>(
-                event.getFilterIds() != null ? event.getFilterIds() : new ArrayList<>());
-        totalFilters.addAll(locationFiltersMap.getOrDefault(locId, new ArrayList<>()));
         Set<Integer> combinedFilters = new HashSet<>(userFilters);
         combinedFilters.addAll(searchFilters);
         if (combinedFilters.isEmpty()) {
@@ -202,10 +184,6 @@ public class EventService {
         return processAndSortCandidates(candidates, userFilters, searchFilters, timeOfSearch, fields);
     }
 
-    private double calculateFilterScore(Set<Integer> totalFilters, List<Integer> userFilters,
-            List<Integer> searchFilters) {
-        if (userFilters.isEmpty() && searchFilters.isEmpty())
-            return 1.0;
     public List<EventResponseDTO> discoverEvents(Integer userId, EventDiscoverFieldsDTO fields) {
         LocalDateTime timeOfSearch = (fields.getLocalTime() != null) ? fields.getLocalTime() : LocalDateTime.now();
         List<Integer> fetchedUserFilters = userService.getUserProfileFilters(userId);
@@ -225,14 +203,13 @@ public class EventService {
                 : new Coordinates(BigDecimal.ZERO, BigDecimal.ZERO);
 
         candidates.removeIf(event -> event.getScheduledDate() != null && ChronoUnit.DAYS.between(timeOfSearch, event.getScheduledDate()) > actualMaxDays);
+        // Exclude events that are associated with a group from the public discovery
+        candidates.removeIf(event -> event.getGroup() != null);
 
         if (candidates.isEmpty()) {
             return new ArrayList<>();
         }
 
-        for (Integer filter : searchFilters) {
-            if (totalFilters.contains(filter)) {
-                score += 2;
         Set<Integer> uniqueLocationIds = new HashSet<>();
         Map<Integer, Coordinates> destinationCoordsMap = new HashMap<>();
 
@@ -244,24 +221,6 @@ public class EventService {
             }
         }
 
-    private double calculateDistanceScore(Double distanceInKm, Double maxDistance) {
-        if (distanceInKm >= maxDistance)
-            return 0.0;
-        return 1.0 - (distanceInKm / maxDistance);
-    }
-
-    private double calculateTimeScore(LocalDateTime timeOfSearch, LocalDateTime scheduledDate, Integer maxDays) {
-        if (scheduledDate == null)
-            return 0.5;
-
-        long daysUntilEvent = ChronoUnit.DAYS.between(timeOfSearch, scheduledDate);
-        if (daysUntilEvent < 0)
-            return 0.0;
-
-        if (daysUntilEvent >= maxDays)
-            return 0.0;
-
-        return 1.0 - ((double) daysUntilEvent / maxDays);
         ScoringContext context = new ScoringContext(
                 userFilters, searchFilters,
                 locationServiceClient.getFiltersForLocations(uniqueLocationIds),
