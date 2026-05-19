@@ -37,6 +37,58 @@ public class EventService {
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
     private final EventMapper eventMapper;
+    private final com.soccialy.backend.repository.UserVoteRepository userVoteRepository;
+    private final com.soccialy.backend.repository.GroupRepository groupRepository;
+
+    public void joinEvent(Integer userId, Integer eventId) {
+        com.soccialy.backend.entity.Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+        com.soccialy.backend.entity.User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        boolean alreadyJoined = event.getParticipants().stream()
+                .anyMatch(u -> u.getId().equals(userId));
+        if (!alreadyJoined) {
+            event.getParticipants().add(user);
+            eventRepository.save(event);
+        }
+    }
+
+    public void leaveEvent(Integer userId, Integer eventId) {
+        com.soccialy.backend.entity.Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+
+        event.getParticipants().removeIf(u -> u.getId().equals(userId));
+        eventRepository.save(event);
+    }
+
+    public void registerVote(Integer userId, Integer eventId, String voteTypeStr) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+
+        if (!List.of("Da", "Nu", "Poate").contains(voteTypeStr)) {
+            throw new IllegalArgumentException("Invalid vote type: " + voteTypeStr);
+        }
+
+        Optional<com.soccialy.backend.entity.UserVote> existingVoteOpt = userVoteRepository
+                .findByUserIdAndEventId(userId, eventId);
+
+        if (existingVoteOpt.isPresent()) {
+            com.soccialy.backend.entity.UserVote existingVote = existingVoteOpt.get();
+            existingVote.setVoteType(voteTypeStr);
+            userVoteRepository.save(existingVote);
+        } else {
+            // Create new vote
+            com.soccialy.backend.entity.UserVote newVote = com.soccialy.backend.entity.UserVote.builder()
+                    .user(user)
+                    .event(event)
+                    .voteType(voteTypeStr)
+                    .build();
+            userVoteRepository.save(newVote);
+        }
+    }
 
     public EventResponseDTO createEvent(EventRequestDTO requestDTO) {
         Integer currentUserId = currentUserService.getCurrentUserId();
@@ -54,6 +106,12 @@ public class EventService {
         event.setLocation(location);
         event.setCreator(creator);
         event.setFilterIds(requestDTO.getFilterIds() != null ? requestDTO.getFilterIds() : new ArrayList<>());
+        
+        if (requestDTO.getGroupId() != null) {
+            com.soccialy.backend.entity.Group group = groupRepository.findById(requestDTO.getGroupId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Group not found"));
+            event.setGroup(group);
+        }
 
         Event savedEvent = eventRepository.save(event);
         return eventMapper.toResponseDTO(savedEvent);
@@ -145,6 +203,8 @@ public class EventService {
                 : new Coordinates(BigDecimal.ZERO, BigDecimal.ZERO);
 
         candidates.removeIf(event -> event.getScheduledDate() != null && ChronoUnit.DAYS.between(timeOfSearch, event.getScheduledDate()) > actualMaxDays);
+        // Exclude events that are associated with a group from the public discovery
+        candidates.removeIf(event -> event.getGroup() != null);
 
         if (candidates.isEmpty()) {
             return new ArrayList<>();

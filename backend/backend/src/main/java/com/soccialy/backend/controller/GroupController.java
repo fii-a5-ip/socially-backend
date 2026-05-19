@@ -29,9 +29,18 @@ public class GroupController {
     private final GroupService groupService;
 
     @GetMapping
-    public ResponseEntity<List<GroupDTO>> getCurrentUserGroups(@AuthenticationPrincipal String currentUserIdStr) {
-        Integer currentUserId = parseCurrentUserId(currentUserIdStr);
-        return ResponseEntity.ok(groupService.findGroupsByUserId(currentUserId));
+    public ResponseEntity<?> getCurrentUserGroups(@AuthenticationPrincipal String currentUserIdStr) {
+        // Dacă token-ul e invalid, nu crăpa, returnează 401 Unauthorized
+        if (currentUserIdStr == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilizator neautentificat");
+        }
+
+        try {
+            Integer currentUserId = parseCurrentUserId(currentUserIdStr);
+            return ResponseEntity.ok(groupService.findGroupsByUserId(currentUserId));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("ID utilizator invalid");
+        }
     }
 
     @GetMapping("/search")

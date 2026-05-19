@@ -39,13 +39,18 @@ class GroupControllerTest {
 
         when(groupService.findGroupsByUserId(7)).thenReturn(List.of(groupDTO));
 
-        ResponseEntity<List<GroupDTO>> response = groupController.getCurrentUserGroups("7");
+        ResponseEntity<?> response = groupController.getCurrentUserGroups("7");
 
         assertNotNull(response);
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
-        assertEquals(1, response.getBody().size());
-        assertEquals("User Group", response.getBody().get(0).getName());
+
+        // Convertește (cast) corpul răspunsului înapoi la List<GroupDTO> pentru a putea face assert-uri
+        @SuppressWarnings("unchecked")
+        List<GroupDTO> body = (List<GroupDTO>) response.getBody();
+
+        assertEquals(1, body.size());
+        assertEquals("User Group", body.get(0).getName());
 
         verify(groupService, times(1)).findGroupsByUserId(7);
     }

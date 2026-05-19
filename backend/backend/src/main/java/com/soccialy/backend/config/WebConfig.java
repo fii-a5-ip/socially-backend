@@ -16,6 +16,7 @@ public class WebConfig {
                 registry.addMapping("/api/**")
                         .allowedOrigins(
                                 "http://localhost:5173",
+                                "http://localhost:5174",
                                 "https://socially-frontend-lovat.vercel.app"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
