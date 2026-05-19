@@ -87,6 +87,7 @@ jobs:
             echo 'DB_PASS=${{ secrets.DB_PASS }}' >> .env
             echo 'GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}' >> .env
             echo 'JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}' >> .env
+            echo 'AI_API_URL=${{ secrets.AI_API_URL }}' >> .env
             
             # 4. Oprirea și ștergerea containerului vechi
             docker stop java-backend || true
