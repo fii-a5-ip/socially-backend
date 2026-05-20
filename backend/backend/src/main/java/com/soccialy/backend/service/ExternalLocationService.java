@@ -20,7 +20,7 @@ import java.util.Map;
 @Service
 public class ExternalLocationService {
 
-    @Value("${ai.api.url:http://52.58.222.100:5000}")
+    @Value("${AI_API_URL:http://localhost:5000}")
     private String aiApiUrl;
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
@@ -146,7 +146,7 @@ public class ExternalLocationService {
             JsonNode mapNode = loc.path("map");
             if (!mapNode.isMissingNode()) {
                 dto.setMapHtml(mapNode.path("html").asText(null));
-            }   
+            }
 
             return dto;
 
