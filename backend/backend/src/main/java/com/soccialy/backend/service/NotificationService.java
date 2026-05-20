@@ -88,6 +88,7 @@ public class NotificationService {
 
     }
 
+    @Transactional
     public NotificationDTO createGroupInvite(
             Integer groupId,
             Integer recipientUserId,
