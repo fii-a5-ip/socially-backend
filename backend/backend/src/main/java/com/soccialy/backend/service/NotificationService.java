@@ -64,9 +64,6 @@ public class NotificationService {
                         .referenceId(
                                 1
                         )
-                        .createdAt(
-                                LocalDateTime.now()
-                        )
                         .build();
 
         Notification saved=
@@ -91,7 +88,7 @@ public class NotificationService {
                         )
                         .orElseThrow();
 
-        notification.setIsRead(
+        notification.setRead(
                 true
         );
 

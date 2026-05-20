@@ -24,14 +24,14 @@ public class NotificationController {
     public ResponseEntity<List<NotificationDTO>>
     getNotifications(Authentication authentication) {
 
-        Integer userId = 25;
+        Integer userId = (Integer) authentication.getPrincipal();
 
         return ResponseEntity.ok(
                 notificationService.getUserNotifications(userId)
         );
     }
 
-    @GetMapping("/notifications")
+    @GetMapping("/unread-count")
     public ResponseEntity<Long>
     getUnreadCount(Authentication authentication) {
 

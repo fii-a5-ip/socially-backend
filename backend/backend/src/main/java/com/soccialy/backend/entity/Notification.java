@@ -38,20 +38,15 @@ public class Notification {
     @Column(name = "is_read", nullable = false)
     private boolean isRead = false;
 
-    public boolean getRead() {
-    return this.isRead;
-    }
-
-    public void setRead(boolean read) {
-    this.isRead = read;
-    }
-
-    public void setIsRead(boolean isRead) {
-    this.isRead = isRead;
-    }
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+    }
 
     private String actions;
 

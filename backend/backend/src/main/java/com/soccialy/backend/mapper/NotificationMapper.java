@@ -39,7 +39,7 @@ public class NotificationMapper {
                         notification.getReferenceType()
                 )
                 .read(
-                        notification.getRead()
+                        notification.isRead()
                 )
                 .createdAt(
                         notification.getCreatedAt()
