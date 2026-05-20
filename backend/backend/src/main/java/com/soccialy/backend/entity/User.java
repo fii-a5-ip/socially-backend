@@ -7,7 +7,6 @@ import lombok.*;
 import java.util.HashSet;
 import java.util.Set;
 
-
 @Entity
 @Table(name = "users")
 @Getter
@@ -21,30 +20,35 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(unique = true, nullable = false, length = 45)
+    @Column(unique = true, nullable = false, length = 100)
     private String username;
 
+    @Column(nullable = false, length = 100)
+    private String fullname;
+
+    @Column(unique = true, length = 100)
+    private String email;
 
     @JsonIgnore
-    @Column(nullable = false)
+    @Column(nullable = false, length = 256)
     private String password;
 
+    @Column(unique = true, length = 255)
+    private String googleId;
+
+    @Column(name = "profile_img_url", length = 2048)
+    private String profileImgUrl;
+
+
+    @Column(length = 1000)
+    private String bio;
 
     @Builder.Default
     @ManyToMany
-    @JoinTable(
-            name = "user_filters",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "filter_id")
-    )
+    @JoinTable(name = "user_filters", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "filter_id"))
     private Set<Filter> filters = new HashSet<>();
 
     @Builder.Default
-    @ManyToMany(mappedBy = "users")
-    private Set<Group> groups = new HashSet<>();
-
-    public User(String username, String password) {
-        this.username = username;
-        this.password = password;
-    }
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<GroupUser> groupUsers = new HashSet<>();
 }

@@ -1,20 +1,22 @@
 package com.soccialy.backend.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OutgoingResponseDTO {
+public class GroupMemberDTO {
     private Integer id;
     private String name;
-    private String url;
-    private Integer locationId;
-    private LocalDateTime scheduledDate;
+    private String avatar;
+    
+    @JsonProperty("isReal")
+    private boolean isReal;
+    
+    private String role;
 }

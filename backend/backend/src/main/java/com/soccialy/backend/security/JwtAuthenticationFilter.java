@@ -15,8 +15,12 @@ import java.io.IOException;
 import java.util.Collections;
 
 /**
- * Filter that intercepts every request to check for a valid JWT Bearer token.
- * If a valid token is found, it populates the SecurityContext.
+ * Filter that intercepts every incoming HTTP request to check for a valid JWT Bearer token.
+ * <p>
+ * This filter sits in the Spring Security filter chain. It extracts the JWT from the
+ * "Authorization" header, validates it via the {@link JwtService}, and if authentic,
+ * establishes a security context for the duration of the request.
+ * </p>
  *
  * @author Apetrei Ionuț-Teodor
  */
@@ -30,52 +34,77 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter
         this.jwtService = jwtService;
     }
 
+    /**
+     * Performs the actual filtering logic for each request.
+     *
+     * @param request The incoming HTTP request.
+     * @param response The outgoing HTTP response.
+     * @param filterChain The chain of subsequent filters to execute.
+     * @throws ServletException If a servlet-related error occurs.
+     * @throws IOException If an I/O error occurs during processing.
+     */
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain) throws ServletException, IOException
     {
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userId;
 
-        // If no Bearer header is found, just move to the next filter
+        // Skip filtering if the header is missing or does not start with "Bearer ".
         if (authHeader == null || !authHeader.startsWith("Bearer "))
         {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // ... else extract token and remove "Bearer" prefix
-        jwt = authHeader.substring(7);
-        userId = jwtService.extractUsername(jwt);
+        final String jwt = authHeader.substring(7);
 
-        // If we have a user ID and they aren't authenticated yet
-        if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null)
+        // Skip filtering if the Bearer token is empty.
+        if (jwt.isBlank())
         {
-            if (jwtService.isTokenValid(jwt))
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        try
+        {
+            if (SecurityContextHolder.getContext().getAuthentication() == null
+                    && jwtService.isTokenValid(jwt))
             {
+                Integer userId = jwtService.extractUserId(jwt);
+
                 /*
                  * =========================================================================
-                 * *             TODO: ROLE-BASED ACCESS CONTROL (RBAC)                    *
+                 * MAYBE-FOR-FUTURE-IDK-PROBABLY-NOT: ROLE-BASED ACCESS CONTROL (RBAC)
                  * =========================================================================
                  * Right now, we grant ZERO authorities (empty list). This means all
                  * authenticated users are equal.
-                 * * Future steps:
+                 *
+                 * Future steps:
                  * 1. Extract "roles" from the JWT claims (e.g., ADMIN, USER, MODERATOR).
                  * 2. Convert those strings into SimpleGrantedAuthority objects.
                  * 3. Pass that list into the constructor below instead of emptyList().
                  * =========================================================================
                  */
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userId,
+                        userId.toString(),
                         null,
                         Collections.emptyList()
                 );
 
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                // OK
+                // Set the user ID as authenticated in the Security Context.
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
+        }
+        catch (Exception e)
+        {
+            // If token parsing fails, we clear the context and continue the filter chain.
+            // Restricted endpoints will reject the request because no authentication is set.
+            SecurityContextHolder.clearContext();
+            logger.error("Could not set user authentication in security context", e);
         }
 
         filterChain.doFilter(request, response);

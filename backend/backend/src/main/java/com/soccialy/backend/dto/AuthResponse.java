@@ -7,19 +7,24 @@ import lombok.NoArgsConstructor;
 
 /**
  * Data Transfer Object representing a successful authentication response.
- * <p>This class wraps the JWT and user metadata into a structured JSON object.
- * Returning a raw String for a token is considered poor practice as it makes
- * the response difficult to parse and extend. This wrapper provides a consistent
- * format for the frontend to consume.</p>
+ * <p>
+ * This class wraps the generated JWT and essential user metadata into a structured
+ * JSON object. Returning a wrapper instead of a raw token string is a best practice
+ * that facilitates easier parsing and future extensibility on the client side.
+ * </p>
  * <p>Example JSON produced:
  * <pre>
  * {
- *      "jwtToken": "zgGhdfNv...",
- *      "type": "Bearer",
- *      "id": 1,
- *      "username": "exampleUser"
+ *     "jwtToken": "eyJhbGci...",
+ *     "type": "Bearer",
+ *     "id": 1,
+ *     "username": "johnsmith",
+ *     "email": "john.smith@example.com",
+ *     "fullname": "John Smith"
  * }
- * </pre></p>
+ * </pre>
+ * </p>
+ *
  * @author Apetrei Ionuț-Teodor
  */
 @Data
@@ -28,16 +33,39 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AuthResponse
 {
+    /**
+     * The signed JSON Web Token to be used for subsequent authorized requests.
+     */
     private String jwtToken;
 
     /**
      * The authentication scheme type.
-     * <b>Bearer</b> indicates that the holder (bearer) of the token has
-     * access, requiring the frontend to include it in the 'Authorization'
-     * header as: <code>Authorization: Bearer &lt;token&gt;</code>.
+     * <p>
+     * <b>Bearer</b> indicates that the holder of the token is granted access.
+     * The frontend must include this in the Authorization header as:
+     * <code>Authorization: Bearer &lt;token&gt;</code>.
+     * </p>
      */
-    private String type;
+    @Builder.Default
+    private String type = "Bearer";
 
+    /**
+     * The unique identifier of the user in the database.
+     */
     private Integer id;
+
+    /**
+     * The user's public username.
+     */
     private String username;
+
+    /**
+     * The user's email address.
+     */
+    private String email;
+
+    /**
+     * The user's full display name.
+     */
+    private String fullname;
 }

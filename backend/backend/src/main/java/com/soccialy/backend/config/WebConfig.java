@@ -13,13 +13,14 @@ public class WebConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/api/*")
+                registry.addMapping("/api/**")
                         .allowedOrigins(
-                                "http://localhost:5173/",
-                                "https://socially-frontend-lovat.vercel.app/"
+                                "http://localhost:5173",
+                                "http://localhost:5174",
+                                "https://socially-frontend-lovat.vercel.app"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("")
+                        .allowedHeaders("Authorization", "Content-Type")
                         .allowCredentials(true);
             }
         };
