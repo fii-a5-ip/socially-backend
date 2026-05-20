@@ -1,7 +1,10 @@
 package com.soccialy.backend.controller;
 
 import com.soccialy.backend.dto.GroupDTO;
+import com.soccialy.backend.dto.GroupInviteRequestDTO;
+import com.soccialy.backend.dto.NotificationDTO;
 import com.soccialy.backend.service.GroupService;
+import com.soccialy.backend.service.NotificationService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -27,6 +30,8 @@ import java.util.List;
 public class GroupController {
 
     private final GroupService groupService;
+
+    private final NotificationService notificationService;
 
     @GetMapping
     public ResponseEntity<?> getCurrentUserGroups(@AuthenticationPrincipal String currentUserIdStr) {
@@ -64,6 +69,22 @@ public class GroupController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(groupService.createGroup(groupDTO, currentUserId));
+    }
+
+    @PostMapping("/{groupId}/invites")
+    public ResponseEntity<NotificationDTO> inviteUser(
+            @PathVariable Integer groupId,
+            @AuthenticationPrincipal String currentUserIdStr,
+            @Valid @RequestBody GroupInviteRequestDTO inviteRequest) {
+
+        Integer currentUserId = parseCurrentUserId(currentUserIdStr);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(notificationService.createGroupInvite(
+                        groupId,
+                        inviteRequest.getUserId(),
+                        currentUserId
+                ));
     }
 
     private Integer parseCurrentUserId(String currentUserIdStr) {

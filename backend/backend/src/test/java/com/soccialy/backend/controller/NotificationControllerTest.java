@@ -36,7 +36,7 @@ class NotificationControllerTest {
     void getNotifications_returnsList() {
         Integer userId = 42;
         NotificationDTO dto = new NotificationDTO();
-        when(authentication.getPrincipal()).thenReturn(userId);
+        when(authentication.getPrincipal()).thenReturn(userId.toString());
         when(notificationService.getUserNotifications(userId)).thenReturn(List.of(dto));
 
         ResponseEntity<List<NotificationDTO>> response = notificationController.getNotifications(authentication);
@@ -50,7 +50,7 @@ class NotificationControllerTest {
     @Test
     void getUnreadCount_returnsCount() {
         Integer userId = 42;
-        when(authentication.getPrincipal()).thenReturn(userId);
+        when(authentication.getPrincipal()).thenReturn(userId.toString());
         when(notificationService.unreadCount(userId)).thenReturn(5L);
 
         ResponseEntity<Long> response = notificationController.getUnreadCount(authentication);
@@ -65,7 +65,7 @@ class NotificationControllerTest {
     void createTestNotification_returnsDTO() {
         Integer userId = 42;
         NotificationDTO dto = new NotificationDTO();
-        when(authentication.getPrincipal()).thenReturn(userId);
+        when(authentication.getPrincipal()).thenReturn(userId.toString());
         when(notificationService.createTestNotification(userId)).thenReturn(dto);
 
         ResponseEntity<NotificationDTO> response = notificationController.createTestNotification(authentication);
@@ -74,6 +74,32 @@ class NotificationControllerTest {
         assertEquals(200, response.getStatusCode().value());
         assertEquals(dto, response.getBody());
         verify(notificationService).createTestNotification(userId);
+    }
+
+    @Test
+    void acceptGroupInvite_usesAuthenticatedUser() {
+        Integer userId = 42;
+        Integer notificationId = 123;
+        when(authentication.getPrincipal()).thenReturn(userId.toString());
+
+        ResponseEntity<Void> response = notificationController.acceptGroupInvite(notificationId, authentication);
+
+        assertNotNull(response);
+        assertEquals(204, response.getStatusCode().value());
+        verify(notificationService).acceptGroupInvite(notificationId, userId);
+    }
+
+    @Test
+    void declineGroupInvite_usesAuthenticatedUser() {
+        Integer userId = 42;
+        Integer notificationId = 123;
+        when(authentication.getPrincipal()).thenReturn(userId.toString());
+
+        ResponseEntity<Void> response = notificationController.declineGroupInvite(notificationId, authentication);
+
+        assertNotNull(response);
+        assertEquals(204, response.getStatusCode().value());
+        verify(notificationService).declineGroupInvite(notificationId, userId);
     }
 
     @Test
