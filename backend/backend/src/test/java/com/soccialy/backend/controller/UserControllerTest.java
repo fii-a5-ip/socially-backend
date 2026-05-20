@@ -129,4 +129,14 @@ class UserControllerTest {
 
         assertEquals(200, response.getStatusCode().value());
     }
+
+    @Test
+    void search_returnsListOfUsers() {
+        when(userService.searchUsers("test")).thenReturn(List.of(new UserDTO()));
+
+        var response = userController.search("test");
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(userService).searchUsers("test");
+    }
 }
