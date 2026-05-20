@@ -4,10 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Entity(name = "UserGroup")
 @Table(name = "`groups`") // Notă: 'groups' este cuvânt rezervat în MySQL, dar JPA se descurcă dacă e setat corect.
@@ -64,6 +61,6 @@ public class Group {
     public List<User> getUsers() {
         return members.stream()
                 .map(GroupMember::getUser)
-                .collect(Collectors.toList());
+                .toList();
     }
 }
