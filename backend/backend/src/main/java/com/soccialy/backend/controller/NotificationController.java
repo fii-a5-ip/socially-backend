@@ -24,7 +24,7 @@ public class NotificationController {
     public ResponseEntity<List<NotificationDTO>>
     getNotifications(Authentication authentication) {
 
-        Integer userId = (Integer) authentication.getPrincipal();
+        Integer userId = currentUserId(authentication);
 
         return ResponseEntity.ok(
                 notificationService.getUserNotifications(userId)
@@ -35,7 +35,7 @@ public class NotificationController {
     public ResponseEntity<Long>
     getUnreadCount(Authentication authentication) {
 
-        Integer userId = (Integer) authentication.getPrincipal();
+        Integer userId = currentUserId(authentication);
 
         return ResponseEntity.ok(
                 notificationService.unreadCount(userId)
@@ -46,7 +46,7 @@ public class NotificationController {
     public ResponseEntity<NotificationDTO>
     createTestNotification(Authentication authentication) {
 
-        Integer userId = (Integer) authentication.getPrincipal();
+        Integer userId = currentUserId(authentication);
 
         return ResponseEntity.ok(
                 notificationService.createTestNotification(userId)
@@ -60,5 +60,31 @@ public class NotificationController {
         notificationService.markRead(id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/accept")
+    public ResponseEntity<Void>
+    acceptGroupInvite(
+            @PathVariable Integer id,
+            Authentication authentication
+    ) {
+        notificationService.acceptGroupInvite(id, currentUserId(authentication));
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/decline")
+    public ResponseEntity<Void>
+    declineGroupInvite(
+            @PathVariable Integer id,
+            Authentication authentication
+    ) {
+        notificationService.declineGroupInvite(id, currentUserId(authentication));
+
+        return ResponseEntity.noContent().build();
+    }
+
+    private Integer currentUserId(Authentication authentication) {
+        return Integer.parseInt(authentication.getPrincipal().toString());
     }
 }

@@ -1,10 +1,15 @@
 package com.soccialy.backend.service;
 
 import com.soccialy.backend.dto.NotificationDTO;
+import com.soccialy.backend.entity.Group;
+import com.soccialy.backend.entity.GroupMember;
 import com.soccialy.backend.entity.Notification;
 import com.soccialy.backend.entity.NotificationType;
+import com.soccialy.backend.entity.User;
 import com.soccialy.backend.mapper.NotificationMapper;
+import com.soccialy.backend.repository.GroupRepository;
 import com.soccialy.backend.repository.NotificationRepository;
+import com.soccialy.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -27,6 +32,12 @@ class NotificationServiceTest {
 
     @Mock
     private NotificationMapper notificationMapper;
+
+    @Mock
+    private GroupRepository groupRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private NotificationService notificationService;
@@ -135,5 +146,128 @@ class NotificationServiceTest {
                 .thenReturn(0L);
 
         assertEquals(0L, notificationService.unreadCount(10));
+    }
+
+    @Test
+    void createGroupInvite_SavesInviteNotification() {
+        User actor = User.builder().id(1).username("ana").build();
+        User recipient = User.builder().id(2).username("bob").build();
+        Group group = Group.builder().id(3).name("Board Games").creator(actor).build();
+        NotificationDTO expectedDTO = NotificationDTO.builder()
+                .id(7).type("GROUP_INVITE").message("ana te-a invitat in grupul Board Games").build();
+
+        when(userRepository.findById(1)).thenReturn(Optional.of(actor));
+        when(userRepository.findById(2)).thenReturn(Optional.of(recipient));
+        when(groupRepository.findById(3)).thenReturn(Optional.of(group));
+        when(notificationRepository.save(any(Notification.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+        when(notificationMapper.toDTO(any(Notification.class))).thenReturn(expectedDTO);
+
+        NotificationDTO result = notificationService.createGroupInvite(3, 2, 1);
+
+        assertEquals(expectedDTO, result);
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(captor.capture());
+        Notification saved = captor.getValue();
+        assertEquals(2, saved.getRecipientUserId());
+        assertEquals(1, saved.getActorUserId());
+        assertEquals(NotificationType.GROUP_INVITE, saved.getType());
+        assertEquals("GROUP", saved.getReferenceType());
+        assertEquals(3, saved.getReferenceId());
+        assertEquals("ana te-a invitat in grupul Board Games", saved.getMessage());
+    }
+
+    @Test
+    void acceptGroupInvite_AddsRecipientToReferencedGroupAndMarksRead() {
+        User recipient = User.builder().id(2).username("bob").build();
+        Group group = Group.builder().id(3).name("Board Games").build();
+        Notification invite = Notification.builder()
+                .id(7)
+                .recipientUserId(2)
+                .actorUserId(1)
+                .type(NotificationType.GROUP_INVITE)
+                .message("Invite")
+                .referenceType("GROUP")
+                .referenceId(3)
+                .build();
+
+        when(notificationRepository.findById(7)).thenReturn(Optional.of(invite));
+        when(groupRepository.findById(3)).thenReturn(Optional.of(group));
+        when(userRepository.findById(2)).thenReturn(Optional.of(recipient));
+
+        notificationService.acceptGroupInvite(7, 2);
+
+        assertTrue(invite.isRead());
+        assertEquals(1, group.getMembers().size());
+        GroupMember addedMember = group.getMembers().get(0);
+        assertEquals(group, addedMember.getGroup());
+        assertEquals(recipient, addedMember.getUser());
+        assertEquals("MEMBER", addedMember.getRole());
+        verify(groupRepository).save(group);
+        verify(notificationRepository).save(invite);
+    }
+
+    @Test
+    void acceptGroupInvite_DoesNotDuplicateExistingMember() {
+        User recipient = User.builder().id(2).username("bob").build();
+        Group group = Group.builder().id(3).name("Board Games").build();
+        group.getMembers().add(GroupMember.builder()
+                .group(group)
+                .user(recipient)
+                .role("MEMBER")
+                .build());
+        Notification invite = Notification.builder()
+                .id(7)
+                .recipientUserId(2)
+                .type(NotificationType.GROUP_INVITE)
+                .referenceType("GROUP")
+                .referenceId(3)
+                .build();
+
+        when(notificationRepository.findById(7)).thenReturn(Optional.of(invite));
+        when(groupRepository.findById(3)).thenReturn(Optional.of(group));
+        when(userRepository.findById(2)).thenReturn(Optional.of(recipient));
+
+        notificationService.acceptGroupInvite(7, 2);
+
+        assertEquals(1, group.getMembers().size());
+        assertTrue(invite.isRead());
+        verify(groupRepository, never()).save(group);
+        verify(notificationRepository).save(invite);
+    }
+
+    @Test
+    void acceptGroupInvite_ForDifferentRecipientThrows() {
+        Notification invite = Notification.builder()
+                .id(7)
+                .recipientUserId(2)
+                .type(NotificationType.GROUP_INVITE)
+                .referenceType("GROUP")
+                .referenceId(3)
+                .build();
+        when(notificationRepository.findById(7)).thenReturn(Optional.of(invite));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> notificationService.acceptGroupInvite(7, 99));
+        verify(groupRepository, never()).save(any());
+        verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void declineGroupInvite_MarksOwnInviteRead() {
+        Notification invite = Notification.builder()
+                .id(7)
+                .recipientUserId(2)
+                .type(NotificationType.GROUP_INVITE)
+                .referenceType("GROUP")
+                .referenceId(3)
+                .build();
+        when(notificationRepository.findById(7)).thenReturn(Optional.of(invite));
+
+        notificationService.declineGroupInvite(7, 2);
+
+        assertTrue(invite.isRead());
+        verify(notificationRepository).save(invite);
+        verify(groupRepository, never()).save(any());
     }
 }
