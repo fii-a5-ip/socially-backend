@@ -29,6 +29,12 @@ public class UserController {
         return ResponseEntity.ok(userService.findAllUsers());
     }
 
+    // GET /api/users/search — cautare utilizatori
+    @GetMapping("/search")
+    public ResponseEntity<List<UserDTO>> search(@RequestParam String query) {
+        return ResponseEntity.ok(userService.searchUsers(query));
+    }
+
     // GET /api/users/me — profilul userului logat
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getMe(@AuthenticationPrincipal Object principal) {

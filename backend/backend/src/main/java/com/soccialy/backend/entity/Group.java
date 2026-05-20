@@ -25,7 +25,7 @@ public class Group {
     @Column(nullable = false, length = 45)
     private String name;
 
-    @Column(name = "img_link", length = 2048)
+    @Column(name = "img_link", columnDefinition = "LONGTEXT")
     private String imgLink;
 
     @Column(name = "`desc`", columnDefinition = "LONGTEXT")
