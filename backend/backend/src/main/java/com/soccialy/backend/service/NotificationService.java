@@ -22,6 +22,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NotificationService {
 
+    private static final String GROUP_REFERENCE_TYPE = "GROUP";
+
     private final NotificationRepository
             notificationRepository;
 
@@ -68,7 +70,7 @@ public class NotificationService {
                                 "Ai fost invitat la Board Games Group"
                         )
                         .referenceType(
-                                "GROUP"
+                                GROUP_REFERENCE_TYPE
                         )
                         .referenceId(
                                 1
@@ -113,7 +115,7 @@ public class NotificationService {
                 .actorUserId(actor.getId())
                 .type(NotificationType.GROUP_INVITE)
                 .message(actor.getUsername() + " te-a invitat in grupul " + group.getName())
-                .referenceType("GROUP")
+                .referenceType(GROUP_REFERENCE_TYPE)
                 .referenceId(group.getId())
                 .build();
 
@@ -189,7 +191,7 @@ public class NotificationService {
             throw new IllegalArgumentException("Notification does not belong to current user");
         }
         if (notification.getType() != NotificationType.GROUP_INVITE
-                || !"GROUP".equals(notification.getReferenceType())
+                || !GROUP_REFERENCE_TYPE.equals(notification.getReferenceType())
                 || notification.getReferenceId() == null) {
             throw new IllegalArgumentException("Notification is not a group invite");
         }
