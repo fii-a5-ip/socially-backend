@@ -11,37 +11,39 @@ class NotificationTest {
     @Test
     void testNotificationGettersSettersAndBuilder() {
         LocalDateTime now = LocalDateTime.now();
+        
         Notification notification = Notification.builder()
-                .id(1)
-                .recipientUserId(10)
-                .actorUserId(5)
-                .type(NotificationType.GROUP_INVITE)
-                .message("Hello")
-                .referenceId(100)
-                .referenceType("GROUP")
-                .isRead(true)
-                .createdAt(now)
-                .actions("accept")
-                .externalLink("http://example.com")
-                .build();
+            .id(1)
+            .recipientUserId(10)
+            .actorUserId(5)
+            .type("GROUP_INVITE") 
+            .message("Hello")
+            .referenceId(100)
+            .referenceType("GROUP")
+            .isRead(true)
+           .createdAt(LocalDateTime.now())
+           .actions("actions_str")
+           .externalLink("http://example.com")
+           // + columnName si columnNumber care ar trebui sa devina null automat
+        .build();
 
         assertEquals(1, notification.getId());
         assertEquals(10, notification.getRecipientUserId());
         assertEquals(5, notification.getActorUserId());
-        assertEquals(NotificationType.GROUP_INVITE, notification.getType());
+        assertEquals("GROUP_INVITE", notification.getType());
         assertEquals("Hello", notification.getMessage());
         assertEquals(100, notification.getReferenceId());
         assertEquals("GROUP", notification.getReferenceType());
         assertTrue(notification.isRead());
         assertEquals(now, notification.getCreatedAt());
-        assertEquals("accept", notification.getActions());
+        assertEquals("actions_str", notification.getActions());
         assertEquals("http://example.com", notification.getExternalLink());
 
         // Test setters
         notification.setId(2);
         notification.setRecipientUserId(20);
         notification.setActorUserId(15);
-        notification.setType(NotificationType.REMINDER);
+        notification.setType("REMINDER");
         notification.setMessage("Reminder text");
         notification.setReferenceId(200);
         notification.setReferenceType("EVENT");
@@ -52,7 +54,7 @@ class NotificationTest {
         assertEquals(2, notification.getId());
         assertEquals(20, notification.getRecipientUserId());
         assertEquals(15, notification.getActorUserId());
-        assertEquals(NotificationType.REMINDER, notification.getType());
+        assertEquals("REMINDER", notification.getType());
         assertEquals("Reminder text", notification.getMessage());
         assertEquals(200, notification.getReferenceId());
         assertEquals("EVENT", notification.getReferenceType());
@@ -92,14 +94,15 @@ class NotificationTest {
     @Test
     void testAllArgsConstructor() {
         LocalDateTime now = LocalDateTime.now();
-        Notification notification = new Notification(
-                1, 10, 5, NotificationType.SYSTEM_UPDATE, "System Msg", 99, "SYS", true, now, "none", "url"
-        );
+        Notification notification = Notification.builder().id(1).recipientUserId(10).actorUserId(5).type("SYSTEM_UPDATE")
+                                                .message("System Msg").referenceId(99)
+                                                .referenceType("SYS").isRead(true).createdAt(now)
+                                                .actions("none").externalLink("url").build(); //arata urat stiu
 
         assertEquals(1, notification.getId());
         assertEquals(10, notification.getRecipientUserId());
         assertEquals(5, notification.getActorUserId());
-        assertEquals(NotificationType.SYSTEM_UPDATE, notification.getType());
+        assertEquals("SYSTEM_UPDATE", notification.getType());
         assertEquals("System Msg", notification.getMessage());
         assertEquals(99, notification.getReferenceId());
         assertEquals("SYS", notification.getReferenceType());
@@ -112,10 +115,9 @@ class NotificationTest {
     @Test
     void testEqualsAndHashCode() {
         LocalDateTime now = LocalDateTime.now();
-        Notification n1 = new Notification(1, 10, 5, NotificationType.SYSTEM_UPDATE, "Msg", 99, "SYS", true, now, "none", "url");
-        Notification n2 = new Notification(1, 10, 5, NotificationType.SYSTEM_UPDATE, "Msg", 99, "SYS", true, now, "none", "url");
-        Notification n3 = new Notification(2, 10, 5, NotificationType.SYSTEM_UPDATE, "Msg", 99, "SYS", true, now, "none", "url");
-
+        Notification n1 = Notification.builder().id(2).recipientUserId(26).actorUserId(12).type("REMINDER").message("M2").isRead(false).createdAt(now).build();
+        Notification n2 = Notification.builder().id(2).recipientUserId(26).actorUserId(12).type("REMINDER").message("M2").isRead(false).createdAt(now).build();
+        Notification n3 = Notification.builder().id(3).recipientUserId(26).actorUserId(14).type("SYSTEM_UPDATE").message("M3").isRead(true).createdAt(LocalDateTime.now()).build();
         assertEquals(n1, n2);
         assertEquals(n1.hashCode(), n2.hashCode());
         assertNotEquals(n1, n3);
