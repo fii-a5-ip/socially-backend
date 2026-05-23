@@ -51,7 +51,7 @@ class NotificationServiceTest {
     void getUserNotifications_ReturnsMappedList() {
         Notification n1 = Notification.builder()
                 .id(1).recipientUserId(10)
-                .type(NotificationType.GROUP_INVITE)
+                .type("GROUP_INVITE")
                 .message("Invite").createdAt(LocalDateTime.now()).build();
 
         NotificationDTO dto1 = NotificationDTO.builder()
@@ -109,7 +109,7 @@ class NotificationServiceTest {
     void markRead_SetsReadTrue() {
         Notification notification = Notification.builder()
                 .id(5).recipientUserId(10)
-                .type(NotificationType.REMINDER)
+                .type("REMINDER")
                 .message("Reminder").createdAt(LocalDateTime.now()).build();
 
         when(notificationRepository.findById(5)).thenReturn(Optional.of(notification));
