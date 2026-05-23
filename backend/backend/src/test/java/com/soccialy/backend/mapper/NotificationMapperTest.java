@@ -2,7 +2,6 @@ package com.soccialy.backend.mapper;
 
 import com.soccialy.backend.dto.NotificationDTO;
 import com.soccialy.backend.entity.Notification;
-import com.soccialy.backend.entity.NotificationType;
 import com.soccialy.backend.entity.User;
 import com.soccialy.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
