@@ -109,6 +109,38 @@ public class EventController {
         return ResponseEntity.ok().build();
     }
 
+    @DeleteMapping("/{eventId}/vote")
+    public ResponseEntity<Void> removeVote(
+            @AuthenticationPrincipal Object principal,
+            @PathVariable Integer eventId) {
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+        Integer userId = Integer.parseInt(currentUserIdStr);
+        eventService.removeVote(userId, eventId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/saved")
+    public ResponseEntity<List<EventResponseDTO>> getSavedEvents(@AuthenticationPrincipal Object principal) {
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+        Integer userId = Integer.parseInt(currentUserIdStr);
+        return ResponseEntity.ok(eventService.getSavedEvents(userId));
+    }
+
+    @PostMapping("/reset-dislikes")
+    public ResponseEntity<Void> resetDislikes(@AuthenticationPrincipal Object principal) {
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+        Integer userId = Integer.parseInt(currentUserIdStr);
+
+        eventService.resetDislikes(userId);
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/{eventId}/join")
     public ResponseEntity<Void> joinEvent(
             @AuthenticationPrincipal Object principal,

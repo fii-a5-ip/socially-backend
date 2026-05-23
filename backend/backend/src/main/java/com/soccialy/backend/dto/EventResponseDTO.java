@@ -23,4 +23,5 @@ public class EventResponseDTO {
     private LocalDateTime scheduledDate;
     private List<Integer> filterIds;
     private List<FilterDTO> filters;
+    private Double distance;
 }
