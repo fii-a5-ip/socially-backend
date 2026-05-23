@@ -21,7 +21,7 @@ class NotificationTest {
             .referenceId(100)
             .referenceType("GROUP")
             .isRead(true)
-           .createdAt(LocalDateTime.now())
+           .createdAt(now)
            .actions("actions_str")
            .externalLink("http://example.com")
            // + columnName si columnNumber care ar trebui sa devina null automat
@@ -117,7 +117,7 @@ class NotificationTest {
         LocalDateTime now = LocalDateTime.now();
         Notification n1 = Notification.builder().id(2).recipientUserId(26).actorUserId(12).type("REMINDER").message("M2").isRead(false).createdAt(now).build();
         Notification n2 = Notification.builder().id(2).recipientUserId(26).actorUserId(12).type("REMINDER").message("M2").isRead(false).createdAt(now).build();
-        Notification n3 = Notification.builder().id(3).recipientUserId(26).actorUserId(14).type("SYSTEM_UPDATE").message("M3").isRead(true).createdAt(LocalDateTime.now()).build();
+        Notification n3 = Notification.builder().id(3).recipientUserId(26).actorUserId(14).type("SYSTEM_UPDATE").message("M3").isRead(true).createdAt(now).build();
         assertEquals(n1, n2);
         assertEquals(n1.hashCode(), n2.hashCode());
         assertNotEquals(n1, n3);
