@@ -55,7 +55,7 @@ public class GroupService {
                 }
 
                 if (groupDTO.getMembers() != null && !groupDTO.getMembers().isEmpty()) {
-                        List<Integer> memberIds = groupDTO.getMembers().stream().map(GroupUserDTO::getUserId).collect(Collectors.toList());
+                        List<Integer> memberIds = groupDTO.getMembers().stream().map(GroupUserDTO::getUserId).toList();
                         List<User> foundUsers = userRepository.findAllById(memberIds);
                         for (User user : foundUsers) {
                                 group.getMembers().add(GroupMember.builder()
@@ -161,7 +161,7 @@ public class GroupService {
                                         // Priority 3: Most 'MAYBE' votes
                                         return Integer.compare(b.getVotes().getPoate(), a.getVotes().getPoate());
                                 })
-                                .collect(Collectors.toList());
+                                .toList();
 
                 // Set isWinning for the first event if it has votes
                 if (!events.isEmpty()) {

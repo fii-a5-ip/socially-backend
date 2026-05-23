@@ -66,7 +66,7 @@ public class NotificationService {
                         .recipientUserId(
                                 userId
                         )
-                        .type( "GROUP_INVITE" ) //reamintesc ca conform versiunii V12 de a bazei de date, coloana aceasta este un varchar. nu mai este enum
+                        .type( NOTIF_TYPE_GROUP ) //reamintesc ca conform versiunii V12 de a bazei de date, coloana aceasta este un varchar. nu mai este enum
                         .message(
                                 "Ai fost invitat la Board Games Group"
                         )
@@ -120,7 +120,7 @@ public class NotificationService {
         Notification notification = Notification.builder()
                 .recipientUserId(recipient.getId())
                 .actorUserId(actor.getId())
-                .type("GROUP_INVITE") //NotificationType.GROUP_INVITE nu mai este compatibil. type e acum varchar nu enum
+                .type(NOTIF_TYPE_GROUP) //NotificationType.GROUP_INVITE nu mai este compatibil. type e acum varchar nu enum
                 .message(actor.getUsername() + " te-a invitat in grupul " + group.getName())
                 .referenceType(GROUP_REFERENCE_TYPE) //
                 .referenceId(group.getId())

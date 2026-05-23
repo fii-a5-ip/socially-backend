@@ -4,7 +4,6 @@ import com.soccialy.backend.dto.NotificationDTO;
 import com.soccialy.backend.entity.Group;
 import com.soccialy.backend.entity.GroupMember;
 import com.soccialy.backend.entity.Notification;
-import com.soccialy.backend.entity.NotificationType;
 import com.soccialy.backend.entity.User;
 import com.soccialy.backend.mapper.NotificationMapper;
 import com.soccialy.backend.repository.GroupRepository;
@@ -154,7 +153,7 @@ class NotificationServiceTest {
         User recipient = User.builder().id(2).username("bob").build();
         Group group = Group.builder().id(3).name("Board Games").creator(actor).build();
 
-       ///  Inseram un membru in grupul acesta fictiv, altfel nu va exista o sursa corecta de la care să fie trimise invitațiile
+       //  Inseram un membru in grupul acesta fictiv, altfel nu va exista o sursa corecta de la care să fie trimise invitațiile
         GroupMember membruGrup = GroupMember.builder()
            .id(1) 
             .user(actor)
