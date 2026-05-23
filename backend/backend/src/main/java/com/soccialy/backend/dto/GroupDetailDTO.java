@@ -11,10 +11,12 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class GroupDetailDTO {
+public class GroupDetailDTO {    
     private Integer id;
     private String name;
     private String imgLink;
     private List<GroupMemberDTO> members;
     private List<GroupEventDTO> events;
+    //nou, TRUE inseamna ca ulizatorul logat face parte din grupul pe care il inspecteaza:
+    private Boolean isCurrentUserMember;
 }

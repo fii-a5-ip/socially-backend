@@ -100,8 +100,8 @@ class NotificationServiceTest {
         verify(notificationRepository).save(captor.capture());
         Notification saved = captor.getValue();
         assertEquals(42, saved.getRecipientUserId());
-        assertEquals(NotificationType.GROUP_INVITE, saved.getType());
-        assertEquals("GROUP", saved.getReferenceType());
+        assertEquals("GROUP_INVITE", saved.getType());
+        assertEquals("GROUP_REFERENCE_TYPE", saved.getReferenceType());
         assertEquals(1, saved.getReferenceId());
     }
 
@@ -153,6 +153,16 @@ class NotificationServiceTest {
         User actor = User.builder().id(1).username("ana").build();
         User recipient = User.builder().id(2).username("bob").build();
         Group group = Group.builder().id(3).name("Board Games").creator(actor).build();
+
+       ///  Inseram un membru in grupul acesta fictiv, altfel nu va exista o sursa corecta de la care să fie trimise invitațiile
+        GroupMember membruGrup = GroupMember.builder()
+           .id(1) 
+            .user(actor)
+            .group(group)
+            .role("ADMIN") 
+            .build();
+         group.getMembers().add(membruGrup);
+
         NotificationDTO expectedDTO = NotificationDTO.builder()
                 .id(7).type("GROUP_INVITE").message("ana te-a invitat in grupul Board Games").build();
 
@@ -171,7 +181,7 @@ class NotificationServiceTest {
         Notification saved = captor.getValue();
         assertEquals(2, saved.getRecipientUserId());
         assertEquals(1, saved.getActorUserId());
-        assertEquals(NotificationType.GROUP_INVITE, saved.getType());
+        assertEquals("GROUP_INVITE", saved.getType());
         assertEquals("GROUP", saved.getReferenceType());
         assertEquals(3, saved.getReferenceId());
         assertEquals("ana te-a invitat in grupul Board Games", saved.getMessage());
@@ -185,7 +195,7 @@ class NotificationServiceTest {
                 .id(7)
                 .recipientUserId(2)
                 .actorUserId(1)
-                .type(NotificationType.GROUP_INVITE)
+                .type("GROUP_INVITE")
                 .message("Invite")
                 .referenceType("GROUP")
                 .referenceId(3)
@@ -219,7 +229,7 @@ class NotificationServiceTest {
         Notification invite = Notification.builder()
                 .id(7)
                 .recipientUserId(2)
-                .type(NotificationType.GROUP_INVITE)
+                .type("GROUP_INVITE")
                 .referenceType("GROUP")
                 .referenceId(3)
                 .build();
@@ -241,7 +251,7 @@ class NotificationServiceTest {
         Notification invite = Notification.builder()
                 .id(7)
                 .recipientUserId(2)
-                .type(NotificationType.GROUP_INVITE)
+                .type("GROUP_INVITE")
                 .referenceType("GROUP")
                 .referenceId(3)
                 .build();
@@ -258,7 +268,7 @@ class NotificationServiceTest {
         Notification invite = Notification.builder()
                 .id(7)
                 .recipientUserId(2)
-                .type(NotificationType.GROUP_INVITE)
+                .type("GROUP_INVITE")
                 .referenceType("GROUP")
                 .referenceId(3)
                 .build();

@@ -30,4 +30,7 @@ public class NotificationDTO {
 
     private LocalDateTime createdAt;
 
+    private String columnName;
+    private String columnId; //Sigur asta trebuie sa fie un varchar(100)?
+
 }

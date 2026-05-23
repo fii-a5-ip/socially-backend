@@ -97,7 +97,7 @@ public class GroupService {
                                                 .build())
                                 .collect(Collectors.toList());
 
-                List<com.soccialy.backend.entity.Event> allEvents = eventRepository.findByGroupId(groupId);
+                List<com.soccialy.backend.entity.Event> allEvents = eventRepository.findByGroupId(groupId); //linia asta nu ar puta fi doar "List<EventDTO> allEvents;" ?
                 if (query != null && !query.trim().isEmpty()) {
                         String lowerQuery = query.toLowerCase();
                         allEvents = allEvents.stream()
@@ -171,12 +171,20 @@ public class GroupService {
                         }
                 }
 
+                        /* 
+                        boolean isGuestMember = false;
+                        if( userId != null ) { 
+                                isMember = group.getMembers().stream().anyMatch( m -> m.getUser().getId.equals(userid));
+                        }*/
+
                 return GroupDetailDTO.builder()
                                 .id(group.getId())
                                 .name(group.getName())
                                 .imgLink(group.getImgLink())
                                 .members(memberDTOs)
                                 .events(events)
+                                .isCurrentUserMember(group.hasMember(userId)) // nou
+
                                 .build();
         }
 

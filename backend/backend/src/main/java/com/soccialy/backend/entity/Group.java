@@ -58,6 +58,14 @@ public class Group {
      * .orElse(null);
      * }
      */
+
+    // Î Am implementat metoda de mai sus Î
+    public boolean hasMember (Integer userId){
+    if (userId == null) {return false; }
+    else 
+    {return members.stream().filter( realMembers -> realMembers.getUser() != null ).anyMatch(membruCautat -> membruCautat.getUser().getId().equals(userId));}
+    }
+
     public List<User> getUsers() {
         return members.stream()
                 .map(GroupMember::getUser)

@@ -26,9 +26,9 @@ public class NotificationMapper {
                 .actorUserId(
                         notification.getActorUserId()
                 )
-                .type(
-                        notification.getType() != null ? notification.getType().name() : null
-                )
+
+                .type( notification.getType() )
+
                 .message(
                         notification.getMessage()
                 )
@@ -44,6 +44,10 @@ public class NotificationMapper {
                 .createdAt(
                         notification.getCreatedAt()
                 )
+
+
+                .columnName(notification.getColumnName())
+                .columnId(notification.getColumnId())
 
                 .username(user != null ? user.getUsername() : null)
                 .profileImageUrl(user != null ? user.getProfileImgUrl() : null)

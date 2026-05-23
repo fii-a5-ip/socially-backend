@@ -27,7 +27,9 @@ public class GroupDetailController {
             String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
                     ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
                     : principal.toString();
+                    System.out.println("ID Utilizator Logat detectat de Controller: " + userId);
             userId = Integer.parseInt(currentUserIdStr);
+          System.out.println("ID Utilizator Logat detectat de Controller: " + userId);
         }
 
         return ResponseEntity.ok(groupService.getGroupDetails(groupId, userId, query));
