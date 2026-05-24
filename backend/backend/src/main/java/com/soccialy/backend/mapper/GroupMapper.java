@@ -17,16 +17,15 @@ public class GroupMapper {
         GroupDTO dto = new GroupDTO();
         dto.setId(group.getId());
         dto.setName(group.getName());
-        dto.setDesc(group.getDesc()); // Am adăugat și maparea descrierii
+        dto.setDesc(group.getDesc());
         dto.setImgLink(group.getImgLink());
 
         if (group.getCreator() != null) {
             dto.setCreatorUserId(group.getCreator().getId());
         }
 
-        // Acum iterăm prin lista de GroupUser (entitatea intermediară) și o transformăm în GroupUserDTO
-        if (group.getGroupUsers() != null) {
-            dto.setMembers(group.getGroupUsers().stream()
+        if (group.getMembers() != null) {
+            dto.setMembers(group.getMembers().stream()
                     .map(gu -> new GroupUserDTO(
                             gu.getGroup().getId(),
                             gu.getUser().getId(),

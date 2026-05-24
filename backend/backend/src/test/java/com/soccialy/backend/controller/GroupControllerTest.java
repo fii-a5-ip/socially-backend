@@ -32,6 +32,49 @@ class GroupControllerTest {
     }
 
     @Test
+    void getCurrentUserGroups_ReturnsGroupsForAuthenticatedUser() {
+        GroupDTO groupDTO = new GroupDTO();
+        groupDTO.setId(1);
+        groupDTO.setName("User Group");
+
+        when(groupService.findGroupsByUserId(7)).thenReturn(List.of(groupDTO));
+
+        ResponseEntity<?> response = groupController.getCurrentUserGroups("7");
+
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+
+        // Convertește (cast) corpul răspunsului înapoi la List<GroupDTO> pentru a putea face assert-uri
+        @SuppressWarnings("unchecked")
+        List<GroupDTO> body = (List<GroupDTO>) response.getBody();
+
+        assertEquals(1, body.size());
+        assertEquals("User Group", body.get(0).getName());
+
+        verify(groupService, times(1)).findGroupsByUserId(7);
+    }
+
+    @Test
+    void getGroupById_ReturnsGroup() {
+        GroupDTO groupDTO = new GroupDTO();
+        groupDTO.setId(5);
+        groupDTO.setName("Details Group");
+
+        when(groupService.findGroupById(5)).thenReturn(groupDTO);
+
+        ResponseEntity<GroupDTO> response = groupController.getGroupById(5);
+
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals(5, response.getBody().getId());
+        assertEquals("Details Group", response.getBody().getName());
+
+        verify(groupService, times(1)).findGroupById(5);
+    }
+
+    @Test
     void createGroup_ReturnsCreatedGroup() {
         // Arrange
         GroupDTO inputDTO = new GroupDTO();
@@ -53,19 +96,19 @@ class GroupControllerTest {
                 new GroupUserDTO(1, 2, "MEMBER")
         ));
 
-        when(groupService.createGroup(inputDTO)).thenReturn(outputDTO);
+        when(groupService.createGroup(inputDTO, 1)).thenReturn(outputDTO);
 
         // Act
-        ResponseEntity<GroupDTO> response = groupController.createGroup(inputDTO);
+        ResponseEntity<GroupDTO> response = groupController.createGroup("1", inputDTO);
 
         // Assert
         assertNotNull(response);
-        assertEquals(200, response.getStatusCode().value());
+        assertEquals(201, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals(1, response.getBody().getId());
         assertEquals("Controller Test", response.getBody().getName());
 
-        verify(groupService, times(1)).createGroup(inputDTO);
+        verify(groupService, times(1)).createGroup(inputDTO, 1);
     }
 
     @Test
@@ -75,12 +118,12 @@ class GroupControllerTest {
         inputDTO.setName("Fail Test");
         inputDTO.setCreatorUserId(null);
 
-        when(groupService.createGroup(inputDTO))
+        when(groupService.createGroup(inputDTO, 1))
                 .thenThrow(new RuntimeException("Creator user ID is required"));
 
         // Act & Assert
         RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                groupController.createGroup(inputDTO));
+                groupController.createGroup("1", inputDTO));
 
         assertTrue(ex.getMessage().contains("Creator user ID is required"));
     }

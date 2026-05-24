@@ -50,6 +50,17 @@ public class Event {
     @Column(name = "filter_id")
     private List<Integer> filterIds = new ArrayList<>();
 
+
+
+    @Builder.Default
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "event_participants",
+        joinColumns = @JoinColumn(name = "event_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private List<User> participants = new ArrayList<>();
+
     public Event(String name, String url, Location location, User creator, String desc, LocalDateTime date) {
         this.name = name;
         this.url = url;

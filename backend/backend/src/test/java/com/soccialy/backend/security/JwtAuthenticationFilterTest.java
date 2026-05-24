@@ -111,7 +111,7 @@ class JwtAuthenticationFilterTest
 
         jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
-        assertEquals(25, currentAuthentication().getPrincipal());
+        assertEquals("25", currentAuthentication().getPrincipal());
         verifyChainContinued(request);
     }
 
@@ -174,7 +174,7 @@ class JwtAuthenticationFilterTest
 
         jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
-        assertEquals(7, currentAuthentication().getPrincipal());
+        assertEquals("7", currentAuthentication().getPrincipal());
         verify(jwtService).isTokenValid(tokenWithLeadingSpace);
         verify(jwtService).extractUserId(tokenWithLeadingSpace);
         verifyChainContinued(request);

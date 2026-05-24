@@ -24,4 +24,5 @@ public class EventResponseDTO {
     private List<Integer> filterIds;
     private List<FilterDTO> filters;
     private WeatherDTO weather;
+    private Double distance;
 }

@@ -38,6 +38,15 @@ public class UserService {
                 .toList();
     }
 
+    public List<UserDTO> searchUsers(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return List.of();
+        }
+        return userRepository.searchUsers(query.trim()).stream()
+                .map(userMapper::toDTO)
+                .toList();
+    }
+
     public UserDTO findUserById(Integer id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND_WITH_ID + id));
@@ -114,8 +123,8 @@ public class UserService {
 
     public com.soccialy.backend.entity.Coordinates getUserCoordinates(Integer userId) {
         com.soccialy.backend.entity.Coordinates coords = new com.soccialy.backend.entity.Coordinates();
-        coords.setLatitude(45.0);
-        coords.setLongitude(25.0);
+        coords.setLatitude(java.math.BigDecimal.valueOf(45.0));
+        coords.setLongitude(java.math.BigDecimal.valueOf(25.0));
         return coords;
     }
 }

@@ -39,16 +39,13 @@ public class User {
     @Column(name = "profile_img_url", length = 2048)
     private String profileImgUrl;
 
+
     @Column(length = 1000)
     private String bio;
 
     @Builder.Default
     @ManyToMany
-    @JoinTable(
-            name = "user_filters",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "filter_id")
-    )
+    @JoinTable(name = "user_filters", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "filter_id"))
     private Set<Filter> filters = new HashSet<>();
 
     @Builder.Default

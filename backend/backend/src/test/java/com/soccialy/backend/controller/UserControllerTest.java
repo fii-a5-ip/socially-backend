@@ -55,6 +55,16 @@ class UserControllerTest {
     }
 
     @Test
+    void getMe_returnsCurrentUserByStringIdPrincipal() {
+        when(userService.findUserById(7)).thenReturn(new UserDTO());
+
+        var response = userController.getMe("7");
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(userService).findUserById(7);
+    }
+
+    @Test
     void getMe_returnsCurrentUserByUserDetailsPrincipal() {
         when(userDetails.getUsername()).thenReturn("test");
         when(userService.findUserByUsername("test")).thenReturn(new UserDTO());
@@ -105,6 +115,17 @@ class UserControllerTest {
     }
 
     @Test
+    void updateMe_updatesCurrentUserByStringIdPrincipal() {
+        UpdateUserDTO updateDTO = new UpdateUserDTO();
+        when(userService.updateUserById(7, updateDTO)).thenReturn(new UserDTO());
+
+        var response = userController.updateMe("7", updateDTO);
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(userService).updateUserById(7, updateDTO);
+    }
+
+    @Test
     void updateMe_throwsWhenPrincipalIsMissing() {
         UpdateUserDTO updateDTO = new UpdateUserDTO();
 
@@ -128,5 +149,15 @@ class UserControllerTest {
         var response = userController.create(dto);
 
         assertEquals(200, response.getStatusCode().value());
+    }
+
+    @Test
+    void search_returnsListOfUsers() {
+        when(userService.searchUsers("test")).thenReturn(List.of(new UserDTO()));
+
+        var response = userController.search("test");
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(userService).searchUsers("test");
     }
 }
