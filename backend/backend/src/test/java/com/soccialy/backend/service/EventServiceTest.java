@@ -12,6 +12,8 @@ import com.soccialy.backend.mapper.EventMapper;
 import com.soccialy.backend.repository.EventRepository;
 import com.soccialy.backend.repository.LocationRepository;
 import com.soccialy.backend.repository.UserRepository;
+import com.soccialy.backend.repository.UserVoteRepository;
+import com.soccialy.backend.repository.GroupRepository;
 import com.soccialy.backend.security.CurrentUserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,6 +55,12 @@ class EventServiceTest {
 
     @Mock
     private CurrentUserService currentUserService;
+
+    @Mock
+    private UserVoteRepository userVoteRepository;
+
+    @Mock
+    private GroupRepository groupRepository;
 
     @Spy
     private EventMapper eventMapper = new EventMapper();
