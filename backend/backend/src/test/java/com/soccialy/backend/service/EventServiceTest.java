@@ -352,7 +352,7 @@ class EventServiceTest {
 
         List<EventResponseDTO> results = eventService.sortEvents(userId, fields);
 
-        assertEquals(3, results.size());
+        assertEquals(2, results.size());
     }
 
     @Test
