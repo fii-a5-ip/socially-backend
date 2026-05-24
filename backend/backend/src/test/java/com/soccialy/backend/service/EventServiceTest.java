@@ -12,6 +12,8 @@ import com.soccialy.backend.mapper.EventMapper;
 import com.soccialy.backend.repository.EventRepository;
 import com.soccialy.backend.repository.LocationRepository;
 import com.soccialy.backend.repository.UserRepository;
+import com.soccialy.backend.repository.UserVoteRepository;
+import com.soccialy.backend.repository.GroupRepository;
 import com.soccialy.backend.security.CurrentUserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,6 +55,12 @@ class EventServiceTest {
 
     @Mock
     private CurrentUserService currentUserService;
+
+    @Mock
+    private UserVoteRepository userVoteRepository;
+
+    @Mock
+    private GroupRepository groupRepository;
 
     @Spy
     private EventMapper eventMapper = new EventMapper();
@@ -99,7 +107,7 @@ class EventServiceTest {
         eventB.setScheduledDate(now.plusDays(20));
         eventB.setFilterIds(List.of(4, 10));
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class)))
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>(List.of(eventA, eventB)));
 
         Map<Integer, List<Integer>> mockLocationFilters = new HashMap<>();
@@ -152,7 +160,7 @@ class EventServiceTest {
         eventB.setFilterIds(List.of(1, 2));
         eventB.setScheduledDate(now.plusDays(10));
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class)))
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>(List.of(eventA, eventB)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
 
@@ -191,7 +199,7 @@ class EventServiceTest {
         event.setLocation(Location.builder().id(1).name("Loc").latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         event.setScheduledDate(now.plusDays(15));
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(any(Coordinates.class), anyMap())).thenReturn(Map.of(1, 0.0));
 
@@ -224,7 +232,7 @@ class EventServiceTest {
         event.setLocation(Location.builder().id(99).name("Loc").latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         event.setScheduledDate(now);
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(new HashMap<>());
 
@@ -257,7 +265,7 @@ class EventServiceTest {
         event.setFilterIds(List.of(5, 6, 7));
         event.setScheduledDate(now.plusDays(5));
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(Map.of(1, 5.0));
 
@@ -284,7 +292,7 @@ class EventServiceTest {
         when(userService.getUserProfileFilters(userId)).thenReturn(List.of(1));
         when(aiServiceClient.getSearchFilters(query)).thenReturn(List.of(2));
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class)))
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>());
 
         EventSearchFieldsDTO fields = new EventSearchFieldsDTO();
@@ -323,7 +331,7 @@ class EventServiceTest {
         Location l3 = Location.builder().id(102).build(); e3.setLocation(l3);
         e3.setScheduledDate(null);
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class)))
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>(List.of(e1, e2, e3)));
 
         Map<Integer, Double> distances = new HashMap<>();
@@ -344,7 +352,7 @@ class EventServiceTest {
 
         List<EventResponseDTO> results = eventService.sortEvents(userId, fields);
 
-        assertEquals(3, results.size());
+        assertEquals(2, results.size());
     }
 
     @Test
@@ -364,7 +372,7 @@ class EventServiceTest {
                 .build());
         event.setScheduledDate(LocalDateTime.now().plusDays(5));
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class)))
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(Map.of(55, 10.0));

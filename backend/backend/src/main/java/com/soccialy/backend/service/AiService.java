@@ -76,29 +76,37 @@ public class AiService {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             List<Map<String, BigDecimal>> sources = List.of(Map.of("lon", userCoords.getLongitude(), "lat", userCoords.getLatitude()));
-            List<Map<String, BigDecimal>> destinations = new ArrayList<>();
-            List<Integer> orderedLocationIds = new ArrayList<>();
+            List<Map.Entry<Integer, Coordinates>> allDestinations = new ArrayList<>(destinationCoordsMap.entrySet());
+            int chunkSize = 49;
 
-            for (Map.Entry<Integer, Coordinates> entry : destinationCoordsMap.entrySet()) {
-                orderedLocationIds.add(entry.getKey());
-                destinations.add(Map.of("lon", entry.getValue().getLongitude(), "lat", entry.getValue().getLatitude()));
-            }
+            for (int i = 0; i < allDestinations.size(); i += chunkSize) {
+                int end = Math.min(i + chunkSize, allDestinations.size());
+                List<Map.Entry<Integer, Coordinates>> chunk = allDestinations.subList(i, end);
 
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("sources", sources);
-            requestBody.put("destinations", destinations);
+                List<Map<String, BigDecimal>> destinations = new ArrayList<>();
+                List<Integer> orderedLocationIds = new ArrayList<>();
 
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+                for (Map.Entry<Integer, Coordinates> entry : chunk) {
+                    orderedLocationIds.add(entry.getKey());
+                    destinations.add(Map.of("lon", entry.getValue().getLongitude(), "lat", entry.getValue().getLatitude()));
+                }
 
-            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    fullUrl,
-                    HttpMethod.POST,
-                    request,
-                    new ParameterizedTypeReference<Map<String, Object>>() {}
-            );
+                Map<String, Object> requestBody = new HashMap<>();
+                requestBody.put("sources", sources);
+                requestBody.put("destinations", destinations);
 
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                processDistanceResponse(response.getBody(), orderedLocationIds, distances);
+                HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+
+                ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                        fullUrl,
+                        HttpMethod.POST,
+                        request,
+                        new ParameterizedTypeReference<Map<String, Object>>() {}
+                );
+
+                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                    processDistanceResponse(response.getBody(), orderedLocationIds, distances);
+                }
             }
         } catch (Exception e) {
             log.error("Distance API Error: {}", e.getMessage());
