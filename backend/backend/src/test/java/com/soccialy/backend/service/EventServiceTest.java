@@ -979,6 +979,41 @@ void testSortEvents_WithSearchString_TextScoringApplied() {
     assertEquals(1, results.get(0).getId());
 }
 
+    @Test
+    void createEvent_WithAiFiltersAndDuplicates_CombinesCorrectly() {
+        // Arrange
+        EventRequestDTO request = new EventRequestDTO();
+        request.setDesc("Concert Rock");
+        request.setLocationId(1);
+        request.setFilterIds(List.of(1, 2));
+
+        when(aiServiceClient.getSearchFilters("Concert Rock")).thenReturn(List.of(2, 3));
+        when(locationRepository.findById(1)).thenReturn(Optional.of(new com.soccialy.backend.entity.Location()));
+        when(userRepository.findById(any())).thenReturn(Optional.of(new com.soccialy.backend.entity.User()));
+        when(eventRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+
+        eventService.createEvent(request);
+
+        ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+        verify(eventRepository).save(eventCaptor.capture());
+
+        List<Integer> finalFilters = eventCaptor.getValue().getFilterIds();
+        assertTrue(finalFilters.containsAll(List.of(1, 2, 3)));
+        assertEquals(3, finalFilters.size());
+    }
+
+    @Test
+    void createEvent_AiReturnsNull_HandlesGracefully() {
+        EventRequestDTO request = new EventRequestDTO();
+        request.setDesc("Test");
+        request.setLocationId(1);
+
+        when(aiServiceClient.getSearchFilters(any())).thenReturn(null);
+        when(locationRepository.findById(1)).thenReturn(Optional.of(new com.soccialy.backend.entity.Location()));
+        when(userRepository.findById(any())).thenReturn(Optional.of(new com.soccialy.backend.entity.User()));
+
+        assertDoesNotThrow(() -> eventService.createEvent(request));
+    }
 
     private EventRequestDTO buildEventRequest(List<Integer> filterIds) {
         EventRequestDTO requestDTO = new EventRequestDTO();
@@ -1016,4 +1051,4 @@ void testSortEvents_WithSearchString_TextScoringApplied() {
         event.setFilterIds(filterIds);
         return event;
     }
-            }
+}

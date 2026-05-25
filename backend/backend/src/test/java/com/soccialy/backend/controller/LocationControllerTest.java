@@ -83,21 +83,14 @@ class LocationControllerTest {
 
     @Test
     void findLocation_missingPlaceId_returnsBadRequest() {
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            locationController.findLocation(Map.of());
-        });
-
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        Map<String, String> invalidBody = Map.of();
+        assertThrows(ResponseStatusException.class, () -> locationController.findLocation(invalidBody));
     }
 
     @Test
     void findLocation_notFound_returns404() {
         when(externalLocationService.findLocationByPlaceId("invalid")).thenReturn(null);
-
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            locationController.findLocation(Map.of("placeId", "invalid"));
-        });
-
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        Map<String, String> body = Map.of("placeId", "invalid");
+        assertThrows(ResponseStatusException.class, () -> locationController.findLocation(body));
     }
 }

@@ -185,6 +185,19 @@ class ExternalLocationServiceTest {
         assertNull(result);
     }
 
+    @Test
+    void autocomplete_WithInvalidUrl_ReturnsEmptyList() {
+        var result = externalLocationService.autocomplete("!!INVALID!!", null, null);
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findLocation_WithNullPlaceId_ReturnsNull() {
+        var result = externalLocationService.findLocationByPlaceId(null);
+        assertNull(result);
+    }
+
     // ── helper ────────────────────────────────────────────────────────────────
 
     @SuppressWarnings("unchecked")
