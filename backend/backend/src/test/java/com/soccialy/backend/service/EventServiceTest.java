@@ -95,13 +95,9 @@ class EventServiceTest {
         Event eventA = new Event();
         eventA.setId(101);
         eventA.setName("Event A");
-
         Location testLocation = Location.builder()
-                .id(1)
-                .name("Loc 1")
-                .latitude(BigDecimal.ZERO)
-                .longitude(BigDecimal.ZERO)
-                .build();
+                .id(1).name("Loc 1")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build();
         eventA.setLocation(testLocation);
         eventA.setScheduledDate(now.plusDays(1));
         eventA.setFilterIds(List.of(1, 2));
@@ -109,12 +105,8 @@ class EventServiceTest {
         Event eventB = new Event();
         eventB.setId(102);
         eventB.setName("Event B");
-        eventB.setLocation(Location.builder()
-                .id(2)
-                .name("Loc 2")
-                .latitude(BigDecimal.ZERO)
-                .longitude(BigDecimal.ZERO)
-                .build());
+        eventB.setLocation(Location.builder().id(2).name("Loc 2")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         eventB.setScheduledDate(now.plusDays(20));
         eventB.setFilterIds(List.of(4, 10));
 
@@ -161,13 +153,15 @@ class EventServiceTest {
 
         Event eventA = new Event();
         eventA.setId(1);
-        eventA.setLocation(Location.builder().id(1).name("Loc").latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+        eventA.setLocation(Location.builder().id(1).name("Loc")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         eventA.setFilterIds(List.of(1, 2));
         eventA.setScheduledDate(now.plusDays(3));
 
         Event eventB = new Event();
         eventB.setId(2);
-        eventB.setLocation(Location.builder().id(2).name("Loc").latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+        eventB.setLocation(Location.builder().id(2).name("Loc")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         eventB.setFilterIds(List.of(1, 2));
         eventB.setScheduledDate(now.plusDays(10));
 
@@ -188,7 +182,7 @@ class EventServiceTest {
 
         List<EventResponseDTO> results = eventService.sortEvents(userId, fields);
 
-        assertEquals(1, results.size(), "Event B should be filtered out strictly by maxDays");
+        assertEquals(1, results.size());
         assertEquals(1, results.get(0).getId());
     }
 
@@ -207,10 +201,12 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(1);
-        event.setLocation(Location.builder().id(1).name("Loc").latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+        event.setLocation(Location.builder().id(1).name("Loc")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         event.setScheduledDate(now.plusDays(15));
 
-        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
+                .thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(any(Coordinates.class), anyMap())).thenReturn(Map.of(1, 0.0));
 
@@ -240,10 +236,12 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(99);
-        event.setLocation(Location.builder().id(99).name("Loc").latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+        event.setLocation(Location.builder().id(99).name("Loc")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         event.setScheduledDate(now);
 
-        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
+                .thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(new HashMap<>());
 
@@ -272,11 +270,13 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(1);
-        event.setLocation(Location.builder().id(1).name("Loc").latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+        event.setLocation(Location.builder().id(1).name("Loc")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         event.setFilterIds(List.of(5, 6, 7));
         event.setScheduledDate(now.plusDays(5));
 
-        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
+                .thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(Map.of(1, 5.0));
 
@@ -329,17 +329,17 @@ class EventServiceTest {
 
         Event e1 = new Event();
         e1.setId(10); e1.setName("Far Event");
-        Location l1 = Location.builder().id(100).build(); e1.setLocation(l1);
+        e1.setLocation(Location.builder().id(100).build());
         e1.setScheduledDate(now.plusDays(1));
 
         Event e2 = new Event();
         e2.setId(11); e2.setName("Past Event");
-        Location l2 = Location.builder().id(101).build(); e2.setLocation(l2);
+        e2.setLocation(Location.builder().id(101).build());
         e2.setScheduledDate(now.minusDays(1));
 
         Event e3 = new Event();
         e3.setId(12); e3.setName("No Date Event");
-        Location l3 = Location.builder().id(102).build(); e3.setLocation(l3);
+        e3.setLocation(Location.builder().id(102).build());
         e3.setScheduledDate(null);
 
         when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
@@ -376,11 +376,8 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(555);
-        event.setLocation(Location.builder()
-                .id(55)
-                .latitude(BigDecimal.ZERO)
-                .longitude(BigDecimal.ZERO)
-                .build());
+        event.setLocation(Location.builder().id(55)
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         event.setScheduledDate(LocalDateTime.now().plusDays(5));
 
         when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
@@ -413,11 +410,8 @@ class EventServiceTest {
         Event event = new Event();
         event.setId(201);
         event.setName("Discoverable Event");
-        event.setLocation(Location.builder()
-                .id(10)
-                .latitude(BigDecimal.ZERO)
-                .longitude(BigDecimal.ZERO)
-                .build());
+        event.setLocation(Location.builder().id(10)
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         event.setScheduledDate(now.plusDays(2));
 
         when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
@@ -460,9 +454,7 @@ class EventServiceTest {
 
         ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
         verify(eventRepository).save(eventCaptor.capture());
-
-        Event savedEvent = eventCaptor.getValue();
-        assertEquals("Test Event", savedEvent.getName());
+        assertEquals("Test Event", eventCaptor.getValue().getName());
     }
 
     @Test
@@ -595,6 +587,82 @@ class EventServiceTest {
         verify(eventRepository, never()).save(any(Event.class));
     }
 
+    @Test
+    void testJoinEvent_Success() {
+        Event event = new Event();
+        event.setId(1);
+        event.setParticipants(new HashSet<>());
+        User user = buildUser(1);
+
+        when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+
+        eventService.joinEvent(1, 1);
+
+        verify(eventRepository).save(event);
+    }
+
+    @Test
+    void testLeaveEvent_Success() {
+        User user = buildUser(1);
+        Event event = new Event();
+        event.setId(1);
+        event.setParticipants(new HashSet<>(Set.of(user)));
+
+        when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+
+        eventService.leaveEvent(1, 1);
+
+        verify(eventRepository).save(event);
+    }
+
+    @Test
+    void testRegisterVote_NewVote() {
+        User user = buildUser(1);
+        Event event = new Event();
+        event.setId(1);
+
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+        when(userVoteRepository.findByUserIdAndEventId(1, 1)).thenReturn(Optional.empty());
+
+        eventService.registerVote(1, 1, "Da");
+
+        verify(userVoteRepository).save(any());
+    }
+
+    @Test
+    void testRegisterVote_UpdateExisting() {
+        User user = buildUser(1);
+        Event event = new Event();
+        event.setId(1);
+
+        com.soccialy.backend.entity.UserVote existingVote =
+                com.soccialy.backend.entity.UserVote.builder()
+                        .user(user).event(event).vote(1).build();
+
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+        when(userVoteRepository.findByUserIdAndEventId(1, 1)).thenReturn(Optional.of(existingVote));
+
+        eventService.registerVote(1, 1, "Nu");
+
+        verify(userVoteRepository).save(existingVote);
+    }
+
+    @Test
+    void testRegisterVote_InvalidType_ThrowsException() {
+        User user = buildUser(1);
+        Event event = new Event();
+        event.setId(1);
+
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> eventService.registerVote(1, 1, "Invalid"));
+    }
+
     private EventRequestDTO buildEventRequest(List<Integer> filterIds) {
         EventRequestDTO requestDTO = new EventRequestDTO();
         requestDTO.setName("Test Event");
@@ -631,63 +699,4 @@ class EventServiceTest {
         event.setFilterIds(filterIds);
         return event;
     }
-
-@Test
-void testJoinEvent_Success() {
-    Event event = new Event();
-    event.setId(1);
-    event.setParticipants(new HashSet<>());
-    User user = buildUser(1);
-
-    when(eventRepository.findById(1)).thenReturn(Optional.of(event));
-    when(userRepository.findById(1)).thenReturn(Optional.of(user));
-
-    eventService.joinEvent(1, 1);
-
-    verify(eventRepository).save(event);
-}
-
-@Test
-void testLeaveEvent_Success() {
-    User user = buildUser(1);
-    Event event = new Event();
-    event.setId(1);
-    event.setParticipants(new HashSet<>(Set.of(user)));
-
-    when(eventRepository.findById(1)).thenReturn(Optional.of(event));
-
-    eventService.leaveEvent(1, 1);
-
-    verify(eventRepository).save(event);
-}
-
-@Test
-void testRegisterVote_NewVote() {
-    User user = buildUser(1);
-    Event event = new Event();
-    event.setId(1);
-
-    when(userRepository.findById(1)).thenReturn(Optional.of(user));
-    when(eventRepository.findById(1)).thenReturn(Optional.of(event));
-    when(userVoteRepository.findByUserIdAndEventId(1, 1)).thenReturn(Optional.empty());
-
-    eventService.registerVote(1, 1, "Da");
-
-    verify(userVoteRepository).save(any());
-}
-
-@Test
-void testRegisterVote_UpdateExisting() {
-    User user = buildUser(1);
-    Event event = new Event();
-    event.setId(1);
-
-    com.soccialy.backend.entity.UserVote existingVote =
-            com.soccialy.backend.entity.UserVote.builder()
-                    .user(user).event(event).vote(1).build();
-
-    when(userRepository.findById(1)).thenReturn(Optional.of(user));
-    when(eventRepository.findById(1)).thenReturn(Optional.of(event));
-    when(userVoteRepository.findByUserIdAndEventId(1, 1)).thenReturn(Optional.of(existingVote)
-
- }
+             }
