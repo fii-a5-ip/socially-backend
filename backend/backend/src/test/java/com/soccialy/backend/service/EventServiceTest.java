@@ -591,7 +591,7 @@ class EventServiceTest {
     void testJoinEvent_Success() {
         Event event = new Event();
         event.setId(1);
-        event.setParticipants(new HashSet<>());
+        event.setParticipants(new ArrayList<>());  // FIX: era new HashSet<>()
         User user = buildUser(1);
 
         when(eventRepository.findById(1)).thenReturn(Optional.of(event));
@@ -607,7 +607,7 @@ class EventServiceTest {
         User user = buildUser(1);
         Event event = new Event();
         event.setId(1);
-        event.setParticipants(new HashSet<>(Set.of(user)));
+        event.setParticipants(new ArrayList<>(List.of(user)));  // FIX: era new HashSet<>(Set.of(user))
 
         when(eventRepository.findById(1)).thenReturn(Optional.of(event));
 
@@ -699,4 +699,4 @@ class EventServiceTest {
         event.setFilterIds(filterIds);
         return event;
     }
-             }
+            }
