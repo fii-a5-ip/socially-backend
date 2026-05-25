@@ -63,7 +63,7 @@ public class LocationController {
                     org.springframework.http.HttpStatus.NOT_FOUND, "Location not found"
             );
         }
-        
+
         return ResponseEntity.ok(detail);
     }
 }
