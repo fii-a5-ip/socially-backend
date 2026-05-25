@@ -3,18 +3,22 @@ package com.soccialy.backend.mapper;
 import com.soccialy.backend.dto.GroupDTO;
 import com.soccialy.backend.dto.GroupUserDTO;
 import com.soccialy.backend.entity.Group;
+import com.soccialy.backend.entity.GroupMember;
 import com.soccialy.backend.entity.GroupUser;
 import com.soccialy.backend.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
+import java.util.HashSet;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for GroupMapper — covers Entity-to-DTO and DTO-to-Entity conversions.
+ * Unit tests for GroupMapper — covers Entity-to-DTO and DTO-to-Entity
+ * conversions.
  */
 class GroupMapperTest {
 
@@ -43,17 +47,17 @@ class GroupMapperTest {
         group.setImgLink("https://example.com/img.png");
         group.setCreator(creator);
 
-        GroupUser gu1 = new GroupUser();
+        GroupMember gu1 = new GroupMember();
         gu1.setGroup(group);
         gu1.setUser(creator);
         gu1.setRole("ADMIN");
 
-        GroupUser gu2 = new GroupUser();
+        GroupMember gu2 = new GroupMember();
         gu2.setGroup(group);
         gu2.setUser(member);
         gu2.setRole("MEMBER");
 
-        group.setGroupUsers(new HashSet<>(Set.of(gu1, gu2)));
+        group.setMembers(List.of(gu1, gu2));
 
         // Act
         GroupDTO dto = groupMapper.toDTO(group);
@@ -106,7 +110,7 @@ class GroupMapperTest {
         Group group = new Group();
         group.setId(6);
         group.setName("No Members");
-        group.setGroupUsers(null);
+        group.setMembers(null);
 
         GroupDTO dto = groupMapper.toDTO(group);
 

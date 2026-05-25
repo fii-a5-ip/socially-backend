@@ -29,6 +29,12 @@ public class UserController {
         return ResponseEntity.ok(userService.findAllUsers());
     }
 
+    // GET /api/users/search — cautare utilizatori
+    @GetMapping("/search")
+    public ResponseEntity<List<UserDTO>> search(@RequestParam String query) {
+        return ResponseEntity.ok(userService.searchUsers(query));
+    }
+
     // GET /api/users/me — profilul userului logat
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getMe(@AuthenticationPrincipal Object principal) {
@@ -68,6 +74,10 @@ public class UserController {
             return userService.findUserById(userId);
         }
 
+        if (principal instanceof String userId) {
+            return userService.findUserById(Integer.parseInt(userId));
+        }
+
         if (principal instanceof UserDetails userDetails) {
             return userService.findUserByUsername(userDetails.getUsername());
         }
@@ -78,6 +88,10 @@ public class UserController {
     private UserDTO updateCurrentUser(Object principal, UpdateUserDTO updateDTO) {
         if (principal instanceof Integer userId) {
             return userService.updateUserById(userId, updateDTO);
+        }
+
+        if (principal instanceof String userId) {
+            return userService.updateUserById(Integer.parseInt(userId), updateDTO);
         }
 
         if (principal instanceof UserDetails userDetails) {

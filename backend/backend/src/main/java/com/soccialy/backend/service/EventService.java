@@ -1,5 +1,6 @@
 package com.soccialy.backend.service;
 
+import java.util.stream.Collectors;
 import com.soccialy.backend.dto.EventDiscoverFieldsDTO;
 import com.soccialy.backend.dto.EventRequestDTO;
 import com.soccialy.backend.dto.EventResponseDTO;
@@ -10,10 +11,13 @@ import com.soccialy.backend.entity.Location;
 import com.soccialy.backend.entity.User;
 import com.soccialy.backend.mapper.EventMapper;
 import com.soccialy.backend.repository.EventRepository;
+import com.soccialy.backend.repository.FilterRepository;
 import com.soccialy.backend.repository.LocationRepository;
 import com.soccialy.backend.repository.UserRepository;
+import com.soccialy.backend.repository.UserVoteRepository;
 import com.soccialy.backend.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -33,6 +37,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EventService {
 
     private static final String EVENT_NOT_FOUND = "Event not found";
@@ -44,7 +49,83 @@ public class EventService {
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
+    private final FilterRepository filterRepository;
     private final EventMapper eventMapper;
+    private final UserVoteRepository userVoteRepository;
+    private final com.soccialy.backend.repository.GroupRepository groupRepository;
+
+    @org.springframework.transaction.annotation.Transactional
+    public void resetDislikes(Integer userId) {
+        userVoteRepository.deleteByUserIdAndVote(userId, 2);
+    }
+
+    public void joinEvent(Integer userId, Integer eventId) {
+        com.soccialy.backend.entity.Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+        com.soccialy.backend.entity.User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        boolean alreadyJoined = event.getParticipants().stream()
+                .anyMatch(u -> u.getId().equals(userId));
+        if (!alreadyJoined) {
+            event.getParticipants().add(user);
+            eventRepository.save(event);
+        }
+    }
+
+    public void leaveEvent(Integer userId, Integer eventId) {
+        com.soccialy.backend.entity.Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+
+        event.getParticipants().removeIf(u -> u.getId().equals(userId));
+        eventRepository.save(event);
+    }
+
+    public void registerVote(Integer userId, Integer eventId, String voteTypeStr) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+
+        if (!List.of("Da", "Nu", "Poate").contains(voteTypeStr)) {
+            throw new IllegalArgumentException("Invalid vote type: " + voteTypeStr);
+        }
+
+        Integer voteVal = switch (voteTypeStr) {
+            case "Da" -> 1;
+            case "Nu" -> 2;
+            case "Poate" -> 3;
+            default -> 0;
+        };
+
+        Optional<com.soccialy.backend.entity.UserVote> existingVoteOpt = userVoteRepository
+                .findByUserIdAndEventId(userId, eventId);
+
+        if (existingVoteOpt.isPresent()) {
+            com.soccialy.backend.entity.UserVote existingVote = existingVoteOpt.get();
+            existingVote.setVote(voteVal);
+            userVoteRepository.save(existingVote);
+        } else {
+            com.soccialy.backend.entity.UserVote newVote = com.soccialy.backend.entity.UserVote.builder()
+                    .user(user)
+                    .event(event)
+                    .vote(voteVal)
+                    .build();
+            userVoteRepository.save(newVote);
+        }
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void removeVote(Integer userId, Integer eventId) {
+        userVoteRepository.findByUserIdAndEventId(userId, eventId).ifPresent(userVoteRepository::delete);
+    }
+
+    public List<EventResponseDTO> getSavedEvents(Integer userId) {
+        return userVoteRepository.findByUserId(userId).stream()
+                .filter(vote -> vote.getVote() == 1)
+                .map(vote -> eventMapper.toResponseDTO(vote.getEvent()))
+                .toList();
+    }
 
     public EventResponseDTO createEvent(EventRequestDTO requestDTO) {
         Integer currentUserId = currentUserService.getCurrentUserId();
@@ -61,7 +142,25 @@ public class EventService {
         event.setScheduledDate(requestDTO.getScheduledDate());
         event.setLocation(location);
         event.setCreator(creator);
-        event.setFilterIds(requestDTO.getFilterIds() != null ? requestDTO.getFilterIds() : new ArrayList<>());
+
+        List<Integer> finalFilterIds = new ArrayList<>();
+        if (requestDTO.getFilterIds() != null) {
+            finalFilterIds.addAll(requestDTO.getFilterIds());
+        }
+        if (requestDTO.getDesc() != null && !requestDTO.getDesc().isBlank()) {
+            List<Integer> aiFilters = aiServiceClient.getSearchFilters(requestDTO.getDesc());
+            if (aiFilters != null) {
+                finalFilterIds.addAll(aiFilters);
+            }
+        }
+        finalFilterIds = finalFilterIds.stream().distinct().toList();
+        event.setFilterIds(finalFilterIds);
+
+        if (requestDTO.getGroupId() != null) {
+            com.soccialy.backend.entity.Group group = groupRepository.findById(requestDTO.getGroupId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Group not found"));
+            event.setGroup(group);
+        }
 
         Event savedEvent = eventRepository.save(event);
         return eventMapper.toResponseDTO(savedEvent);
@@ -90,7 +189,21 @@ public class EventService {
         existingEvent.setDesc(requestDTO.getDesc());
         existingEvent.setScheduledDate(requestDTO.getScheduledDate());
         existingEvent.setLocation(location);
-        existingEvent.setFilterIds(requestDTO.getFilterIds() != null ? requestDTO.getFilterIds() : new ArrayList<>());
+
+        List<Integer> updatedFilterIds = new ArrayList<>();
+        if (requestDTO.getFilterIds() != null) {
+            updatedFilterIds.addAll(requestDTO.getFilterIds());
+        }
+
+        if (requestDTO.getDesc() != null && !requestDTO.getDesc().isBlank()) {
+            List<Integer> aiFilters = aiServiceClient.getSearchFilters(requestDTO.getDesc());
+            if (aiFilters != null) {
+                updatedFilterIds.addAll(aiFilters);
+            }
+        }
+
+        updatedFilterIds = updatedFilterIds.stream().distinct().toList();
+        existingEvent.setFilterIds(updatedFilterIds);
 
         Event savedEvent = eventRepository.save(existingEvent);
         return eventMapper.toResponseDTO(savedEvent);
@@ -113,46 +226,56 @@ public class EventService {
         List<Integer> fetchedUserFilters = userService.getUserProfileFilters(userId);
         List<Integer> userFilters = (fetchedUserFilters != null) ? fetchedUserFilters : new ArrayList<>();
 
-        List<Integer> searchFilters = new ArrayList<>();
         List<Integer> aiFilters = aiServiceClient.getSearchFilters(fields.getQuery());
-        if (aiFilters != null && !aiFilters.isEmpty()) {
-            searchFilters.addAll(aiFilters);
-        }
-        if (fields.getFilterIds() != null && !fields.getFilterIds().isEmpty()) {
-            searchFilters.addAll(fields.getFilterIds());
-        }
+        if (aiFilters == null) aiFilters = new ArrayList<>();
 
-        Set<Integer> combinedFilters = new HashSet<>(userFilters);
-        combinedFilters.addAll(searchFilters);
-        if (combinedFilters.isEmpty()) {
-            combinedFilters.add(-1);
-        }
+        List<Integer> uiFilters = (fields.getFilterIds() != null) ? fields.getFilterIds() : new ArrayList<>();
 
-        String safeSearchString = (fields.getQuery() != null) ? fields.getQuery() : "";
-        List<Event> candidates = eventRepository.searchByTextOrFilters(safeSearchString, new ArrayList<>(combinedFilters), timeOfSearch);
+        String safeSearchString = (fields.getQuery() != null) ? fields.getQuery().trim() : "";
 
-        return processAndSortCandidates(candidates, userFilters, searchFilters, timeOfSearch, fields);
+        List<Event> candidates = eventRepository.findUpcomingEventsForDiscovery(timeOfSearch);
+
+        List<Integer> votedEventIds = userVoteRepository.findByUserId(userId).stream()
+                .map(v -> v.getEvent().getId())
+                .toList();
+
+        return processAndSortCandidates(candidates, userFilters, uiFilters, aiFilters, timeOfSearch, fields, votedEventIds, safeSearchString, false);
     }
 
     public List<EventResponseDTO> discoverEvents(Integer userId, EventDiscoverFieldsDTO fields) {
         LocalDateTime timeOfSearch = (fields.getLocalTime() != null) ? fields.getLocalTime() : LocalDateTime.now();
         List<Integer> fetchedUserFilters = userService.getUserProfileFilters(userId);
         List<Integer> userFilters = (fetchedUserFilters != null) ? fetchedUserFilters : new ArrayList<>();
-        List<Integer> searchFilters = (fields.getFilterIds() != null) ? fields.getFilterIds() : new ArrayList<>();
+        List<Integer> uiFilters = (fields.getFilterIds() != null) ? fields.getFilterIds() : new ArrayList<>();
+        List<Integer> aiFilters = new ArrayList<>();
 
-        List<Event> candidates = eventRepository.findUpcomingEventsForDiscovery(timeOfSearch);
+        List<Integer> votedEventIds = userVoteRepository.findByUserId(userId).stream()
+                .map(v -> v.getEvent().getId())
+                .toList();
 
-        return processAndSortCandidates(candidates, userFilters, searchFilters, timeOfSearch, fields);
+        List<Event> candidates;
+        if (votedEventIds.isEmpty()) {
+            candidates = eventRepository.findUpcomingEventsForDiscovery(timeOfSearch);
+        } else {
+            candidates = eventRepository.findUnvotedUpcomingEvents(timeOfSearch, votedEventIds);
+        }
+
+        return processAndSortCandidates(candidates, userFilters, uiFilters, aiFilters, timeOfSearch, fields, votedEventIds, "", true);
     }
 
-    private List<EventResponseDTO> processAndSortCandidates(List<Event> candidates, List<Integer> userFilters, List<Integer> searchFilters, LocalDateTime timeOfSearch, EventDiscoverFieldsDTO fields) {
+    private List<EventResponseDTO> processAndSortCandidates(List<Event> candidates, List<Integer> userFilters, List<Integer> uiFilters, List<Integer> aiFilters, LocalDateTime timeOfSearch, EventDiscoverFieldsDTO fields, List<Integer> votedEventIds, String searchString, boolean excludeVoted) {
         Double actualMaxDistance = (fields.getMaxDistance() != null) ? fields.getMaxDistance() : 20000.0;
         Integer actualMaxDays = (fields.getMaxDays() != null) ? fields.getMaxDays() : 3650;
-        Coordinates userCoords = (fields.getLat() != null && fields.getLng() != null)
+        boolean hasUserLocation = (fields.getLat() != null && fields.getLng() != null);
+        Coordinates userCoords = hasUserLocation
                 ? new Coordinates(fields.getLat(), fields.getLng())
                 : new Coordinates(BigDecimal.ZERO, BigDecimal.ZERO);
 
-        candidates.removeIf(event -> event.getScheduledDate() != null && ChronoUnit.DAYS.between(timeOfSearch, event.getScheduledDate()) > actualMaxDays);
+        candidates.removeIf(event -> event.getScheduledDate() != null && ChronoUnit.HOURS.between(timeOfSearch, event.getScheduledDate()) > actualMaxDays * 24L);
+        candidates.removeIf(event -> event.getGroup() != null);
+        if (excludeVoted) {
+            candidates.removeIf(event -> votedEventIds.contains(event.getId()));
+        }
 
         if (candidates.isEmpty()) {
             return new ArrayList<>();
@@ -170,21 +293,47 @@ public class EventService {
         }
 
         ScoringContext context = new ScoringContext(
-                userFilters, searchFilters,
+                userFilters, uiFilters, aiFilters,
                 locationServiceClient.getFiltersForLocations(uniqueLocationIds),
                 aiServiceClient.getDistances(userCoords, destinationCoordsMap),
-                actualMaxDistance, actualMaxDays, timeOfSearch
+                actualMaxDistance, actualMaxDays, timeOfSearch, searchString
         );
+
+        candidates.removeIf(event -> {
+            if (!hasUserLocation) return false;
+            if (event.getLocation() == null) return false;
+            Double distanceKm = context.distancesMap().get(event.getLocation().getId());
+            if (distanceKm == null) return false;
+            return distanceKm > actualMaxDistance;
+        });
+
+        if (uiFilters != null && !uiFilters.isEmpty()) {
+            candidates.removeIf(event -> {
+                List<Integer> finalFilterIds = new ArrayList<>();
+                if (event.getFilterIds() != null) finalFilterIds.addAll(event.getFilterIds());
+                if (event.getLocation() != null) {
+                    List<Integer> lf = context.locationFiltersMap().get(event.getLocation().getId());
+                    if (lf != null) finalFilterIds.addAll(lf);
+                }
+                return !finalFilterIds.containsAll(uiFilters);
+            });
+        }
 
         candidates.sort((o1, o2) -> Double.compare(calculateCompoundScore(o2, context), calculateCompoundScore(o1, context)));
 
-        return candidates.stream().limit(20).map(eventMapper::toResponseDTO).toList();
+        return candidates.stream().limit(20).map(event -> {
+            EventResponseDTO dto = eventMapper.toResponseDTO(event);
+            if (event.getLocation() != null && context.distancesMap().containsKey(event.getLocation().getId())) {
+                dto.setDistance(context.distancesMap().get(event.getLocation().getId()));
+            }
+            return dto;
+        }).toList();
     }
 
     private record ScoringContext(
-            List<Integer> userFilters, List<Integer> searchFilters,
+            List<Integer> userFilters, List<Integer> uiFilters, List<Integer> aiFilters,
             Map<Integer, List<Integer>> locationFiltersMap, Map<Integer, Double> distancesMap,
-            Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch
+            Double maxDistance, Integer maxDays, LocalDateTime timeOfSearch, String searchString
     ) {}
 
     private double calculateCompoundScore(Event event, ScoringContext ctx) {
@@ -193,21 +342,17 @@ public class EventService {
         double finalLocationScore = 0.0;
 
         List<Integer> finalFilterIds = new ArrayList<>();
-        if (event.getFilterIds() != null) {
-            finalFilterIds.addAll(event.getFilterIds());
-        }
+        if (event.getFilterIds() != null) finalFilterIds.addAll(event.getFilterIds());
 
         if (event.getLocation() != null) {
             Integer locId = event.getLocation().getId();
             List<Integer> lf = ctx.locationFiltersMap().get(locId);
-            if (lf != null) {
-                finalFilterIds.addAll(lf);
-            }
+            if (lf != null) finalFilterIds.addAll(lf);
         }
 
-        if (!ctx.searchFilters().isEmpty()) {
-            long matches = finalFilterIds.stream().filter(ctx.searchFilters()::contains).count();
-            aiScore = (double) matches / ctx.searchFilters().size();
+        if (ctx.aiFilters() != null && !ctx.aiFilters().isEmpty()) {
+            long matches = finalFilterIds.stream().filter(ctx.aiFilters()::contains).count();
+            aiScore = (double) matches / ctx.aiFilters().size();
         } else {
             aiScore = 1.0;
         }
@@ -235,35 +380,39 @@ public class EventService {
             }
         }
 
-        return (aiScore * 0.4) + (eventScore * 0.3) + (finalLocationScore * 0.2) + (timeScore * 0.1);
-    }
-
-    private final RestTemplate restTemplate = new RestTemplate();
-    private final String AI_SERVER_URL = "http://52.58.222.100:5000/api/searchToFilters/";
-
-    public void saveDraftDetails(EventDetailsRequestDTO request, HttpSession session) {
-        List<Integer> filterIds = new ArrayList<>();
-
-        // 1. Pregătim JSON-ul pentru serverul de Python al echipei de AI
-        Map<String, String> aiRequestBody = new HashMap<>();
-        aiRequestBody.put("prompt", request.getDesc());
-
-        try {
-            // 2. Apelăm serverul lor de AI pus pe AWS
-            Map<String, Object> aiResponse = restTemplate.postForObject(AI_SERVER_URL, aiRequestBody, Map.class);
-
-            if (aiResponse != null && aiResponse.containsKey("filtre_id")) {
-                filterIds = (List<Integer>) aiResponse.get("filtre_id");
+        boolean isSearchMode = ctx.searchString() != null && !ctx.searchString().trim().isEmpty();
+        double textScore = 0.0;
+        if (isSearchMode) {
+            String lowerSearch = ctx.searchString().toLowerCase();
+            String[] keywords = lowerSearch.split("\\s+");
+            java.util.Set<String> stopWords = java.util.Set.of("un", "o", "si", "sa", "de", "la", "din", "cu", "pe", "in", "vreau", "as", "vrea", "imi", "place", "faina", "frumos", "bine", "unde", "undeva", "ceva", "caut", "vreun");
+            String eventName = event.getName() != null ? event.getName().toLowerCase() : "";
+            String eventDesc = event.getDesc() != null ? event.getDesc().toLowerCase() : "";
+            int matchCount = 0;
+            int validKeywordsCount = 0;
+            for (String kw : keywords) {
+                if (!kw.isBlank() && kw.length() > 2 && !stopWords.contains(kw)) {
+                    validKeywordsCount++;
+                    if (eventName.contains(kw) || eventDesc.contains(kw)) matchCount++;
+                }
             }
-        } catch (Exception e) {
-            // Dacă serverul de Python e oprit, logăm eroarea dar nu blocăm rularea Java
-            System.err.println("Eroare la comunicarea cu AI-ul: " + e.getMessage());
+            if (validKeywordsCount > 0) textScore = (double) matchCount / validKeywordsCount;
         }
 
-        // 3. Salvăm/Suprascriem în memoria RAM a serverului (HttpSession)
-        session.setAttribute("draft_event_name", request.getName());
-        session.setAttribute("draft_event_desc", request.getDesc());
-        session.setAttribute("draft_event_filters", filterIds);
-    }
+        double wAiScore, wTextScore, wEventScore, wLocationScore, wTimeScore;
+        if (ctx.searchString() != null && !ctx.searchString().isEmpty()) {
+            wAiScore = 0.40; wTextScore = 0.30; wLocationScore = 0.15; wEventScore = 0.10; wTimeScore = 0.05;
+        } else {
+            wAiScore = 0.40; wLocationScore = 0.30; wEventScore = 0.25; wTimeScore = 0.05; wTextScore = 0.00;
+        }
 
+        double finalScore = (aiScore * wAiScore) + (textScore * wTextScore) + (eventScore * wEventScore) + (finalLocationScore * wLocationScore) + (timeScore * wTimeScore);
+
+        if (isSearchMode) {
+            boolean aiMatched = ctx.aiFilters() != null && !ctx.aiFilters().isEmpty() && aiScore > 0.0;
+            if (textScore == 0.0 && !aiMatched) finalScore *= 0.01;
+        }
+
+        return finalScore;
+    }
 }

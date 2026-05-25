@@ -194,4 +194,24 @@ class UserServiceTest {
 
         assertNotNull(result);
     }
+
+    @Test
+    void searchUsers_returnsEmptyList_whenQueryIsEmptyOrNull() {
+        assertTrue(userService.searchUsers(null).isEmpty());
+        assertTrue(userService.searchUsers(" ").isEmpty());
+    }
+
+    @Test
+    void searchUsers_returnsMappedList_whenQueryIsValid() {
+        User user = new User();
+        UserDTO dto = new UserDTO();
+
+        when(userRepository.searchUsers("test")).thenReturn(List.of(user));
+        when(userMapper.toDTO(user)).thenReturn(dto);
+
+        List<UserDTO> result = userService.searchUsers("test");
+
+        assertEquals(1, result.size());
+        verify(userRepository).searchUsers("test");
+    }
 }

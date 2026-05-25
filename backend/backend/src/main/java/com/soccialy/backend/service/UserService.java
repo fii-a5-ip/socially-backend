@@ -38,6 +38,15 @@ public class UserService {
                 .toList();
     }
 
+    public List<UserDTO> searchUsers(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return List.of();
+        }
+        return userRepository.searchUsers(query.trim()).stream()
+                .map(userMapper::toDTO)
+                .toList();
+    }
+
     public UserDTO findUserById(Integer id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND_WITH_ID + id));

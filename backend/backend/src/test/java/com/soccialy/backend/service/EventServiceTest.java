@@ -12,13 +12,15 @@ import com.soccialy.backend.mapper.EventMapper;
 import com.soccialy.backend.repository.EventRepository;
 import com.soccialy.backend.repository.LocationRepository;
 import com.soccialy.backend.repository.UserRepository;
+import com.soccialy.backend.repository.UserVoteRepository;
+import com.soccialy.backend.repository.GroupRepository;
 import com.soccialy.backend.security.CurrentUserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -54,11 +56,28 @@ class EventServiceTest {
     @Mock
     private CurrentUserService currentUserService;
 
-    @Spy
-    private EventMapper eventMapper = new EventMapper();
+    @Mock
+    private UserVoteRepository userVoteRepository;
+
+    @Mock
+    private GroupRepository groupRepository;
+
+    @Mock
+    private WeatherService weatherService;
+
+    @Mock
+    private com.soccialy.backend.repository.FilterRepository filterRepository;
+
+    private EventMapper eventMapper;
 
     @InjectMocks
     private EventService eventService;
+
+    @BeforeEach
+    void setUp() {
+        eventMapper = new EventMapper(weatherService);
+        org.springframework.test.util.ReflectionTestUtils.setField(eventService, "eventMapper", eventMapper);
+    }
 
     @Test
     void testSortEvents_CompoundScoringWithUserFilters() {
@@ -76,13 +95,9 @@ class EventServiceTest {
         Event eventA = new Event();
         eventA.setId(101);
         eventA.setName("Event A");
-
         Location testLocation = Location.builder()
-                .id(1)
-                .name("Loc 1")
-                .latitude(BigDecimal.ZERO)
-                .longitude(BigDecimal.ZERO)
-                .build();
+                .id(1).name("Loc 1")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build();
         eventA.setLocation(testLocation);
         eventA.setScheduledDate(now.plusDays(1));
         eventA.setFilterIds(List.of(1, 2));
@@ -90,16 +105,12 @@ class EventServiceTest {
         Event eventB = new Event();
         eventB.setId(102);
         eventB.setName("Event B");
-        eventB.setLocation(Location.builder()
-                .id(2)
-                .name("Loc 2")
-                .latitude(BigDecimal.ZERO)
-                .longitude(BigDecimal.ZERO)
-                .build());
+        eventB.setLocation(Location.builder().id(2).name("Loc 2")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         eventB.setScheduledDate(now.plusDays(20));
         eventB.setFilterIds(List.of(4, 10));
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class)))
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>(List.of(eventA, eventB)));
 
         Map<Integer, List<Integer>> mockLocationFilters = new HashMap<>();
@@ -142,17 +153,19 @@ class EventServiceTest {
 
         Event eventA = new Event();
         eventA.setId(1);
-        eventA.setLocation(Location.builder().id(1).name("Loc").latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+        eventA.setLocation(Location.builder().id(1).name("Loc")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         eventA.setFilterIds(List.of(1, 2));
         eventA.setScheduledDate(now.plusDays(3));
 
         Event eventB = new Event();
         eventB.setId(2);
-        eventB.setLocation(Location.builder().id(2).name("Loc").latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+        eventB.setLocation(Location.builder().id(2).name("Loc")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         eventB.setFilterIds(List.of(1, 2));
         eventB.setScheduledDate(now.plusDays(10));
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class)))
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>(List.of(eventA, eventB)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
 
@@ -169,7 +182,7 @@ class EventServiceTest {
 
         List<EventResponseDTO> results = eventService.sortEvents(userId, fields);
 
-        assertEquals(1, results.size(), "Event B should be filtered out strictly by maxDays");
+        assertEquals(1, results.size());
         assertEquals(1, results.get(0).getId());
     }
 
@@ -188,10 +201,12 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(1);
-        event.setLocation(Location.builder().id(1).name("Loc").latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+        event.setLocation(Location.builder().id(1).name("Loc")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         event.setScheduledDate(now.plusDays(15));
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
+                .thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(any(Coordinates.class), anyMap())).thenReturn(Map.of(1, 0.0));
 
@@ -221,10 +236,12 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(99);
-        event.setLocation(Location.builder().id(99).name("Loc").latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+        event.setLocation(Location.builder().id(99).name("Loc")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         event.setScheduledDate(now);
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
+                .thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(new HashMap<>());
 
@@ -253,11 +270,13 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(1);
-        event.setLocation(Location.builder().id(1).name("Loc").latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+        event.setLocation(Location.builder().id(1).name("Loc")
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         event.setFilterIds(List.of(5, 6, 7));
         event.setScheduledDate(now.plusDays(5));
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class))).thenReturn(new ArrayList<>(List.of(event)));
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
+                .thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(Map.of(1, 5.0));
 
@@ -284,7 +303,7 @@ class EventServiceTest {
         when(userService.getUserProfileFilters(userId)).thenReturn(List.of(1));
         when(aiServiceClient.getSearchFilters(query)).thenReturn(List.of(2));
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class)))
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>());
 
         EventSearchFieldsDTO fields = new EventSearchFieldsDTO();
@@ -310,20 +329,20 @@ class EventServiceTest {
 
         Event e1 = new Event();
         e1.setId(10); e1.setName("Far Event");
-        Location l1 = Location.builder().id(100).build(); e1.setLocation(l1);
+        e1.setLocation(Location.builder().id(100).build());
         e1.setScheduledDate(now.plusDays(1));
 
         Event e2 = new Event();
         e2.setId(11); e2.setName("Past Event");
-        Location l2 = Location.builder().id(101).build(); e2.setLocation(l2);
+        e2.setLocation(Location.builder().id(101).build());
         e2.setScheduledDate(now.minusDays(1));
 
         Event e3 = new Event();
         e3.setId(12); e3.setName("No Date Event");
-        Location l3 = Location.builder().id(102).build(); e3.setLocation(l3);
+        e3.setLocation(Location.builder().id(102).build());
         e3.setScheduledDate(null);
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class)))
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>(List.of(e1, e2, e3)));
 
         Map<Integer, Double> distances = new HashMap<>();
@@ -344,7 +363,7 @@ class EventServiceTest {
 
         List<EventResponseDTO> results = eventService.sortEvents(userId, fields);
 
-        assertEquals(3, results.size());
+        assertEquals(2, results.size());
     }
 
     @Test
@@ -357,14 +376,11 @@ class EventServiceTest {
 
         Event event = new Event();
         event.setId(555);
-        event.setLocation(Location.builder()
-                .id(55)
-                .latitude(BigDecimal.ZERO)
-                .longitude(BigDecimal.ZERO)
-                .build());
+        event.setLocation(Location.builder().id(55)
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         event.setScheduledDate(LocalDateTime.now().plusDays(5));
 
-        when(eventRepository.searchByTextOrFilters(eq(query), anyList(), any(LocalDateTime.class)))
+        when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
                 .thenReturn(new ArrayList<>(List.of(event)));
         when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
         when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(Map.of(55, 10.0));
@@ -394,11 +410,8 @@ class EventServiceTest {
         Event event = new Event();
         event.setId(201);
         event.setName("Discoverable Event");
-        event.setLocation(Location.builder()
-                .id(10)
-                .latitude(BigDecimal.ZERO)
-                .longitude(BigDecimal.ZERO)
-                .build());
+        event.setLocation(Location.builder().id(10)
+                .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
         event.setScheduledDate(now.plusDays(2));
 
         when(eventRepository.findUpcomingEventsForDiscovery(any(LocalDateTime.class)))
@@ -441,9 +454,7 @@ class EventServiceTest {
 
         ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
         verify(eventRepository).save(eventCaptor.capture());
-
-        Event savedEvent = eventCaptor.getValue();
-        assertEquals("Test Event", savedEvent.getName());
+        assertEquals("Test Event", eventCaptor.getValue().getName());
     }
 
     @Test
@@ -574,6 +585,470 @@ class EventServiceTest {
         assertThrows(ResponseStatusException.class, () -> eventService.updateEvent(20, requestDTO));
         verify(locationRepository, never()).findById(anyInt());
         verify(eventRepository, never()).save(any(Event.class));
+    }
+
+    @Test
+    void testJoinEvent_Success() {
+        Event event = new Event();
+        event.setId(1);
+        event.setParticipants(new ArrayList<>());  // FIX: era new HashSet<>()
+        User user = buildUser(1);
+
+        when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+
+        eventService.joinEvent(1, 1);
+
+        verify(eventRepository).save(event);
+    }
+
+    @Test
+    void testLeaveEvent_Success() {
+        User user = buildUser(1);
+        Event event = new Event();
+        event.setId(1);
+        event.setParticipants(new ArrayList<>(List.of(user)));  // FIX: era new HashSet<>(Set.of(user))
+
+        when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+
+        eventService.leaveEvent(1, 1);
+
+        verify(eventRepository).save(event);
+    }
+
+    @Test
+    void testRegisterVote_NewVote() {
+        User user = buildUser(1);
+        Event event = new Event();
+        event.setId(1);
+
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+        when(userVoteRepository.findByUserIdAndEventId(1, 1)).thenReturn(Optional.empty());
+
+        eventService.registerVote(1, 1, "Da");
+
+        verify(userVoteRepository).save(any());
+    }
+
+    @Test
+    void testRegisterVote_UpdateExisting() {
+        User user = buildUser(1);
+        Event event = new Event();
+        event.setId(1);
+
+        com.soccialy.backend.entity.UserVote existingVote =
+                com.soccialy.backend.entity.UserVote.builder()
+                        .user(user).event(event).vote(1).build();
+
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+        when(userVoteRepository.findByUserIdAndEventId(1, 1)).thenReturn(Optional.of(existingVote));
+
+        eventService.registerVote(1, 1, "Nu");
+
+        verify(userVoteRepository).save(existingVote);
+    }
+
+    @Test
+    void testRegisterVote_InvalidType_ThrowsException() {
+        User user = buildUser(1);
+        Event event = new Event();
+        event.setId(1);
+
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> eventService.registerVote(1, 1, "Invalid"));
+    }
+
+    @Test
+void testDeleteEvent_Success() {
+    Event event = buildStoredEvent(20, buildUser(60003), buildLocation(10), List.of());
+    when(eventRepository.findById(20)).thenReturn(Optional.of(event));
+    when(currentUserService.getCurrentUserId()).thenReturn(60003);
+
+    eventService.deleteEvent(20);
+
+    verify(eventRepository).delete(event);
+}
+
+@Test
+void testDeleteEvent_NotFound_ThrowsException() {
+    when(eventRepository.findById(999)).thenReturn(Optional.empty());
+
+    assertThrows(ResponseStatusException.class, () -> eventService.deleteEvent(999));
+    verify(eventRepository, never()).delete(any());
+}
+
+@Test
+void testDeleteEvent_Forbidden_ThrowsException() {
+    Event event = buildStoredEvent(20, buildUser(60003), buildLocation(10), List.of());
+    when(eventRepository.findById(20)).thenReturn(Optional.of(event));
+    when(currentUserService.getCurrentUserId()).thenReturn(99999);
+
+    assertThrows(ResponseStatusException.class, () -> eventService.deleteEvent(20));
+    verify(eventRepository, never()).delete(any());
+}
+
+@Test
+void testRemoveVote_WhenVoteExists_DeletesIt() {
+    User user = buildUser(1);
+    Event event = new Event();
+    event.setId(1);
+    com.soccialy.backend.entity.UserVote vote = com.soccialy.backend.entity.UserVote.builder()
+            .user(user).event(event).vote(1).build();
+    when(userVoteRepository.findByUserIdAndEventId(1, 1)).thenReturn(Optional.of(vote));
+
+    eventService.removeVote(1, 1);
+
+    verify(userVoteRepository).delete(vote);
+}
+
+@Test
+void testRemoveVote_WhenVoteDoesNotExist_DoesNothing() {
+    when(userVoteRepository.findByUserIdAndEventId(1, 1)).thenReturn(Optional.empty());
+
+    eventService.removeVote(1, 1);
+
+    verify(userVoteRepository, never()).delete(any());
+}
+
+@Test
+void testGetSavedEvents_ReturnsOnlyLikedEvents() {
+    User user = buildUser(1);
+    Event likedEvent   = buildStoredEvent(10, user, buildLocation(1), List.of());
+    Event dislikedEvent = buildStoredEvent(11, user, buildLocation(2), List.of());
+
+    com.soccialy.backend.entity.UserVote likedVote = com.soccialy.backend.entity.UserVote.builder()
+            .user(user).event(likedEvent).vote(1).build();
+    com.soccialy.backend.entity.UserVote dislikedVote = com.soccialy.backend.entity.UserVote.builder()
+            .user(user).event(dislikedEvent).vote(2).build();
+
+    when(userVoteRepository.findByUserId(1)).thenReturn(List.of(likedVote, dislikedVote));
+
+    List<EventResponseDTO> result = eventService.getSavedEvents(1);
+
+    assertEquals(1, result.size());
+    assertEquals(10, result.get(0).getId());
+}
+
+@Test
+void testResetDislikes_CallsRepository() {
+    eventService.resetDislikes(1);
+    verify(userVoteRepository).deleteByUserIdAndVote(1, 2);
+}
+
+@Test
+void testCreateEvent_WithGroupId_Success() {
+    EventRequestDTO requestDTO = buildEventRequest(List.of(60, 78));
+    requestDTO.setGroupId(5);
+    User creator = buildUser(60003);
+    Location location = buildLocation(10);
+
+    com.soccialy.backend.entity.Group group = new com.soccialy.backend.entity.Group();
+    group.setId(5);
+
+    when(currentUserService.getCurrentUserId()).thenReturn(60003);
+    when(userRepository.findById(60003)).thenReturn(Optional.of(creator));
+    when(locationRepository.findById(10)).thenReturn(Optional.of(location));
+    when(groupRepository.findById(5)).thenReturn(Optional.of(group));
+    when(eventRepository.save(any(Event.class))).thenAnswer(inv -> {
+        Event e = inv.getArgument(0);
+        e.setId(30);
+        return e;
+    });
+
+    EventResponseDTO result = eventService.createEvent(requestDTO);
+
+    assertNotNull(result);
+    assertEquals(30, result.getId());
+    verify(groupRepository).findById(5);
+}
+
+@Test
+void testCreateEvent_WithGroupId_GroupNotFound_Throws() {
+    EventRequestDTO requestDTO = buildEventRequest(List.of());
+    requestDTO.setGroupId(999);
+    User creator = buildUser(60003);
+    Location location = buildLocation(10);
+
+    when(currentUserService.getCurrentUserId()).thenReturn(60003);
+    when(userRepository.findById(60003)).thenReturn(Optional.of(creator));
+    when(locationRepository.findById(10)).thenReturn(Optional.of(location));
+    when(groupRepository.findById(999)).thenReturn(Optional.empty());
+
+    assertThrows(ResponseStatusException.class, () -> eventService.createEvent(requestDTO));
+    verify(eventRepository, never()).save(any());
+}
+
+@Test
+void testJoinEvent_AlreadyJoined_DoesNotSave() {
+    User user = buildUser(1);
+    Event event = new Event();
+    event.setId(1);
+    event.setParticipants(new ArrayList<>(List.of(user)));
+
+    when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+    when(userRepository.findById(1)).thenReturn(Optional.of(user));
+
+    eventService.joinEvent(1, 1);
+
+    verify(eventRepository, never()).save(any());
+}
+
+@Test
+void testRegisterVote_Poate() {
+    User user = buildUser(1);
+    Event event = new Event();
+    event.setId(1);
+
+    when(userRepository.findById(1)).thenReturn(Optional.of(user));
+    when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+    when(userVoteRepository.findByUserIdAndEventId(1, 1)).thenReturn(Optional.empty());
+
+    eventService.registerVote(1, 1, "Poate");
+
+    verify(userVoteRepository).save(any());
+}
+
+@Test
+void testDiscoverEvents_WithVotedEvents_UsesUnvotedQuery() {
+    Integer userId = 1;
+    LocalDateTime now = LocalDateTime.now();
+
+    User user = buildUser(1);
+    Event votedEvent = buildStoredEvent(10, user, buildLocation(1), List.of());
+    com.soccialy.backend.entity.UserVote vote = com.soccialy.backend.entity.UserVote.builder()
+            .user(user).event(votedEvent).vote(1).build();
+
+    when(userService.getUserProfileFilters(userId)).thenReturn(List.of());
+    when(userVoteRepository.findByUserId(userId)).thenReturn(List.of(vote));
+
+    Event newEvent = new Event();
+    newEvent.setId(20);
+    newEvent.setLocation(Location.builder().id(5)
+            .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+    newEvent.setScheduledDate(now.plusDays(3));
+
+    when(eventRepository.findUnvotedUpcomingEvents(any(), anyList()))
+            .thenReturn(new ArrayList<>(List.of(newEvent)));
+    when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
+    when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(Map.of(5, 2.0));
+
+    EventDiscoverFieldsDTO fields = new EventDiscoverFieldsDTO();
+    fields.setMaxDistance(50.0);
+    fields.setMaxDays(30);
+    fields.setLocalTime(now);
+
+    List<EventResponseDTO> results = eventService.discoverEvents(userId, fields);
+
+    verify(eventRepository).findUnvotedUpcomingEvents(any(), anyList());
+    verify(eventRepository, never()).findUpcomingEventsForDiscovery(any());
+    assertEquals(1, results.size());
+    assertEquals(20, results.get(0).getId());
+}
+
+@Test
+void testSortEvents_EventsWithGroup_AreExcluded() {
+    Integer userId = 1;
+    LocalDateTime now = LocalDateTime.now();
+
+    when(userService.getUserProfileFilters(userId)).thenReturn(List.of());
+    when(aiServiceClient.getSearchFilters(anyString())).thenReturn(List.of());
+
+    Event publicEvent = new Event();
+    publicEvent.setId(1);
+    publicEvent.setLocation(Location.builder().id(1)
+            .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+    publicEvent.setScheduledDate(now.plusDays(2));
+
+    Event groupEvent = new Event();
+    groupEvent.setId(2);
+    groupEvent.setLocation(Location.builder().id(2)
+            .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+    groupEvent.setScheduledDate(now.plusDays(2));
+    com.soccialy.backend.entity.Group group = new com.soccialy.backend.entity.Group();
+    group.setId(1);
+    groupEvent.setGroup(group);
+
+    when(eventRepository.findUpcomingEventsForDiscovery(any()))
+            .thenReturn(new ArrayList<>(List.of(publicEvent, groupEvent)));
+    when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
+    when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(Map.of(1, 5.0));
+
+    EventSearchFieldsDTO fields = new EventSearchFieldsDTO();
+    fields.setQuery("");
+    fields.setMaxDistance(50.0);
+    fields.setMaxDays(30);
+    fields.setLocalTime(now);
+    fields.setLat(BigDecimal.ZERO);
+    fields.setLng(BigDecimal.ZERO);
+
+    List<EventResponseDTO> results = eventService.sortEvents(userId, fields);
+
+    assertEquals(1, results.size());
+    assertEquals(1, results.get(0).getId());
+}
+
+@Test
+void testSortEvents_WithUiFilters_FiltersOutNonMatching() {
+    Integer userId = 1;
+    LocalDateTime now = LocalDateTime.now();
+
+    when(userService.getUserProfileFilters(userId)).thenReturn(List.of());
+    when(aiServiceClient.getSearchFilters(anyString())).thenReturn(List.of());
+
+    Event eventMatch = new Event();
+    eventMatch.setId(1);
+    eventMatch.setLocation(Location.builder().id(1)
+            .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+    eventMatch.setScheduledDate(now.plusDays(2));
+    eventMatch.setFilterIds(List.of(10, 20));
+
+    Event eventNoMatch = new Event();
+    eventNoMatch.setId(2);
+    eventNoMatch.setLocation(Location.builder().id(2)
+            .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+    eventNoMatch.setScheduledDate(now.plusDays(2));
+    eventNoMatch.setFilterIds(List.of(5));
+
+    when(eventRepository.findUpcomingEventsForDiscovery(any()))
+            .thenReturn(new ArrayList<>(List.of(eventMatch, eventNoMatch)));
+    when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
+    when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(Map.of(1, 5.0, 2, 5.0));
+
+    EventSearchFieldsDTO fields = new EventSearchFieldsDTO();
+    fields.setQuery("test");
+    fields.setMaxDistance(50.0);
+    fields.setMaxDays(30);
+    fields.setLocalTime(now);
+    fields.setLat(BigDecimal.ZERO);
+    fields.setLng(BigDecimal.ZERO);
+    fields.setFilterIds(List.of(10, 20));
+
+    List<EventResponseDTO> results = eventService.sortEvents(userId, fields);
+
+    assertEquals(1, results.size());
+    assertEquals(1, results.get(0).getId());
+}
+
+@Test
+void testSortEvents_WithSearchString_TextScoringApplied() {
+    Integer userId = 1;
+    LocalDateTime now = LocalDateTime.now();
+
+    when(userService.getUserProfileFilters(userId)).thenReturn(List.of());
+    when(aiServiceClient.getSearchFilters("concert muzica")).thenReturn(List.of(1));
+
+    Event matchingEvent = new Event();
+    matchingEvent.setId(1);
+    matchingEvent.setName("Concert de muzica clasica");
+    matchingEvent.setDesc("Un concert frumos");
+    matchingEvent.setLocation(Location.builder().id(1)
+            .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+    matchingEvent.setScheduledDate(now.plusDays(5));
+    matchingEvent.setFilterIds(List.of(1));
+
+    Event nonMatchingEvent = new Event();
+    nonMatchingEvent.setId(2);
+    nonMatchingEvent.setName("Expozitie arta");
+    nonMatchingEvent.setDesc("Picturi moderne");
+    nonMatchingEvent.setLocation(Location.builder().id(2)
+            .latitude(BigDecimal.ZERO).longitude(BigDecimal.ZERO).build());
+    nonMatchingEvent.setScheduledDate(now.plusDays(5));
+    nonMatchingEvent.setFilterIds(List.of());
+
+    when(eventRepository.findUpcomingEventsForDiscovery(any()))
+            .thenReturn(new ArrayList<>(List.of(matchingEvent, nonMatchingEvent)));
+    when(locationServiceClient.getFiltersForLocations(anySet())).thenReturn(new HashMap<>());
+    when(aiServiceClient.getDistances(any(), anyMap())).thenReturn(Map.of(1, 3.0, 2, 3.0));
+
+    EventSearchFieldsDTO fields = new EventSearchFieldsDTO();
+    fields.setQuery("concert muzica");
+    fields.setMaxDistance(50.0);
+    fields.setMaxDays(30);
+    fields.setLocalTime(now);
+    fields.setLat(BigDecimal.ZERO);
+    fields.setLng(BigDecimal.ZERO);
+
+    List<EventResponseDTO> results = eventService.sortEvents(userId, fields);
+
+    assertEquals(2, results.size());
+    assertEquals(1, results.get(0).getId());
+}
+
+    @Test
+    void createEvent_WithAiFiltersAndDuplicates_CombinesCorrectly() {
+        // Arrange
+        EventRequestDTO request = new EventRequestDTO();
+        request.setDesc("Concert Rock");
+        request.setLocationId(1);
+        request.setFilterIds(List.of(1, 2));
+
+        when(aiServiceClient.getSearchFilters("Concert Rock")).thenReturn(List.of(2, 3));
+        when(locationRepository.findById(1)).thenReturn(Optional.of(new com.soccialy.backend.entity.Location()));
+        when(userRepository.findById(any())).thenReturn(Optional.of(new com.soccialy.backend.entity.User()));
+        when(eventRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+
+        eventService.createEvent(request);
+
+        ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+        verify(eventRepository).save(eventCaptor.capture());
+
+        List<Integer> finalFilters = eventCaptor.getValue().getFilterIds();
+        assertTrue(finalFilters.containsAll(List.of(1, 2, 3)));
+        assertEquals(3, finalFilters.size());
+    }
+
+    @Test
+    void createEvent_AiReturnsNull_HandlesGracefully() {
+        EventRequestDTO request = new EventRequestDTO();
+        request.setDesc("Test");
+        request.setLocationId(1);
+
+        when(aiServiceClient.getSearchFilters(any())).thenReturn(null);
+        when(locationRepository.findById(1)).thenReturn(Optional.of(new com.soccialy.backend.entity.Location()));
+        when(userRepository.findById(any())).thenReturn(Optional.of(new com.soccialy.backend.entity.User()));
+
+        assertDoesNotThrow(() -> eventService.createEvent(request));
+    }
+
+    @Test
+    void createEvent_ShouldCombineManualAndAiFilters() {
+        EventRequestDTO request = new EventRequestDTO();
+        request.setDesc("Test Description");
+        request.setLocationId(1);
+        request.setFilterIds(List.of(1));
+
+        when(locationRepository.findById(1)).thenReturn(Optional.of(new Location()));
+        when(userRepository.findById(any())).thenReturn(Optional.of(new User()));
+        when(aiServiceClient.getSearchFilters("Test Description")).thenReturn(List.of(2));
+        when(eventRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+
+        EventResponseDTO result = eventService.createEvent(request);
+
+        assertTrue(result.getFilterIds().contains(1));
+        assertTrue(result.getFilterIds().contains(2));
+    }
+
+    @Test
+    void createEvent_WhenAiReturnsNull_ShouldOnlyUseManualFilters() {
+        EventRequestDTO request = new EventRequestDTO();
+        request.setDesc("No AI match");
+        request.setLocationId(1);
+        request.setFilterIds(List.of(1));
+
+        when(locationRepository.findById(1)).thenReturn(Optional.of(new Location()));
+        when(userRepository.findById(any())).thenReturn(Optional.of(new User()));
+        when(aiServiceClient.getSearchFilters(any())).thenReturn(null);
+        when(eventRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+
+        EventResponseDTO result = eventService.createEvent(request);
+
+        assertEquals(1, result.getFilterIds().size());
+        assertEquals(1, result.getFilterIds().get(0));
     }
 
     private EventRequestDTO buildEventRequest(List<Integer> filterIds) {

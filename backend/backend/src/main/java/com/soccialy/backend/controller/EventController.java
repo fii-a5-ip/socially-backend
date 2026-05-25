@@ -13,9 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import com.soccialy.backend.dto.EventDetailsRequestDTO;
-import jakarta.servlet.http.HttpSession;
-
 import java.util.List;
 
 @RestController
@@ -26,15 +23,6 @@ import java.util.List;
 public class EventController {
 
     private final EventService eventService;
-
-    @PostMapping("/draft/details")
-    public ResponseEntity<String> storeDraftDetails(
-            @Valid @RequestBody EventDetailsRequestDTO requestDTO,
-            HttpSession session) {
-
-        eventService.saveDraftDetails(requestDTO, session);
-        return ResponseEntity.ok("Detaliile evenimentului au fost procesate de AI si retinute in memorie!");
-    }
 
     @PostMapping
     public ResponseEntity<EventResponseDTO> createEvent(
@@ -103,5 +91,80 @@ public class EventController {
 
         List<EventResponseDTO> results = eventService.discoverEvents(secureUserId, fields);
         return ResponseEntity.ok(results);
+    }
+
+    @PostMapping("/{eventId}/vote")
+    public ResponseEntity<Void> vote(
+            @AuthenticationPrincipal Object principal,
+            @PathVariable Integer eventId,
+            @RequestParam String type) {
+        
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+        Integer userId = Integer.parseInt(currentUserIdStr);
+
+        eventService.registerVote(userId, eventId, type);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{eventId}/vote")
+    public ResponseEntity<Void> removeVote(
+            @AuthenticationPrincipal Object principal,
+            @PathVariable Integer eventId) {
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+        Integer userId = Integer.parseInt(currentUserIdStr);
+        eventService.removeVote(userId, eventId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/saved")
+    public ResponseEntity<List<EventResponseDTO>> getSavedEvents(@AuthenticationPrincipal Object principal) {
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+        Integer userId = Integer.parseInt(currentUserIdStr);
+        return ResponseEntity.ok(eventService.getSavedEvents(userId));
+    }
+
+    @PostMapping("/reset-dislikes")
+    public ResponseEntity<Void> resetDislikes(@AuthenticationPrincipal Object principal) {
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+        Integer userId = Integer.parseInt(currentUserIdStr);
+
+        eventService.resetDislikes(userId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{eventId}/join")
+    public ResponseEntity<Void> joinEvent(
+            @AuthenticationPrincipal Object principal,
+            @PathVariable Integer eventId) {
+
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+        Integer userId = Integer.parseInt(currentUserIdStr);
+
+        eventService.joinEvent(userId, eventId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{eventId}/join")
+    public ResponseEntity<Void> leaveEvent(
+            @AuthenticationPrincipal Object principal,
+            @PathVariable Integer eventId) {
+
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+        Integer userId = Integer.parseInt(currentUserIdStr);
+
+        eventService.leaveEvent(userId, eventId);
+        return ResponseEntity.noContent().build();
     }
 }

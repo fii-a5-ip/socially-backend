@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,4 +36,6 @@ public interface LocationRepository extends JpaRepository<Location, Integer> {
             @Param("lon") double lon,
             @Param("radius") double radius
     );
+
+    Optional<Location> findByLatitudeAndLongitude(BigDecimal latitude, BigDecimal longitude);
 }
