@@ -97,7 +97,7 @@ class NotificationTest {
         Notification notification = Notification.builder().id(1).recipientUserId(10).actorUserId(5).type("SYSTEM_UPDATE")
                                                 .message("System Msg").referenceId(99)
                                                 .referenceType("SYS").isRead(true).createdAt(now)
-                                                .actions("none").externalLink("url").build(); //arata urat stiu
+                                                .actions("none").externalLink("url").columnName("colName").columnId("colId").build(); //arata urat stiu
 
         assertEquals(1, notification.getId());
         assertEquals(10, notification.getRecipientUserId());
@@ -110,14 +110,17 @@ class NotificationTest {
         assertEquals(now, notification.getCreatedAt());
         assertEquals("none", notification.getActions());
         assertEquals("url", notification.getExternalLink());
+
+        assertEquals("colName", notification.getColumnName());
+        assertEquals("colId", notification.getColumnId());
     }
 
     @Test
     void testEqualsAndHashCode() {
         LocalDateTime now = LocalDateTime.now();
-        Notification n1 = Notification.builder().id(2).recipientUserId(26).actorUserId(12).type("REMINDER").message("M2").isRead(false).createdAt(now).build();
-        Notification n2 = Notification.builder().id(2).recipientUserId(26).actorUserId(12).type("REMINDER").message("M2").isRead(false).createdAt(now).build();
-        Notification n3 = Notification.builder().id(3).recipientUserId(26).actorUserId(14).type("SYSTEM_UPDATE").message("M3").isRead(true).createdAt(now).build();
+        Notification n1 = Notification.builder().id(2).recipientUserId(26).actorUserId(12).type("REMINDER").message("M2").isRead(false).createdAt(now).columnName("colName").columnId("colId").build();
+        Notification n2 = Notification.builder().id(2).recipientUserId(26).actorUserId(12).type("REMINDER").message("M2").isRead(false).createdAt(now).columnName("colName").columnId("colId").build();
+        Notification n3 = Notification.builder().id(3).recipientUserId(26).actorUserId(14).type("SYSTEM_UPDATE").message("M3").isRead(true).createdAt(now).columnName("otherName").columnId("otherId").build();
         assertEquals(n1, n2);
         assertEquals(n1.hashCode(), n2.hashCode());
         assertNotEquals(n1, n3);
