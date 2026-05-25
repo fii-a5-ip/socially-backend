@@ -25,6 +25,11 @@ public class LocationMapper {
         dto.setFormattedAddress(location.getFormattedAddress());
         dto.setContact(location.getContact());
         dto.setPhoneNumber(location.getPhoneNumber());
+        if (location.getFilters() != null && !location.getFilters().isEmpty()) {
+            dto.setTags(location.getFilters().stream()
+                    .map(com.soccialy.backend.entity.Filter::getName)
+                    .toList());
+        }
         return dto;
     }
 

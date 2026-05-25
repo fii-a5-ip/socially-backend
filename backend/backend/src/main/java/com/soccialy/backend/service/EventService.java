@@ -134,7 +134,19 @@ public class EventService {
         event.setScheduledDate(requestDTO.getScheduledDate());
         event.setLocation(location);
         event.setCreator(creator);
-        event.setFilterIds(requestDTO.getFilterIds() != null ? requestDTO.getFilterIds() : new ArrayList<>());
+
+        List<Integer> finalFilterIds = new ArrayList<>();
+        if (requestDTO.getFilterIds() != null) {
+            finalFilterIds.addAll(requestDTO.getFilterIds());
+        }
+        if (requestDTO.getDesc() != null && !requestDTO.getDesc().isBlank()) {
+            List<Integer> aiFilters = aiServiceClient.getSearchFilters(requestDTO.getDesc());
+            if (aiFilters != null) {
+                finalFilterIds.addAll(aiFilters);
+            }
+        }
+        finalFilterIds = finalFilterIds.stream().distinct().collect(Collectors.toList());
+        event.setFilterIds(finalFilterIds);
 
         if (requestDTO.getGroupId() != null) {
             com.soccialy.backend.entity.Group group = groupRepository.findById(requestDTO.getGroupId())
@@ -169,7 +181,21 @@ public class EventService {
         existingEvent.setDesc(requestDTO.getDesc());
         existingEvent.setScheduledDate(requestDTO.getScheduledDate());
         existingEvent.setLocation(location);
-        existingEvent.setFilterIds(requestDTO.getFilterIds() != null ? requestDTO.getFilterIds() : new ArrayList<>());
+
+        List<Integer> updatedFilterIds = new ArrayList<>();
+        if (requestDTO.getFilterIds() != null) {
+            updatedFilterIds.addAll(requestDTO.getFilterIds());
+        }
+
+        if (requestDTO.getDesc() != null && !requestDTO.getDesc().isBlank()) {
+            List<Integer> aiFilters = aiServiceClient.getSearchFilters(requestDTO.getDesc());
+            if (aiFilters != null) {
+                updatedFilterIds.addAll(aiFilters);
+            }
+        }
+
+        updatedFilterIds = updatedFilterIds.stream().distinct().collect(Collectors.toList());
+        existingEvent.setFilterIds(updatedFilterIds);
 
         Event savedEvent = eventRepository.save(existingEvent);
         return eventMapper.toResponseDTO(savedEvent);

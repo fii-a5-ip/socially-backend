@@ -2,6 +2,7 @@ package com.soccialy.backend.dto;
 
 import lombok.Data;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 public class LocationDTO {
@@ -19,4 +20,5 @@ public class LocationDTO {
     private String formattedAddress;
     private String contact;
     private String phoneNumber;
+    private List<String> tags;
 }
