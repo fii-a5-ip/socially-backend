@@ -124,7 +124,7 @@ public class EventService {
         return userVoteRepository.findByUserId(userId).stream()
                 .filter(vote -> vote.getVote() == 1)
                 .map(vote -> eventMapper.toResponseDTO(vote.getEvent()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public EventResponseDTO createEvent(EventRequestDTO requestDTO) {
@@ -153,7 +153,7 @@ public class EventService {
                 finalFilterIds.addAll(aiFilters);
             }
         }
-        finalFilterIds = finalFilterIds.stream().distinct().collect(Collectors.toList());
+        finalFilterIds = finalFilterIds.stream().distinct().toList();
         event.setFilterIds(finalFilterIds);
 
         if (requestDTO.getGroupId() != null) {
@@ -202,7 +202,7 @@ public class EventService {
             }
         }
 
-        updatedFilterIds = updatedFilterIds.stream().distinct().collect(Collectors.toList());
+        updatedFilterIds = updatedFilterIds.stream().distinct().toList();
         existingEvent.setFilterIds(updatedFilterIds);
 
         Event savedEvent = eventRepository.save(existingEvent);

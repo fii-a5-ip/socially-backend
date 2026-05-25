@@ -47,17 +47,23 @@ public class LocationController {
     }
 
     @PostMapping("/find")
-    public ResponseEntity<?> findLocation(@RequestBody Map<String, String> body) {
+    public ResponseEntity<LocationDetailDTO> findLocation(@RequestBody Map<String, String> body) {
         String placeId = body.get("placeId");
+
         if (placeId == null || placeId.isBlank()) {
-            return ResponseEntity.badRequest().body("placeId is required");
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "placeId is required"
+            );
         }
 
         LocationDetailDTO detail = externalLocationService.findLocationByPlaceId(placeId);
-        if (detail == null) {
-            return ResponseEntity.notFound().build();
-        }
 
+        if (detail == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "Location not found"
+            );
+        }
+        
         return ResponseEntity.ok(detail);
     }
 }

@@ -14,8 +14,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class WeatherService {
 
     @Value("${app.ai.base-url:http://52.58.222.100:5000}")
@@ -68,10 +70,11 @@ public class WeatherService {
 
             return dto;
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
         } catch (Exception e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
+            log.error("Eroare la serviciul de vreme: ", e);
             return null;
         }
     }
