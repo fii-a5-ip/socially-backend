@@ -198,6 +198,33 @@ class ExternalLocationServiceTest {
         assertNull(result);
     }
 
+    @Test
+    void autocomplete_ThrowsException_ReturnsEmptyList() {
+        var result = externalLocationService.autocomplete(null, null, null);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findLocation_WithNullId_ReturnsNull() {
+        var result = externalLocationService.findLocationByPlaceId(null);
+        assertNull(result);
+    }
+
+    @Test
+    void autocomplete_WithInvalidName_ReturnsEmptyList() {
+        List<?> result = externalLocationService.autocomplete(null, null, null);
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findLocationByPlaceId_WithNullId_ReturnsNull() {
+        LocationDetailDTO result = externalLocationService.findLocationByPlaceId(null);
+        assertNull(result);
+    }
+
     // ── helper ────────────────────────────────────────────────────────────────
 
     @SuppressWarnings("unchecked")

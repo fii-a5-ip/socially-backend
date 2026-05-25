@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -91,6 +90,20 @@ class LocationControllerTest {
     void findLocation_notFound_returns404() {
         when(externalLocationService.findLocationByPlaceId("invalid")).thenReturn(null);
         Map<String, String> body = Map.of("placeId", "invalid");
+        assertThrows(ResponseStatusException.class, () -> locationController.findLocation(body));
+    }
+
+    @Test
+    void findLocation_MissingPlaceId_ThrowsBadRequest() {
+        Map<String, String> body = Map.of();
+        assertThrows(ResponseStatusException.class, () -> locationController.findLocation(body));
+    }
+
+    @Test
+    void findLocation_NotFound_ThrowsNotFound() {
+        Map<String, String> body = Map.of("placeId", "invalid");
+        when(externalLocationService.findLocationByPlaceId("invalid")).thenReturn(null);
+
         assertThrows(ResponseStatusException.class, () -> locationController.findLocation(body));
     }
 }

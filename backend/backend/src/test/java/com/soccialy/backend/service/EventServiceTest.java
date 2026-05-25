@@ -1015,6 +1015,42 @@ void testSortEvents_WithSearchString_TextScoringApplied() {
         assertDoesNotThrow(() -> eventService.createEvent(request));
     }
 
+    @Test
+    void createEvent_ShouldCombineManualAndAiFilters() {
+        EventRequestDTO request = new EventRequestDTO();
+        request.setDesc("Test Description");
+        request.setLocationId(1);
+        request.setFilterIds(List.of(1));
+
+        when(locationRepository.findById(1)).thenReturn(Optional.of(new Location()));
+        when(userRepository.findById(any())).thenReturn(Optional.of(new User()));
+        when(aiServiceClient.getSearchFilters("Test Description")).thenReturn(List.of(2));
+        when(eventRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+
+        EventResponseDTO result = eventService.createEvent(request);
+
+        assertTrue(result.getFilterIds().contains(1));
+        assertTrue(result.getFilterIds().contains(2));
+    }
+
+    @Test
+    void createEvent_WhenAiReturnsNull_ShouldOnlyUseManualFilters() {
+        EventRequestDTO request = new EventRequestDTO();
+        request.setDesc("No AI match");
+        request.setLocationId(1);
+        request.setFilterIds(List.of(1));
+
+        when(locationRepository.findById(1)).thenReturn(Optional.of(new Location()));
+        when(userRepository.findById(any())).thenReturn(Optional.of(new User()));
+        when(aiServiceClient.getSearchFilters(any())).thenReturn(null);
+        when(eventRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+
+        EventResponseDTO result = eventService.createEvent(request);
+
+        assertEquals(1, result.getFilterIds().size());
+        assertEquals(1, result.getFilterIds().get(0));
+    }
+
     private EventRequestDTO buildEventRequest(List<Integer> filterIds) {
         EventRequestDTO requestDTO = new EventRequestDTO();
         requestDTO.setName("Test Event");
