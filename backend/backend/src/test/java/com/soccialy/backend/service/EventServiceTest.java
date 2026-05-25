@@ -631,4 +631,63 @@ class EventServiceTest {
         event.setFilterIds(filterIds);
         return event;
     }
-            }
+
+@Test
+void testJoinEvent_Success() {
+    Event event = new Event();
+    event.setId(1);
+    event.setParticipants(new HashSet<>());
+    User user = buildUser(1);
+
+    when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+    when(userRepository.findById(1)).thenReturn(Optional.of(user));
+
+    eventService.joinEvent(1, 1);
+
+    verify(eventRepository).save(event);
+}
+
+@Test
+void testLeaveEvent_Success() {
+    User user = buildUser(1);
+    Event event = new Event();
+    event.setId(1);
+    event.setParticipants(new HashSet<>(Set.of(user)));
+
+    when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+
+    eventService.leaveEvent(1, 1);
+
+    verify(eventRepository).save(event);
+}
+
+@Test
+void testRegisterVote_NewVote() {
+    User user = buildUser(1);
+    Event event = new Event();
+    event.setId(1);
+
+    when(userRepository.findById(1)).thenReturn(Optional.of(user));
+    when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+    when(userVoteRepository.findByUserIdAndEventId(1, 1)).thenReturn(Optional.empty());
+
+    eventService.registerVote(1, 1, "Da");
+
+    verify(userVoteRepository).save(any());
+}
+
+@Test
+void testRegisterVote_UpdateExisting() {
+    User user = buildUser(1);
+    Event event = new Event();
+    event.setId(1);
+
+    com.soccialy.backend.entity.UserVote existingVote =
+            com.soccialy.backend.entity.UserVote.builder()
+                    .user(user).event(event).vote(1).build();
+
+    when(userRepository.findById(1)).thenReturn(Optional.of(user));
+    when(eventRepository.findById(1)).thenReturn(Optional.of(event));
+    when(userVoteRepository.findByUserIdAndEventId(1, 1)).thenReturn(Optional.of(existingVote)
+
+ }
