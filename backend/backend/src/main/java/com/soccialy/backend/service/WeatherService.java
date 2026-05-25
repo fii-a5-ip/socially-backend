@@ -69,6 +69,9 @@ public class WeatherService {
             return dto;
 
         } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             return null;
         }
     }

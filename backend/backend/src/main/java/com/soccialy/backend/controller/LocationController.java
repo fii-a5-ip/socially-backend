@@ -20,8 +20,6 @@ public class LocationController {
     private final LocationService locationService;
     private final ExternalLocationService externalLocationService;
 
-    // --- Endpoint-uri existente ---
-
     @GetMapping
     public ResponseEntity<List<LocationDTO>> getAllLocations() {
         return ResponseEntity.ok(locationService.getAllLocations());
@@ -37,9 +35,6 @@ public class LocationController {
         return ResponseEntity.ok(locationService.createLocation(locationDTO));
     }
 
-    // --- Endpoint-uri noi ---
-
-    // GET /api/locations/autocomplete?query=Iasi&lat=47.1&lon=27.6
     @GetMapping("/autocomplete")
     public ResponseEntity<List<LocationSuggestionDTO>> autocomplete(
             @RequestParam String query,
@@ -51,8 +46,6 @@ public class LocationController {
         return ResponseEntity.ok(suggestions);
     }
 
-    // POST /api/locations/find
-    // Body: { "placeId": "..." }
     @PostMapping("/find")
     public ResponseEntity<?> findLocation(@RequestBody Map<String, String> body) {
         String placeId = body.get("placeId");
