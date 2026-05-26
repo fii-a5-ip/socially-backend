@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class WeatherService {
 
-    @Value("${app.ai.base-url:http://52.58.222.100:5000}")
+    @Value("${app.ai.base-url}")
     private String aiApiUrl;
 
     private final HttpClient httpClient = HttpClient.newHttpClient();

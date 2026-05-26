@@ -24,7 +24,7 @@ import java.util.Map;
 @Service
 public class ExternalLocationService {
 
-    @Value("${AI_API_URL:http://localhost:5000}")
+    @Value("${app.ai.base-url}")
     private String aiApiUrl;
 
     private final HttpClient httpClient = HttpClient.newHttpClient();

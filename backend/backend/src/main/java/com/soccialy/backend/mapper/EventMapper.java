@@ -43,6 +43,13 @@ public class EventMapper {
                                 ? event.getLocation().getId()
                                 : null
                 )
+                .address(
+                        event.getLocation() != null
+                                ? (event.getLocation().getFormattedAddress() != null && !event.getLocation().getFormattedAddress().isBlank()
+                                        ? event.getLocation().getFormattedAddress() 
+                                        : event.getLocation().getName())
+                                : null
+                )
                 .creatorUserId(
                         event.getCreator() != null
                                 ? event.getCreator().getId()

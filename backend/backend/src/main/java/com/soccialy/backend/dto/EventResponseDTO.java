@@ -18,6 +18,7 @@ public class EventResponseDTO {
     private String url;
     private String desc;
     private Integer locationId;
+    private String address;
     private Integer creatorUserId;
     private Integer groupId;
     private LocalDateTime scheduledDate;

@@ -266,7 +266,7 @@ public class EventService {
                 .map(v -> v.getEvent().getId())
                 .toList();
 
-        return processAndSortCandidates(candidates, userFilters, uiFilters, aiFilters, timeOfSearch, fields, votedEventIds, safeSearchString, false);
+        return processAndSortCandidates(candidates, userId, userFilters, uiFilters, aiFilters, timeOfSearch, fields, votedEventIds, safeSearchString, false);
     }
 
     public List<EventResponseDTO> discoverEvents(Integer userId, EventDiscoverFieldsDTO fields) {
@@ -287,10 +287,13 @@ public class EventService {
             candidates = eventRepository.findUnvotedUpcomingEvents(timeOfSearch, votedEventIds);
         }
 
-        return processAndSortCandidates(candidates, userFilters, uiFilters, aiFilters, timeOfSearch, fields, votedEventIds, "", true);
+        // Excludem evenimentele create de userul curent doar din fluxul de recomandari
+        candidates.removeIf(event -> event.getCreator() != null && event.getCreator().getId().equals(userId));
+
+        return processAndSortCandidates(candidates, userId, userFilters, uiFilters, aiFilters, timeOfSearch, fields, votedEventIds, "", true);
     }
 
-    private List<EventResponseDTO> processAndSortCandidates(List<Event> candidates, List<Integer> userFilters, List<Integer> uiFilters, List<Integer> aiFilters, LocalDateTime timeOfSearch, EventDiscoverFieldsDTO fields, List<Integer> votedEventIds, String searchString, boolean excludeVoted) {
+    private List<EventResponseDTO> processAndSortCandidates(List<Event> candidates, Integer userId, List<Integer> userFilters, List<Integer> uiFilters, List<Integer> aiFilters, LocalDateTime timeOfSearch, EventDiscoverFieldsDTO fields, List<Integer> votedEventIds, String searchString, boolean excludeVoted) {
         Double actualMaxDistance = (fields.getMaxDistance() != null) ? fields.getMaxDistance() : 20000.0;
         Integer actualMaxDays = (fields.getMaxDays() != null) ? fields.getMaxDays() : 3650;
         boolean hasUserLocation = (fields.getLat() != null && fields.getLng() != null);
