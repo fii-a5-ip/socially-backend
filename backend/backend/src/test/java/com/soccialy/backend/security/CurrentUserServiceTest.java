@@ -87,6 +87,6 @@ class CurrentUserServiceTest {
         IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
                 currentUserService.getCurrentUserId()
         );
-        assertEquals("Authenticated principal is not a user ID", exception.getMessage());
+        assertEquals("Authenticated principal string is not a valid integer user ID", exception.getMessage());
     }
 }

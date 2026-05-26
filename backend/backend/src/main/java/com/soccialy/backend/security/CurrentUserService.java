@@ -45,11 +45,22 @@ public class CurrentUserService
 
         Object principal = authentication.getPrincipal();
 
-        if (!(principal instanceof Integer userId))
-        {
-            throw new IllegalStateException("Authenticated principal is not a user ID");
+        if (principal instanceof Integer userId) {
+            return userId;
+        } else if (principal instanceof String strId) {
+            try {
+                return Integer.parseInt(strId);
+            } catch (NumberFormatException e) {
+                throw new IllegalStateException("Authenticated principal string is not a valid integer user ID", e);
+            }
+        } else if (principal instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
+            try {
+                return Integer.parseInt(userDetails.getUsername());
+            } catch (NumberFormatException e) {
+                throw new IllegalStateException("Authenticated principal UserDetails username is not a valid integer user ID", e);
+            }
         }
 
-        return userId;
+        throw new IllegalStateException("Authenticated principal is not a user ID");
     }
 }

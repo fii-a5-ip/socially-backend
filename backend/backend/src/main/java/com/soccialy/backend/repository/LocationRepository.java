@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,4 +19,23 @@ public interface LocationRepository extends JpaRepository<Location, Integer> {
     @Query(value = "SELECT l.* FROM locations l LEFT JOIN events e ON l.id = e.location_id GROUP BY l.id ORDER BY COUNT(e.id) DESC", nativeQuery = true)
     List<Location> findTopPopularLocations();
 
+    @Query(value = """
+    SELECT *, 
+           (6371 * acos(cos(radians(:lat)) * cos(radians(latitude)) * cos(radians(longitude) - radians(:lon)) + 
+            sin(radians(:lat)) * sin(radians(latitude)))) AS distance 
+    FROM locations 
+    WHERE (latitude BETWEEN :lat - (:radius / 111) AND :lat + (:radius / 111))
+      AND (longitude BETWEEN :lon - (:radius / (111 * cos(radians(:lat)))) 
+                     AND :lon + (:radius / (111 * cos(radians(:lat)))))
+    HAVING distance < :radius 
+    ORDER BY distance 
+    LIMIT 50
+    """, nativeQuery = true)
+    List<Location> findNearbyLocations(
+            @Param("lat") double lat,
+            @Param("lon") double lon,
+            @Param("radius") double radius
+    );
+
+    Optional<Location> findByLatitudeAndLongitude(BigDecimal latitude, BigDecimal longitude);
 }
