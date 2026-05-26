@@ -1,9 +1,6 @@
 package com.soccialy.backend.service;
 
-import com.soccialy.backend.dto.EventDiscoverFieldsDTO;
-import com.soccialy.backend.dto.EventRequestDTO;
-import com.soccialy.backend.dto.EventResponseDTO;
-import com.soccialy.backend.dto.EventSearchFieldsDTO;
+import com.soccialy.backend.dto.*;
 import com.soccialy.backend.entity.Coordinates;
 import com.soccialy.backend.entity.Event;
 import com.soccialy.backend.entity.Location;
@@ -1007,10 +1004,18 @@ void testSortEvents_WithSearchString_TextScoringApplied() {
         EventRequestDTO request = new EventRequestDTO();
         request.setDesc("Test");
         request.setLocationId(1);
+        request.setScheduledDate(LocalDateTime.now().plusDays(1));
 
-        when(aiServiceClient.getSearchFilters(any())).thenReturn(null);
-        when(locationRepository.findById(1)).thenReturn(Optional.of(new com.soccialy.backend.entity.Location()));
-        when(userRepository.findById(any())).thenReturn(Optional.of(new com.soccialy.backend.entity.User()));
+        when(aiServiceClient.getSearchFilters(anyString())).thenReturn(null);
+        when(locationRepository.findById(anyInt())).thenReturn(Optional.of(new com.soccialy.backend.entity.Location()));
+        when(userRepository.findById(anyInt())).thenReturn(Optional.of(new com.soccialy.backend.entity.User()));
+        when(currentUserService.getCurrentUserId()).thenReturn(1);
+
+        when(eventRepository.save(any(Event.class))).thenAnswer(i -> {
+            Event e = i.getArgument(0);
+            e.setId(100);
+            return e;
+        });
 
         assertDoesNotThrow(() -> eventService.createEvent(request));
     }
@@ -1049,6 +1054,33 @@ void testSortEvents_WithSearchString_TextScoringApplied() {
 
         assertEquals(1, result.getFilterIds().size());
         assertEquals(1, result.getFilterIds().get(0));
+    }
+
+    @Test
+    void getWeatherForLocationAndDate_ValidLocation_ReturnsWeather() {
+        Location mockLocation = new Location();
+        mockLocation.setLatitude(java.math.BigDecimal.valueOf(47.18));
+        mockLocation.setLongitude(java.math.BigDecimal.valueOf(27.56));
+
+        LocalDateTime testDate = LocalDateTime.now();
+        WeatherDTO mockWeather = new WeatherDTO();
+
+        when(locationRepository.findById(1)).thenReturn(java.util.Optional.of(mockLocation));
+        when(weatherService.getWeatherForEvent(47.18, 27.56, testDate)).thenReturn(mockWeather);
+
+        WeatherDTO result = eventService.getWeatherForLocationAndDate(1, testDate);
+
+        assertNotNull(result);
+        verify(weatherService).getWeatherForEvent(47.18, 27.56, testDate);
+    }
+
+    @Test
+    void getWeatherForLocationAndDate_InvalidLocation_ReturnsNull() {
+        when(locationRepository.findById(99)).thenReturn(java.util.Optional.empty());
+
+        WeatherDTO result = eventService.getWeatherForLocationAndDate(99, LocalDateTime.now());
+
+        assertNull(result);
     }
 
     private EventRequestDTO buildEventRequest(List<Integer> filterIds) {

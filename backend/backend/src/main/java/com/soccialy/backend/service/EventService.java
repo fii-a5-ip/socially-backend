@@ -1,10 +1,8 @@
 package com.soccialy.backend.service;
 
 import java.util.stream.Collectors;
-import com.soccialy.backend.dto.EventDiscoverFieldsDTO;
-import com.soccialy.backend.dto.EventRequestDTO;
-import com.soccialy.backend.dto.EventResponseDTO;
-import com.soccialy.backend.dto.EventSearchFieldsDTO;
+
+import com.soccialy.backend.dto.*;
 import com.soccialy.backend.entity.Coordinates;
 import com.soccialy.backend.entity.Event;
 import com.soccialy.backend.entity.Location;
@@ -22,7 +20,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.soccialy.backend.dto.EventDetailsRequestDTO;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
@@ -53,6 +50,30 @@ public class EventService {
     private final EventMapper eventMapper;
     private final UserVoteRepository userVoteRepository;
     private final com.soccialy.backend.repository.GroupRepository groupRepository;
+    private final WeatherService weatherService;
+
+    public WeatherDTO getWeatherForLocationAndDate(Integer locationId, LocalDateTime date) {
+        Location location = locationRepository.findById(locationId).orElse(null);
+        if (location == null || location.getLatitude() == null || location.getLongitude() == null) {
+            return null;
+        }
+        return weatherService.getWeatherForEvent(
+                Double.valueOf(location.getLatitude().toString()),
+                Double.valueOf(location.getLongitude().toString()),
+                date
+        );
+    }
+
+    private void attachWeatherToDTO(EventResponseDTO dto, Location location, LocalDateTime date) {
+        if (location != null && location.getLatitude() != null && location.getLongitude() != null && date != null) {
+            WeatherDTO weather = weatherService.getWeatherForEvent(
+                    Double.valueOf(location.getLatitude().toString()),
+                    Double.valueOf(location.getLongitude().toString()),
+                    date
+            );
+            dto.setWeather(weather);
+        }
+    }
 
     @org.springframework.transaction.annotation.Transactional
     public void resetDislikes(Integer userId) {
@@ -163,13 +184,17 @@ public class EventService {
         }
 
         Event savedEvent = eventRepository.save(event);
-        return eventMapper.toResponseDTO(savedEvent);
+        EventResponseDTO dto = eventMapper.toResponseDTO(savedEvent);
+        attachWeatherToDTO(dto, savedEvent.getLocation(), savedEvent.getScheduledDate());
+        return dto;
     }
 
     public EventResponseDTO getEventById(Integer id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND));
-        return eventMapper.toResponseDTO(event);
+        EventResponseDTO dto = eventMapper.toResponseDTO(event);
+        attachWeatherToDTO(dto, event.getLocation(), event.getScheduledDate());
+        return dto;
     }
 
     public EventResponseDTO updateEvent(Integer id, EventRequestDTO requestDTO) {
@@ -206,7 +231,9 @@ public class EventService {
         existingEvent.setFilterIds(updatedFilterIds);
 
         Event savedEvent = eventRepository.save(existingEvent);
-        return eventMapper.toResponseDTO(savedEvent);
+        EventResponseDTO dto = eventMapper.toResponseDTO(existingEvent);
+        attachWeatherToDTO(dto, existingEvent.getLocation(), existingEvent.getScheduledDate());
+        return dto;
     }
 
     public void deleteEvent(Integer id) {
@@ -326,6 +353,7 @@ public class EventService {
             if (event.getLocation() != null && context.distancesMap().containsKey(event.getLocation().getId())) {
                 dto.setDistance(context.distancesMap().get(event.getLocation().getId()));
             }
+            attachWeatherToDTO(dto, event.getLocation(), event.getScheduledDate());
             return dto;
         }).toList();
     }

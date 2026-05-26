@@ -32,8 +32,9 @@ public class WeatherService {
             String url = aiApiUrl + "/api/findWeatherByLocation/";
 
             String json = String.format(
-                "{\"coordinates\": [%s, %s], \"dates\": [\"%s\"]}",
-                lat, lon, dateStr
+                    java.util.Locale.US,
+                    "{\"coordinates\": [%f, %f], \"dates\": [\"%s\"]}",
+                    lat, lon, dateStr
             );
 
             HttpRequest request = HttpRequest.newBuilder()
