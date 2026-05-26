@@ -134,6 +134,11 @@ public class EventController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/created")
+    public ResponseEntity<List<EventResponseDTO>> getCreatedEvents() {
+        return ResponseEntity.ok(eventService.getCreatedEvents());
+    }
+
     @GetMapping("/saved")
     public ResponseEntity<List<EventResponseDTO>> getSavedEvents(@AuthenticationPrincipal Object principal) {
         String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)

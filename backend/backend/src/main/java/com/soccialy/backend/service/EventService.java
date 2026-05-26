@@ -141,6 +141,13 @@ public class EventService {
         userVoteRepository.findByUserIdAndEventId(userId, eventId).ifPresent(userVoteRepository::delete);
     }
 
+    public List<EventResponseDTO> getCreatedEvents() {
+        Integer userId = currentUserService.getCurrentUserId();
+        return eventRepository.findByCreatorId(userId).stream()
+                .map(eventMapper::toResponseDTO)
+                .collect(Collectors.toList());
+    }
+
     public List<EventResponseDTO> getSavedEvents(Integer userId) {
         return userVoteRepository.findByUserId(userId).stream()
                 .filter(vote -> vote.getVote() == 1)
