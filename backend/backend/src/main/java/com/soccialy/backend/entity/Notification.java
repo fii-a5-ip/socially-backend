@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notificationsv2")
+@Table(name = "notifications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
