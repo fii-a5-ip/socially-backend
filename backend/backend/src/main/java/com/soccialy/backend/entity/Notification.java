@@ -47,11 +47,7 @@ public class Notification {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "column_name", length = 100)
-    private String columnName;
 
-    @Column(name = "column_id", length = 100)
-    private String columnId; //Sigur asta trebuie sa fie un varchar(100)?
 
     @PrePersist
     protected void onCreate() {
