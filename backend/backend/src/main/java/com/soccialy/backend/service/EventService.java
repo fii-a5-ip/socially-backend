@@ -80,6 +80,7 @@ public class EventService {
         userVoteRepository.deleteByUserIdAndVote(userId, 2);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void joinEvent(Integer userId, Integer eventId) {
         com.soccialy.backend.entity.Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
@@ -94,6 +95,7 @@ public class EventService {
         }
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void leaveEvent(Integer userId, Integer eventId) {
         com.soccialy.backend.entity.Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
@@ -144,14 +146,20 @@ public class EventService {
     public List<EventResponseDTO> getCreatedEvents() {
         Integer userId = currentUserService.getCurrentUserId();
         return eventRepository.findByCreatorId(userId).stream()
-                .map(eventMapper::toResponseDTO)
+                .map(event -> toResponseDTOWithRegistration(event, userId))
                 .collect(Collectors.toList());
     }
 
     public List<EventResponseDTO> getSavedEvents(Integer userId) {
         return userVoteRepository.findByUserId(userId).stream()
                 .filter(vote -> vote.getVote() == 1)
-                .map(vote -> eventMapper.toResponseDTO(vote.getEvent()))
+                .map(vote -> toResponseDTOWithRegistration(vote.getEvent(), userId))
+                .toList();
+    }
+
+    public List<EventResponseDTO> getRegisteredEvents(Integer userId) {
+        return eventRepository.findByParticipantsId(userId).stream()
+                .map(event -> toResponseDTOWithRegistration(event, userId))
                 .toList();
     }
 
@@ -191,7 +199,7 @@ public class EventService {
         }
 
         Event savedEvent = eventRepository.save(event);
-        EventResponseDTO dto = eventMapper.toResponseDTO(savedEvent);
+        EventResponseDTO dto = toResponseDTOWithRegistration(savedEvent, currentUserId);
         attachWeatherToDTO(dto, savedEvent.getLocation(), savedEvent.getScheduledDate());
         return dto;
     }
@@ -199,7 +207,7 @@ public class EventService {
     public EventResponseDTO getEventById(Integer id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND));
-        EventResponseDTO dto = eventMapper.toResponseDTO(event);
+        EventResponseDTO dto = toResponseDTOWithRegistration(event, currentUserService.getCurrentUserId());
         attachWeatherToDTO(dto, event.getLocation(), event.getScheduledDate());
         return dto;
     }
@@ -238,7 +246,7 @@ public class EventService {
         existingEvent.setFilterIds(updatedFilterIds);
 
         Event savedEvent = eventRepository.save(existingEvent);
-        EventResponseDTO dto = eventMapper.toResponseDTO(existingEvent);
+        EventResponseDTO dto = toResponseDTOWithRegistration(savedEvent, currentUserId);
         attachWeatherToDTO(dto, existingEvent.getLocation(), existingEvent.getScheduledDate());
         return dto;
     }
@@ -359,7 +367,7 @@ public class EventService {
         candidates.sort((o1, o2) -> Double.compare(calculateCompoundScore(o2, context), calculateCompoundScore(o1, context)));
 
         return candidates.stream().limit(20).map(event -> {
-            EventResponseDTO dto = eventMapper.toResponseDTO(event);
+            EventResponseDTO dto = toResponseDTOWithRegistration(event, userId);
             if (event.getLocation() != null && context.distancesMap().containsKey(event.getLocation().getId())) {
                 dto.setDistance(context.distancesMap().get(event.getLocation().getId()));
             }
@@ -452,5 +460,24 @@ public class EventService {
         }
 
         return finalScore;
+    }
+
+    private EventResponseDTO toResponseDTOWithRegistration(Event event, Integer userId) {
+        EventResponseDTO dto = eventMapper.toResponseDTO(event);
+        if (dto == null) {
+            return null;
+        }
+
+        dto.setIsJoined(isParticipant(event, userId));
+        return dto;
+    }
+
+    private boolean isParticipant(Event event, Integer userId) {
+        if (userId == null || event.getParticipants() == null) {
+            return false;
+        }
+
+        return event.getParticipants().stream()
+                .anyMatch(user -> user != null && userId.equals(user.getId()));
     }
 }

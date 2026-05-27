@@ -18,6 +18,7 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
     List<Event> findByGroupId(Integer groupId);
     List<Event> findByScheduledDateAfter(LocalDateTime currentDate);
     List<Event> findByLocationIdNot(Integer excludedLocationId);
+    List<Event> findByParticipantsId(Integer userId);
     long countByLocationId(Integer locationId);
 
     @Query(value = "SELECT * FROM events WHERE MATCH(name) AGAINST (?1 IN BOOLEAN MODE)", nativeQuery = true)

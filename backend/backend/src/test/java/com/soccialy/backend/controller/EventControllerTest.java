@@ -22,6 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -123,5 +125,83 @@ class EventControllerTest {
                         .param("locationId", "1")
                         .param("date", LocalDateTime.now().toString()))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser
+    void testGetRegisteredEvents_ReturnsOk() throws Exception {
+        EventResponseDTO dto = new EventResponseDTO();
+        dto.setId(10);
+        dto.setName("Registered Event");
+
+        when(eventService.getRegisteredEvents(100)).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/events/registered")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("100").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(10))
+                .andExpect(jsonPath("$[0].name").value("Registered Event"));
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser
+    void testGetCreatedEvents_ReturnsOk() throws Exception {
+        EventResponseDTO dto = new EventResponseDTO();
+        dto.setId(11);
+        dto.setName("Created Event");
+
+        when(eventService.getCreatedEvents()).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/events/created")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("100").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(11))
+                .andExpect(jsonPath("$[0].name").value("Created Event"));
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser
+    void testGetSavedEvents_ReturnsOk() throws Exception {
+        EventResponseDTO dto = new EventResponseDTO();
+        dto.setId(12);
+        dto.setName("Saved Event");
+
+        when(eventService.getSavedEvents(100)).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/events/saved")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("100").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(12))
+                .andExpect(jsonPath("$[0].name").value("Saved Event"));
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser
+    void testResetDislikes_ReturnsOk() throws Exception {
+        mockMvc.perform(post("/api/events/reset-dislikes")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("100").roles("USER")))
+                .andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(eventService).resetDislikes(100);
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser
+    void testJoinEvent_ReturnsOk() throws Exception {
+        mockMvc.perform(post("/api/events/10/join")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("100").roles("USER")))
+                .andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(eventService).joinEvent(100, 10);
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser
+    void testLeaveEvent_ReturnsOk() throws Exception {
+        mockMvc.perform(delete("/api/events/10/join")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("100").roles("USER")))
+                .andExpect(status().isNoContent());
+
+        org.mockito.Mockito.verify(eventService).leaveEvent(100, 10);
     }
 }

@@ -796,6 +796,21 @@ void testJoinEvent_AlreadyJoined_DoesNotSave() {
 }
 
 @Test
+void testGetEventById_WhenCurrentUserIsParticipant_ReturnsJoinedTrue() {
+    User creator = buildUser(60003);
+    User participant = buildUser(1);
+    Event event = buildStoredEvent(20, creator, buildLocation(10), List.of());
+    event.setParticipants(new ArrayList<>(List.of(participant)));
+
+    when(eventRepository.findById(20)).thenReturn(Optional.of(event));
+    when(currentUserService.getCurrentUserId()).thenReturn(1);
+
+    EventResponseDTO result = eventService.getEventById(20);
+
+    assertEquals(Boolean.TRUE, result.getIsJoined());
+}
+
+@Test
 void testRegisterVote_Poate() {
     User user = buildUser(1);
     Event event = new Event();
@@ -1118,5 +1133,106 @@ void testSortEvents_WithSearchString_TextScoringApplied() {
         event.setScheduledDate(LocalDateTime.of(2026, 6, 10, 18, 30));
         event.setFilterIds(filterIds);
         return event;
+    }
+
+    @Test
+    void testGetCreatedEvents_ReturnsCreatedEvents() {
+        User creator = buildUser(1);
+        Event event = buildStoredEvent(10, creator, buildLocation(1), List.of());
+        event.setParticipants(new ArrayList<>(List.of(creator)));
+
+        when(currentUserService.getCurrentUserId()).thenReturn(1);
+        when(eventRepository.findByCreatorId(1)).thenReturn(List.of(event));
+
+        List<EventResponseDTO> result = eventService.getCreatedEvents();
+
+        assertEquals(1, result.size());
+        assertEquals(10, result.get(0).getId());
+        assertEquals(Boolean.TRUE, result.get(0).getIsJoined());
+    }
+
+    @Test
+    void testGetSavedEvents_WithNullUserId_ReturnsEventsWithIsJoinedFalse() {
+        User user = buildUser(1);
+        Event event = buildStoredEvent(10, user, buildLocation(1), List.of());
+        event.setParticipants(new ArrayList<>(List.of(user)));
+        com.soccialy.backend.entity.UserVote vote = com.soccialy.backend.entity.UserVote.builder()
+                .user(user).event(event).vote(1).build();
+
+        when(userVoteRepository.findByUserId(null)).thenReturn(List.of(vote));
+
+        List<EventResponseDTO> result = eventService.getSavedEvents(null);
+
+        assertEquals(1, result.size());
+        assertEquals(Boolean.FALSE, result.get(0).getIsJoined());
+    }
+
+    @Test
+    void testGetSavedEvents_WithNullParticipantsList_ReturnsEventsWithIsJoinedFalse() {
+        User user = buildUser(1);
+        Event event = buildStoredEvent(10, user, buildLocation(1), List.of());
+        event.setParticipants(null);
+        com.soccialy.backend.entity.UserVote vote = com.soccialy.backend.entity.UserVote.builder()
+                .user(user).event(event).vote(1).build();
+
+        when(userVoteRepository.findByUserId(1)).thenReturn(List.of(vote));
+
+        List<EventResponseDTO> result = eventService.getSavedEvents(1);
+
+        assertEquals(1, result.size());
+        assertEquals(Boolean.FALSE, result.get(0).getIsJoined());
+    }
+
+    @Test
+    void testGetSavedEvents_WithNullUserInParticipantsList_ReturnsEventsWithIsJoinedFalse() {
+        User user = buildUser(1);
+        Event event = buildStoredEvent(10, user, buildLocation(1), List.of());
+        List<User> participants = new ArrayList<>();
+        participants.add(null);
+        event.setParticipants(participants);
+        com.soccialy.backend.entity.UserVote vote = com.soccialy.backend.entity.UserVote.builder()
+                .user(user).event(event).vote(1).build();
+
+        when(userVoteRepository.findByUserId(1)).thenReturn(List.of(vote));
+
+        List<EventResponseDTO> result = eventService.getSavedEvents(1);
+
+        assertEquals(1, result.size());
+        assertEquals(Boolean.FALSE, result.get(0).getIsJoined());
+    }
+
+    @Test
+    void testToResponseDTOWithRegistration_WhenDtoIsNull_ReturnsNull() {
+        EventMapper originalMapper = (EventMapper) org.springframework.test.util.ReflectionTestUtils.getField(eventService, "eventMapper");
+        EventMapper mockMapper = mock(EventMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(eventService, "eventMapper", mockMapper);
+
+        try {
+            Event event = new Event();
+            when(mockMapper.toResponseDTO(event)).thenReturn(null);
+
+            when(eventRepository.findById(20)).thenReturn(Optional.of(event));
+            when(currentUserService.getCurrentUserId()).thenReturn(1);
+
+            EventResponseDTO result = eventService.getEventById(20);
+            assertNull(result);
+        } finally {
+            org.springframework.test.util.ReflectionTestUtils.setField(eventService, "eventMapper", originalMapper);
+        }
+    }
+
+    @Test
+    void testGetRegisteredEvents_ReturnsRegisteredEvents() {
+        User user = buildUser(1);
+        Event event = buildStoredEvent(10, user, buildLocation(1), List.of());
+        event.setParticipants(new ArrayList<>(List.of(user)));
+
+        when(eventRepository.findByParticipantsId(1)).thenReturn(List.of(event));
+
+        List<EventResponseDTO> result = eventService.getRegisteredEvents(1);
+
+        assertEquals(1, result.size());
+        assertEquals(10, result.get(0).getId());
+        assertEquals(Boolean.TRUE, result.get(0).getIsJoined());
     }
 }
