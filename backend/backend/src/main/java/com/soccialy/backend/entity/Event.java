@@ -23,7 +23,7 @@ public class Event {
     @Column(nullable = false, length = 45)
     private String name;
 
-    @Column(length = 2048)
+    @Column(columnDefinition = "LONGTEXT")
     private String url;
 
     @ManyToOne(fetch = FetchType.LAZY)
