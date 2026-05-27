@@ -1,19 +1,18 @@
 package com.soccialy.backend.controller;
 
-import com.soccialy.backend.dto.EventDiscoverFieldsDTO;
-import com.soccialy.backend.dto.EventRequestDTO;
-import com.soccialy.backend.dto.EventResponseDTO;
-import com.soccialy.backend.dto.EventSearchFieldsDTO;
+import com.soccialy.backend.dto.*;
 import com.soccialy.backend.service.EventService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -24,6 +23,20 @@ import java.util.List;
 public class EventController {
 
     private final EventService eventService;
+
+    @GetMapping("/weather-check")
+    public ResponseEntity<WeatherDTO> checkWeatherForCreation(
+            @RequestParam Integer locationId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime date) {
+
+        WeatherDTO weather = eventService.getWeatherForLocationAndDate(locationId, date);
+
+        if (weather == null) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(weather);
+    }
 
     @PostMapping
     public ResponseEntity<EventResponseDTO> createEvent(
@@ -106,6 +119,43 @@ public class EventController {
         Integer userId = Integer.parseInt(currentUserIdStr);
 
         eventService.registerVote(userId, eventId, type);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{eventId}/vote")
+    public ResponseEntity<Void> removeVote(
+            @AuthenticationPrincipal Object principal,
+            @PathVariable Integer eventId) {
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+        Integer userId = Integer.parseInt(currentUserIdStr);
+        eventService.removeVote(userId, eventId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/created")
+    public ResponseEntity<List<EventResponseDTO>> getCreatedEvents() {
+        return ResponseEntity.ok(eventService.getCreatedEvents());
+    }
+
+    @GetMapping("/saved")
+    public ResponseEntity<List<EventResponseDTO>> getSavedEvents(@AuthenticationPrincipal Object principal) {
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+        Integer userId = Integer.parseInt(currentUserIdStr);
+        return ResponseEntity.ok(eventService.getSavedEvents(userId));
+    }
+
+    @PostMapping("/reset-dislikes")
+    public ResponseEntity<Void> resetDislikes(@AuthenticationPrincipal Object principal) {
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+        Integer userId = Integer.parseInt(currentUserIdStr);
+
+        eventService.resetDislikes(userId);
         return ResponseEntity.ok().build();
     }
 

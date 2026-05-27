@@ -111,15 +111,16 @@ public class GroupService {
 
                 List<GroupEventDTO> events = allEvents.stream()
                                 .map(event -> {
-                                         int daVotes = userVoteRepository.countByEventIdAndVoteType(event.getId(), "Da");
-                                         int nuVotes = userVoteRepository.countByEventIdAndVoteType(event.getId(), "Nu");
-                                         int poateVotes = userVoteRepository.countByEventIdAndVoteType(event.getId(), "Poate");
+                                         int daVotes = userVoteRepository.countByEventIdAndVote(event.getId(), 1);
+                                         int nuVotes = userVoteRepository.countByEventIdAndVote(event.getId(), 2);
+                                         int poateVotes = userVoteRepository.countByEventIdAndVote(event.getId(), 3);
 
                                          String myVoteStr = null;
                                          if (userId != null) {
                                                  myVoteStr = userVoteRepository
                                                                  .findByUserIdAndEventId(userId, event.getId())
-                                                                 .map(com.soccialy.backend.entity.UserVote::getVoteType)
+                                                                 .map(com.soccialy.backend.entity.UserVote::getVote)
+                                                                 .map(v -> v == 1 ? "Da" : v == 2 ? "Nu" : v == 3 ? "Poate" : "")
                                                                  .orElse(null);
                                          }
 

@@ -97,7 +97,7 @@ class NotificationTest {
         Notification notification = Notification.builder().id(1).recipientUserId(10).actorUserId(5).type("SYSTEM_UPDATE")
                                                 .message("System Msg").referenceId(99)
                                                 .referenceType("SYS").isRead(true).createdAt(now)
-                                                .actions("none").externalLink("url").columnName("colName").columnId("colId").build(); //arata urat stiu
+                                                .actions("none").externalLink("url").columnName("colName").columnId("colId").build();
 
         assertEquals(1, notification.getId());
         assertEquals(10, notification.getRecipientUserId());
@@ -106,6 +106,11 @@ class NotificationTest {
         assertEquals("System Msg", notification.getMessage());
         assertEquals(99, notification.getReferenceId());
         assertEquals("SYS", notification.getReferenceType());
+
+        // Verificăm și noile câmpuri adăugate
+        assertEquals("colName", notification.getColumnName());
+        assertEquals("colId", notification.getColumnId());
+
         assertTrue(notification.isRead());
         assertEquals(now, notification.getCreatedAt());
         assertEquals("none", notification.getActions());

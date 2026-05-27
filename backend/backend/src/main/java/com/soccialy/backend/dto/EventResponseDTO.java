@@ -18,9 +18,12 @@ public class EventResponseDTO {
     private String url;
     private String desc;
     private Integer locationId;
+    private String address;
     private Integer creatorUserId;
     private Integer groupId;
     private LocalDateTime scheduledDate;
     private List<Integer> filterIds;
     private List<FilterDTO> filters;
+    private WeatherDTO weather;
+    private Double distance;
 }

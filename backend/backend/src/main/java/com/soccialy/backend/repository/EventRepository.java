@@ -44,6 +44,9 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
             @Param("now") LocalDateTime now
     );
 
-    @Query(value = "SELECT * FROM events WHERE date >= :now LIMIT 200", nativeQuery = true)
+    @Query(value = "SELECT * FROM events WHERE date >= :now ORDER BY date ASC LIMIT 150", nativeQuery = true)
     List<Event> findUpcomingEventsForDiscovery(@Param("now") LocalDateTime now);
+
+    @Query(value = "SELECT * FROM events WHERE date >= :now AND id NOT IN (:votedIds) ORDER BY date ASC LIMIT 150", nativeQuery = true)
+    List<Event> findUnvotedUpcomingEvents(@Param("now") LocalDateTime now, @Param("votedIds") List<Integer> votedIds);
 }

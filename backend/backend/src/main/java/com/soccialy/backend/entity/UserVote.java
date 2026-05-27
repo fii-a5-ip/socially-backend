@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "user_event_votes")
+@Table(name = "votes")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,6 +24,6 @@ public class UserVote {
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
-    @Column(name = "vote_type", nullable = false)
-    private String voteType; // "Da", "Nu", "Poate"
+    @Column(name = "vote", nullable = false)
+    private Integer vote; // 1 = Da, 2 = Nu, 3 = Poate
 }

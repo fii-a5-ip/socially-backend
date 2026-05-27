@@ -35,7 +35,7 @@ public class OnboardingProcessController {
     private final String onboardingUrl;
 
     public OnboardingProcessController(
-            @Value("${app.ai.base-url:http://localhost:5000}") String aiBaseUrl,
+            @Value("${app.ai.base-url}") String aiBaseUrl,
             FilterRepository filterRepository,
             ObjectMapper objectMapper) {
         this.httpClient = HttpClient.newBuilder()

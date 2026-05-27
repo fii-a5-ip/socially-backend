@@ -35,6 +35,12 @@ public class Notification {
     @Column(name = "reference_type")
     private String referenceType;
 
+    @Column(name = "column_name", length = 100)
+    private String columnName;
+
+    @Column(name = "column_id", length = 100)
+    private String columnId;
+
     @Column(name = "is_read", nullable = false)
     private boolean isRead = false;
 
