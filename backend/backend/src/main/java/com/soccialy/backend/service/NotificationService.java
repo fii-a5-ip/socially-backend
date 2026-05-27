@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.NoSuchElementException;
+import java.time.LocalDateTime; // lasa-l aici, de ce nu
 import java.util.List;
 
 @Service
@@ -23,6 +25,7 @@ import java.util.List;
 public class NotificationService {
 
     private static final String GROUP_REFERENCE_TYPE = "GROUP";
+    private static final String NOTIF_TYPE_GROUP = "GROUP_INVITE";
 
     private final NotificationRepository
             notificationRepository;
@@ -63,14 +66,12 @@ public class NotificationService {
                         .recipientUserId(
                                 userId
                         )
-                        .type(
-                                NotificationType.GROUP_INVITE
-                        )
+                        .type( NOTIF_TYPE_GROUP ) //reamintesc ca conform versiunii V12 de a bazei de date, coloana aceasta este un varchar. nu mai este enum
                         .message(
                                 "Ai fost invitat la Board Games Group"
                         )
                         .referenceType(
-                                GROUP_REFERENCE_TYPE
+                                "GROUP_REFERENCE_TYPE"
                         )
                         .referenceId(
                                 1
@@ -105,6 +106,11 @@ public class NotificationService {
             throw new IllegalArgumentException("You cannot invite yourself");
         }
 
+        //Nou: verificăm că cel ce trimite invitația face parte din grupul respectiv
+        if (!group.hasMember(actor.getId()))
+         {throw new IllegalArgumentException ("You do not belong to this group and therefore can not send invitations"); }
+
+
         boolean alreadyMember = group.getMembers().stream()
                 .anyMatch(member -> member.getUser().getId().equals(recipient.getId()));
         if (alreadyMember) {
@@ -114,9 +120,9 @@ public class NotificationService {
         Notification notification = Notification.builder()
                 .recipientUserId(recipient.getId())
                 .actorUserId(actor.getId())
-                .type(NotificationType.GROUP_INVITE)
+                .type(NOTIF_TYPE_GROUP) //NotificationType.GROUP_INVITE nu mai este compatibil. type e acum varchar nu enum
                 .message(actor.getUsername() + " te-a invitat in grupul " + group.getName())
-                .referenceType(GROUP_REFERENCE_TYPE)
+                .referenceType(GROUP_REFERENCE_TYPE) //
                 .referenceId(group.getId())
                 .build();
 
@@ -169,7 +175,7 @@ public class NotificationService {
                 notificationRepository.findById(
                                 id
                         )
-                        .orElseThrow();
+                        .orElseThrow(() -> new NoSuchElementException("Notificare negăsită") );
 
         notification.setRead(
                 true
@@ -191,7 +197,7 @@ public class NotificationService {
         if (!notification.getRecipientUserId().equals(userId)) {
             throw new IllegalArgumentException("Notification does not belong to current user");
         }
-        if (notification.getType() != NotificationType.GROUP_INVITE
+        if ( ! NOTIF_TYPE_GROUP.equals(notification.getType())
                 || !GROUP_REFERENCE_TYPE.equals(notification.getReferenceType())
                 || notification.getReferenceId() == null) {
             throw new IllegalArgumentException("Notification is not a group invite");

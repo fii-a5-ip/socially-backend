@@ -1,5 +1,10 @@
 package com.soccialy.backend.service;
 
+
+import com.soccialy.backend.entity.*;
+import com.soccialy.backend.mapper.GroupMapper;
+import com.soccialy.backend.repository.EventRepository;
+import com.soccialy.backend.dto.GroupDetailDTO;
 import com.soccialy.backend.dto.GroupDTO;
 import com.soccialy.backend.dto.GroupUserDTO;
 import com.soccialy.backend.entity.Group;
@@ -9,13 +14,14 @@ import com.soccialy.backend.entity.User;
 import com.soccialy.backend.exception.GroupNotFoundException;
 import com.soccialy.backend.mapper.GroupMapper;
 import com.soccialy.backend.repository.GroupRepository;
+import com.soccialy.backend.repository.UserVoteRepository;
 import com.soccialy.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.ArgumentCaptor;
 
 import java.util.*;
 
@@ -37,25 +43,59 @@ class GroupServiceTest {
     @Mock
     private GroupMapper groupMapper;
 
+    @Mock private EventRepository    eventRepository;
+    @Mock private UserVoteRepository userVoteRepository;
+
     @InjectMocks
     private GroupService groupService;
 
+    private User member;
+    private Group group;
+
+    private User creator;
     private User mockCreator;
     private User mockMember;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
 
-        mockCreator = new User();
-        mockCreator.setId(1);
-        mockCreator.setUsername("creator_user");
-        mockCreator.setFullname("Creator User");
+        @BeforeEach
+void setUp() {
+    MockitoAnnotations.openMocks(this);
 
-        mockMember = new User();
-        mockMember.setId(2);
-        mockMember.setUsername("member_user");
-        mockMember.setFullname("Member User");
+    // Used by the original createGroup tests
+    mockCreator = new User();
+    mockCreator.setId(1);
+    mockCreator.setUsername("creator_user");
+    mockCreator.setFullname("Creator User");
+
+    mockMember = new User();
+    mockMember.setId(2);
+    mockMember.setUsername("member_user");
+    mockMember.setFullname("Member User");
+
+    // Used by the getGroupDetails / leaveGroup tests
+    creator = new User();
+    creator.setId(1);
+    creator.setUsername("creator");
+    creator.setFullname("Creator User");
+    creator.setProfileImgUrl("https://example.com/creator.jpg");
+
+    member = new User();
+    member.setId(2);
+    member.setUsername("member");
+    member.setFullname("Member User");
+    member.setProfileImgUrl(null);
+
+    group = Group.builder()
+            .id(10)
+            .name("Test Group")
+            .imgLink("https://example.com/group.jpg")
+            .creator(creator)
+            .build();
+
+    group.getMembers().add(GroupMember.builder()
+            .id(1).group(group).user(creator).role("ADMIN").build());
+    group.getMembers().add(GroupMember.builder()
+            .id(2).group(group).user(member).role("MEMBER").build());
     }
 
     @Test
@@ -385,5 +425,161 @@ class GroupServiceTest {
 
         assertTrue(ex.getMessage().contains("404"));
         verify(groupMapper, never()).toDTO(any());
+    }
+
+
+    @Test
+    void getGroupDetails_AuthenticatedMember_ReturnsIsCurrentUserMemberTrue() {
+        when(groupRepository.findById(10)).thenReturn(Optional.of(group));
+        when(eventRepository.findByGroupId(10)).thenReturn(List.of());
+ 
+        GroupDetailDTO result = groupService.getGroupDetails(10, 1, null);
+ 
+        assertNotNull(result);
+        assertEquals(10, result.getId());
+        assertEquals("Test Group", result.getName());
+        assertTrue(result.getIsCurrentUserMember(),
+                "Creator (userId=1) is a member — isCurrentUserMember must be true");
+    }
+ 
+    @Test
+    void getGroupDetails_AuthenticatedNonMember_ReturnsIsCurrentUserMemberFalse() {
+        when(groupRepository.findById(10)).thenReturn(Optional.of(group));
+        when(eventRepository.findByGroupId(10)).thenReturn(List.of());
+ 
+        GroupDetailDTO result = groupService.getGroupDetails(10, 99, null);
+ 
+        assertNotNull(result);
+        assertFalse(result.getIsCurrentUserMember(),
+                "User 99 is not a member — isCurrentUserMember must be false");
+    }
+ 
+    @Test
+    void getGroupDetails_NullUserId_ReturnsIsCurrentUserMemberFalse() {
+        when(groupRepository.findById(10)).thenReturn(Optional.of(group));
+        when(eventRepository.findByGroupId(10)).thenReturn(List.of());
+ 
+        GroupDetailDTO result = groupService.getGroupDetails(10, null, null);
+ 
+        assertFalse(result.getIsCurrentUserMember(),
+                "Unauthenticated request (userId=null) must return false");
+    }
+ 
+    @Test
+    void getGroupDetails_MemberDTOs_MappedCorrectly() {
+        when(groupRepository.findById(10)).thenReturn(Optional.of(group));
+        when(eventRepository.findByGroupId(10)).thenReturn(List.of());
+ 
+        GroupDetailDTO result = groupService.getGroupDetails(10, 1, null);
+ 
+        assertEquals(2, result.getMembers().size());
+ 
+        // Creator: has fullname, so name should be fullname
+        var creatorDTO = result.getMembers().stream()
+                .filter(m -> m.getId().equals(1)).findFirst().orElseThrow();
+        assertEquals("Creator User", creatorDTO.getName());
+        assertEquals("ADMIN", creatorDTO.getRole());
+        assertEquals("https://example.com/creator.jpg", creatorDTO.getAvatar());
+        assertTrue(creatorDTO.isReal());
+ 
+        // Member: also has fullname
+        var memberDTO = result.getMembers().stream()
+                .filter(m -> m.getId().equals(2)).findFirst().orElseThrow();
+        assertEquals("Member User", memberDTO.getName());
+        assertEquals("MEMBER", memberDTO.getRole());
+    }
+ 
+    @Test
+    void getGroupDetails_MemberWithNullFullname_FallsBackToUsername() {
+        member.setFullname(null); // force the username fallback branch
+ 
+        when(groupRepository.findById(10)).thenReturn(Optional.of(group));
+        when(eventRepository.findByGroupId(10)).thenReturn(List.of());
+ 
+        GroupDetailDTO result = groupService.getGroupDetails(10, 1, null);
+ 
+        var memberDTO = result.getMembers().stream()
+                .filter(m -> m.getId().equals(2)).findFirst().orElseThrow();
+        assertEquals("member", memberDTO.getName(),
+                "When fullname is null the username should be used as the display name");
+    }
+ 
+    @Test
+    void getGroupDetails_GroupNotFound_Throws() {
+        when(groupRepository.findById(999)).thenReturn(Optional.empty());
+ 
+        assertThrows(RuntimeException.class, () ->
+                groupService.getGroupDetails(999, 1, null));
+    }
+ 
+    @Test
+    void getGroupDetails_NoEvents_ReturnsEmptyEventList() {
+        when(groupRepository.findById(10)).thenReturn(Optional.of(group));
+        when(eventRepository.findByGroupId(10)).thenReturn(List.of());
+ 
+        GroupDetailDTO result = groupService.getGroupDetails(10, 1, null);
+ 
+        assertNotNull(result.getEvents());
+        assertTrue(result.getEvents().isEmpty());
+    }
+ 
+    @Test
+    void getGroupDetails_GroupName_PresentInResult() {
+        when(groupRepository.findById(10)).thenReturn(Optional.of(group));
+        when(eventRepository.findByGroupId(10)).thenReturn(List.of());
+ 
+        GroupDetailDTO result = groupService.getGroupDetails(10, 1, null);
+ 
+        assertEquals("Test Group", result.getName());
+        assertEquals("https://example.com/group.jpg", result.getImgLink());
+    }
+ 
+    // -------------------------------------------------------------------------
+    // leaveGroup
+    // -------------------------------------------------------------------------
+ 
+    @Test
+    void leaveGroup_RemovesMemberAndSaves() {
+        when(groupRepository.findById(10)).thenReturn(Optional.of(group));
+ 
+        groupService.leaveGroup(10, 2); // member leaves
+ 
+        boolean memberStillPresent = group.getMembers().stream()
+                .anyMatch(m -> m.getUser().getId().equals(2));
+ 
+        assertFalse(memberStillPresent, "User 2 should have been removed from the group");
+        verify(groupRepository).save(group);
+    }
+ 
+    @Test
+    void leaveGroup_CreatorLeaves_OnlyCreatorRemoved() {
+        when(groupRepository.findById(10)).thenReturn(Optional.of(group));
+ 
+        groupService.leaveGroup(10, 1); // creator leaves
+ 
+        assertEquals(1, group.getMembers().size());
+        assertEquals(2, group.getMembers().get(0).getUser().getId());
+        verify(groupRepository).save(group);
+    }
+ 
+    @Test
+    void leaveGroup_UserNotInGroup_NoChangeAndSaves() {
+        // User 99 is not a member — removeIf finds nothing, but save still called
+        when(groupRepository.findById(10)).thenReturn(Optional.of(group));
+ 
+        groupService.leaveGroup(10, 99);
+ 
+        assertEquals(2, group.getMembers().size(), "Member list should be unchanged");
+        verify(groupRepository).save(group);
+    }
+ 
+    @Test
+    void leaveGroup_GroupNotFound_Throws() {
+        when(groupRepository.findById(999)).thenReturn(Optional.empty());
+ 
+        assertThrows(RuntimeException.class, () ->
+                groupService.leaveGroup(999, 1));
+ 
+        verify(groupRepository, never()).save(any());
     }
 }

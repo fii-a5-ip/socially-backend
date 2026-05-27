@@ -1,0 +1,214 @@
+package com.soccialy.backend.service;
+
+import com.soccialy.backend.entity.Group;
+import com.soccialy.backend.entity.GroupMember;
+import com.soccialy.backend.entity.Notification;
+import com.soccialy.backend.entity.User;
+import com.soccialy.backend.mapper.NotificationMapper;
+import com.soccialy.backend.repository.GroupRepository;
+import com.soccialy.backend.repository.NotificationRepository;
+import com.soccialy.backend.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+/**
+   Nu am sa mint, asta este 100% slop
+ */
+class NotificationServiceTestElectricBoogaloo {
+
+    @Mock private NotificationRepository notificationRepository;
+    @Mock private NotificationMapper     notificationMapper;
+    @Mock private GroupRepository        groupRepository;
+    @Mock private UserRepository         userRepository;
+
+    @InjectMocks
+    private NotificationService notificationService;
+
+    private User actor;
+    private User recipient;
+    private Group group;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+
+        actor = User.builder().id(1).username("ana").build();
+        recipient = User.builder().id(2).username("bob").build();
+
+        group = Group.builder()
+                .id(3)
+                .name("Board Games")
+                .creator(actor)
+                .members(new ArrayList<>()) 
+                .build();
+
+        group.getMembers().add(GroupMember.builder()
+                .id(1).user(actor).group(group).role("ADMIN").build());
+    }
+
+    // -------------------------------------------------------------------------
+    // createGroupInvite — guard clauses
+    // -------------------------------------------------------------------------
+
+    @Test
+    void createGroupInvite_SelfInvite_Throws() {
+        when(groupRepository.findById(3)).thenReturn(Optional.of(group));
+        when(userRepository.findById(1)).thenReturn(Optional.of(actor));
+
+        // recipient == actor (same id = 1)
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                notificationService.createGroupInvite(3, 1, 1));
+
+        assertTrue(ex.getMessage().contains("cannot invite yourself"));
+        verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void createGroupInvite_ActorNotInGroup_Throws() {
+        User outsider = User.builder().id(99).username("outsider").build();
+
+        when(groupRepository.findById(3)).thenReturn(Optional.of(group));
+        when(userRepository.findById(2)).thenReturn(Optional.of(recipient));
+        when(userRepository.findById(99)).thenReturn(Optional.of(outsider));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                notificationService.createGroupInvite(3, 2, 99));
+
+        assertTrue(ex.getMessage().contains("do not belong to this group"));
+        verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void createGroupInvite_RecipientAlreadyMember_Throws() {
+        // Add recipient to the group so they are already a member
+        group.getMembers().add(GroupMember.builder()
+                .id(2).user(recipient).group(group).role("MEMBER").build());
+
+        when(groupRepository.findById(3)).thenReturn(Optional.of(group));
+        when(userRepository.findById(2)).thenReturn(Optional.of(recipient));
+        when(userRepository.findById(1)).thenReturn(Optional.of(actor));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                notificationService.createGroupInvite(3, 2, 1));
+
+        assertTrue(ex.getMessage().contains("already a group member"));
+        verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void createGroupInvite_GroupNotFound_Throws() {
+        when(groupRepository.findById(999)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () ->
+                notificationService.createGroupInvite(999, 2, 1));
+
+        verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void createGroupInvite_RecipientNotFound_Throws() {
+        when(groupRepository.findById(3)).thenReturn(Optional.of(group));
+        when(userRepository.findById(999)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () ->
+                notificationService.createGroupInvite(3, 999, 1));
+
+        verify(notificationRepository, never()).save(any());
+    }
+
+    // -------------------------------------------------------------------------
+    // acceptGroupInvite / declineGroupInvite — wrong notification type
+    // -------------------------------------------------------------------------
+
+    @Test
+    void acceptGroupInvite_WrongType_Throws() {
+        Notification wrongType = Notification.builder()
+                .id(10).recipientUserId(2)
+                .type("REMINDER")          // not GROUP_INVITE
+                .referenceType("GROUP")
+                .referenceId(3)
+                .build();
+
+        when(notificationRepository.findById(10)).thenReturn(Optional.of(wrongType));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                notificationService.acceptGroupInvite(10, 2));
+
+        verify(groupRepository, never()).findById(any());
+    }
+
+    @Test
+    void acceptGroupInvite_WrongReferenceType_Throws() {
+        Notification wrongRef = Notification.builder()
+                .id(11).recipientUserId(2)
+                .type("GROUP_INVITE")
+                .referenceType("EVENT")    // not GROUP
+                .referenceId(3)
+                .build();
+
+        when(notificationRepository.findById(11)).thenReturn(Optional.of(wrongRef));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                notificationService.acceptGroupInvite(11, 2));
+
+        verify(groupRepository, never()).findById(any());
+    }
+
+    @Test
+    void acceptGroupInvite_NullReferenceId_Throws() {
+        Notification noRef = Notification.builder()
+                .id(12).recipientUserId(2)
+                .type("GROUP_INVITE")
+                .referenceType("GROUP")
+                .referenceId(null)          // missing reference
+                .build();
+
+        when(notificationRepository.findById(12)).thenReturn(Optional.of(noRef));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                notificationService.acceptGroupInvite(12, 2));
+    }
+
+    @Test
+    void declineGroupInvite_WrongType_Throws() {
+        Notification wrongType = Notification.builder()
+                .id(20).recipientUserId(2)
+                .type("SYSTEM_UPDATE")
+                .referenceType("GROUP")
+                .referenceId(3)
+                .build();
+
+        when(notificationRepository.findById(20)).thenReturn(Optional.of(wrongType));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                notificationService.declineGroupInvite(20, 2));
+
+        verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void declineGroupInvite_NotOwner_Throws() {
+        Notification invite = Notification.builder()
+                .id(21).recipientUserId(2)  // owned by user 2
+                .type("GROUP_INVITE")
+                .referenceType("GROUP")
+                .referenceId(3)
+                .build();
+
+        when(notificationRepository.findById(21)).thenReturn(Optional.of(invite));
+
+        // user 99 tries to decline someone else's notification
+        assertThrows(IllegalArgumentException.class, () ->
+                notificationService.declineGroupInvite(21, 99));
+
+        verify(notificationRepository, never()).save(any());
+    }
+}

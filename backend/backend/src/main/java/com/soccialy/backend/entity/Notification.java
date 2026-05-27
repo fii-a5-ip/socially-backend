@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notifications")
+@Table(name = "notificationsv2")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,9 +22,9 @@ public class Notification {
     @Column(name = "person_user_id") 
     private Integer actorUserId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private NotificationType type;
+
+    @Column(nullable = false, length = 50)
+    private String type;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
@@ -47,6 +47,8 @@ public class Notification {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+
+
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {
@@ -54,8 +56,9 @@ public class Notification {
         }
     }
 
+    @Column(length = 255)
     private String actions;
 
-    @Column(name = "external_link")
+    @Column(name = "external_link", length = 2048)
     private String externalLink;
 }

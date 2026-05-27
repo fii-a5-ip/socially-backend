@@ -2,7 +2,6 @@ package com.soccialy.backend.mapper;
 
 import com.soccialy.backend.dto.NotificationDTO;
 import com.soccialy.backend.entity.Notification;
-import com.soccialy.backend.entity.NotificationType;
 import com.soccialy.backend.entity.User;
 import com.soccialy.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,11 +41,13 @@ class NotificationMapperTest {
         actor.setUsername("john_doe");
         actor.setProfileImgUrl("https://example.com/avatar.jpg");
 
+
+        //pentru momentan coloanele "column_name" asi "column_id" vor fi initializate ca null
         Notification notification = Notification.builder()
                 .id(1)
                 .recipientUserId(10)
                 .actorUserId(5)
-                .type(NotificationType.GROUP_INVITE)
+                .type("GROUP_INVITE")
                 .message("You were invited")
                 .referenceId(100)
                 .referenceType("GROUP")
@@ -76,7 +77,7 @@ class NotificationMapperTest {
                 .id(2)
                 .recipientUserId(10)
                 .actorUserId(null)
-                .type(NotificationType.SYSTEM_UPDATE)
+                .type("SYSTEM_UPDATE")
                 .message("System update")
                 .isRead(true)
                 .createdAt(LocalDateTime.now())
@@ -98,7 +99,7 @@ class NotificationMapperTest {
                 .id(3)
                 .recipientUserId(10)
                 .actorUserId(999)
-                .type(NotificationType.MESSAGE)
+                .type("MESSAGE")
                 .message("Hello")
                 .createdAt(LocalDateTime.now())
                 .build();
