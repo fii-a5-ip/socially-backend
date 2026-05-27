@@ -26,4 +26,5 @@ public class EventResponseDTO {
     private List<FilterDTO> filters;
     private WeatherDTO weather;
     private Double distance;
+    private Boolean isJoined;
 }

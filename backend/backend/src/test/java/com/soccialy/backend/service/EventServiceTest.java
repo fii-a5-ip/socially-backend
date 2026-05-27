@@ -796,6 +796,21 @@ void testJoinEvent_AlreadyJoined_DoesNotSave() {
 }
 
 @Test
+void testGetEventById_WhenCurrentUserIsParticipant_ReturnsJoinedTrue() {
+    User creator = buildUser(60003);
+    User participant = buildUser(1);
+    Event event = buildStoredEvent(20, creator, buildLocation(10), List.of());
+    event.setParticipants(new ArrayList<>(List.of(participant)));
+
+    when(eventRepository.findById(20)).thenReturn(Optional.of(event));
+    when(currentUserService.getCurrentUserId()).thenReturn(1);
+
+    EventResponseDTO result = eventService.getEventById(20);
+
+    assertEquals(Boolean.TRUE, result.getIsJoined());
+}
+
+@Test
 void testRegisterVote_Poate() {
     User user = buildUser(1);
     Event event = new Event();
