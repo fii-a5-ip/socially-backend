@@ -467,7 +467,7 @@ public class EventService {
     }
 
     private boolean isParticipant(Event event, Integer userId) {
-        if (event == null || userId == null || event.getParticipants() == null) {
+        if (userId == null || event.getParticipants() == null) {
             return false;
         }
 
