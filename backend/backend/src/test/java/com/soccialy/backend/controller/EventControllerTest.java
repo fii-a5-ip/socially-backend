@@ -3,17 +3,23 @@ package com.soccialy.backend.controller;
 import com.soccialy.backend.dto.EventResponseDTO;
 import com.soccialy.backend.dto.EventSearchFieldsDTO;
 import com.soccialy.backend.dto.EventDiscoverFieldsDTO;
+import com.soccialy.backend.dto.WeatherDTO;
 import com.soccialy.backend.service.EventService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -28,6 +34,9 @@ class EventControllerTest {
 
     @MockitoBean
     private EventService eventService;
+
+    @InjectMocks
+    private EventController eventController;
 
     @Test
     @org.springframework.security.test.context.support.WithMockUser
@@ -90,5 +99,29 @@ class EventControllerTest {
                         .param("maxDays", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Discovery Event"));
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser
+    void checkWeatherForCreation_ValidData_Returns200() throws Exception {
+        com.soccialy.backend.dto.WeatherDTO mockWeather = new com.soccialy.backend.dto.WeatherDTO();
+
+        when(eventService.getWeatherForLocationAndDate(eq(1), any(LocalDateTime.class))).thenReturn(mockWeather);
+
+        mockMvc.perform(get("/api/events/weather-check")
+                        .param("locationId", "1")
+                        .param("date", LocalDateTime.now().toString()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser
+    void checkWeatherForCreation_NoWeatherFound_Returns204() throws Exception {
+        when(eventService.getWeatherForLocationAndDate(anyInt(), any(LocalDateTime.class))).thenReturn(null);
+
+        mockMvc.perform(get("/api/events/weather-check")
+                        .param("locationId", "1")
+                        .param("date", LocalDateTime.now().toString()))
+                .andExpect(status().isNoContent());
     }
 }
