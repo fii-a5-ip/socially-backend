@@ -148,6 +148,15 @@ public class EventController {
         return ResponseEntity.ok(eventService.getSavedEvents(userId));
     }
 
+    @GetMapping("/registered")
+    public ResponseEntity<List<EventResponseDTO>> getRegisteredEvents(@AuthenticationPrincipal Object principal) {
+        String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)
+                ? ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername()
+                : principal.toString();
+        Integer userId = Integer.parseInt(currentUserIdStr);
+        return ResponseEntity.ok(eventService.getRegisteredEvents(userId));
+    }
+
     @PostMapping("/reset-dislikes")
     public ResponseEntity<Void> resetDislikes(@AuthenticationPrincipal Object principal) {
         String currentUserIdStr = (principal instanceof org.springframework.security.core.userdetails.UserDetails)

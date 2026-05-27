@@ -157,6 +157,12 @@ public class EventService {
                 .toList();
     }
 
+    public List<EventResponseDTO> getRegisteredEvents(Integer userId) {
+        return eventRepository.findByParticipantsId(userId).stream()
+                .map(event -> toResponseDTOWithRegistration(event, userId))
+                .toList();
+    }
+
     public EventResponseDTO createEvent(EventRequestDTO requestDTO) {
         Integer currentUserId = currentUserService.getCurrentUserId();
         User creator = userRepository.findById(currentUserId)

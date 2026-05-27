@@ -1220,4 +1220,19 @@ void testSortEvents_WithSearchString_TextScoringApplied() {
             org.springframework.test.util.ReflectionTestUtils.setField(eventService, "eventMapper", originalMapper);
         }
     }
+
+    @Test
+    void testGetRegisteredEvents_ReturnsRegisteredEvents() {
+        User user = buildUser(1);
+        Event event = buildStoredEvent(10, user, buildLocation(1), List.of());
+        event.setParticipants(new ArrayList<>(List.of(user)));
+
+        when(eventRepository.findByParticipantsId(1)).thenReturn(List.of(event));
+
+        List<EventResponseDTO> result = eventService.getRegisteredEvents(1);
+
+        assertEquals(1, result.size());
+        assertEquals(10, result.get(0).getId());
+        assertEquals(Boolean.TRUE, result.get(0).getIsJoined());
+    }
 }
