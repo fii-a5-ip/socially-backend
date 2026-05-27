@@ -34,27 +34,6 @@ public class AiService {
         this.baseUrl = baseUrl;
     }
 
-    public Map<String, Object> processOnboarding(Map<String, Object> payload) {
-        String fullUrl = this.baseUrl + "/api/onboardingProcess/";
-        try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-
-            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    fullUrl,
-                    HttpMethod.POST,
-                    request,
-                    new ParameterizedTypeReference<Map<String, Object>>() {}
-            );
-
-            return response.getBody();
-        } catch (Exception e) {
-            log.error("AI Onboarding Error: {}", e.getMessage());
-            return Map.of("error", e.getMessage());
-        }
-    }
-
     public List<Integer> getSearchFilters(String searchString) {
         if (searchString == null || searchString.isBlank()) {
             return List.of();
