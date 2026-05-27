@@ -48,6 +48,8 @@ public class NotificationMapper {
 
                 .columnName(notification.getColumnName())
                 .columnId(notification.getColumnId())
+                .actions(notification.getActions())
+                .externalLink(notification.getExternalLink())
 
                 .username(user != null ? user.getUsername() : null)
                 .profileImageUrl(user != null ? user.getProfileImgUrl() : null)
