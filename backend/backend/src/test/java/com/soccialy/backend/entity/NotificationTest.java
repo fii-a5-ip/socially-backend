@@ -92,8 +92,10 @@ class NotificationTest {
     @Test
     void testAllArgsConstructor() {
         LocalDateTime now = LocalDateTime.now();
+
+        // REPARAT: Am adăugat "colName" și "colId" la pozițiile 8 și 9
         Notification notification = new Notification(
-                1, 10, 5, NotificationType.SYSTEM_UPDATE, "System Msg", 99, "SYS", true, now, "none", "url"
+                1, 10, 5, NotificationType.SYSTEM_UPDATE, "System Msg", 99, "SYS", "colName", "colId", true, now, "none", "url"
         );
 
         assertEquals(1, notification.getId());
@@ -103,6 +105,11 @@ class NotificationTest {
         assertEquals("System Msg", notification.getMessage());
         assertEquals(99, notification.getReferenceId());
         assertEquals("SYS", notification.getReferenceType());
+
+        // Verificăm și noile câmpuri adăugate
+        assertEquals("colName", notification.getColumnName());
+        assertEquals("colId", notification.getColumnId());
+
         assertTrue(notification.isRead());
         assertEquals(now, notification.getCreatedAt());
         assertEquals("none", notification.getActions());
@@ -112,9 +119,11 @@ class NotificationTest {
     @Test
     void testEqualsAndHashCode() {
         LocalDateTime now = LocalDateTime.now();
-        Notification n1 = new Notification(1, 10, 5, NotificationType.SYSTEM_UPDATE, "Msg", 99, "SYS", true, now, "none", "url");
-        Notification n2 = new Notification(1, 10, 5, NotificationType.SYSTEM_UPDATE, "Msg", 99, "SYS", true, now, "none", "url");
-        Notification n3 = new Notification(2, 10, 5, NotificationType.SYSTEM_UPDATE, "Msg", 99, "SYS", true, now, "none", "url");
+
+        // REPARAT: Am adăugat aceiași doi parametri ("colName", "colId") pentru a respecta noul constructor
+        Notification n1 = new Notification(1, 10, 5, NotificationType.SYSTEM_UPDATE, "Msg", 99, "SYS", "colName", "colId", true, now, "none", "url");
+        Notification n2 = new Notification(1, 10, 5, NotificationType.SYSTEM_UPDATE, "Msg", 99, "SYS", "colName", "colId", true, now, "none", "url");
+        Notification n3 = new Notification(2, 10, 5, NotificationType.SYSTEM_UPDATE, "Msg", 99, "SYS", "colName", "colId", true, now, "none", "url");
 
         assertEquals(n1, n2);
         assertEquals(n1.hashCode(), n2.hashCode());

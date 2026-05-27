@@ -26,6 +26,11 @@ public class NotificationDTO {
 
     private String referenceType;
 
+    private String columnName;
+    private String columnId;
+    private String actions;
+    private String externalLink;
+
     private Boolean read;
 
     private LocalDateTime createdAt;
