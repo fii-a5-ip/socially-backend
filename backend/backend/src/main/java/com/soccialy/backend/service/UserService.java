@@ -78,6 +78,10 @@ public class UserService {
             user.setEmail(updateDTO.getEmail());
         }
 
+        if (updateDTO.getFullname() != null) {
+            user.setFullname(updateDTO.getFullname());
+        }
+
         if (updateDTO.getBio() != null) {
             user.setBio(updateDTO.getBio());
         }
