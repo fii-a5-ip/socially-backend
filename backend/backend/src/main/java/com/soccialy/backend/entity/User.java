@@ -36,7 +36,7 @@ public class User {
     @Column(unique = true, length = 255)
     private String googleId;
 
-    @Column(name = "profile_img_url", columnDefinition = "LONGTEXT")
+    @Column(name = "profile_img_url", length = 2048)
     private String profileImgUrl;
 
 
