@@ -2,6 +2,7 @@ package com.soccialy.backend.controller;
 
 import com.soccialy.backend.dto.FilterDTO;
 import com.soccialy.backend.dto.UpdateUserDTO;
+import com.soccialy.backend.dto.HistoryEventDTO;
 import com.soccialy.backend.dto.UserDTO;
 import com.soccialy.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,13 @@ public class UserController {
     public ResponseEntity<UserDTO> getMe(@AuthenticationPrincipal Object principal) {
         UserDTO user = findCurrentUser(principal);
         return ResponseEntity.ok(user);
+    }
+
+    // GET /api/users/me/history - history of user's events
+    @GetMapping("/me/history")
+    public ResponseEntity<List<HistoryEventDTO>> getMyHistory(@AuthenticationPrincipal Object principal) {
+        UserDTO user = findCurrentUser(principal);
+        return ResponseEntity.ok(userService.getUserHistory(user.getId()));
     }
 
     // GET /api/users/{id} — profil dupa ID
@@ -121,3 +129,4 @@ public class UserController {
         throw new IllegalStateException("No authenticated user found");
     }
 }
+
