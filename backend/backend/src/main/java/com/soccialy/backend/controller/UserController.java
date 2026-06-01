@@ -2,6 +2,7 @@ package com.soccialy.backend.controller;
 
 import com.soccialy.backend.dto.FilterDTO;
 import com.soccialy.backend.dto.UpdateUserDTO;
+import com.soccialy.backend.dto.HistoryEventDTO;
 import com.soccialy.backend.dto.UserDTO;
 import com.soccialy.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,13 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+    // GET /api/users/me/history - history of user's events
+    @GetMapping("/me/history")
+    public ResponseEntity<List<HistoryEventDTO>> getMyHistory(@AuthenticationPrincipal Object principal) {
+        UserDTO user = findCurrentUser(principal);
+        return ResponseEntity.ok(userService.getUserHistory(user.getId()));
+    }
+
     // GET /api/users/{id} — profil dupa ID
     @GetMapping("/{id}")
     public ResponseEntity<UserDTO> getById(@PathVariable Integer id) {
@@ -67,6 +75,26 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserDTO> create(@RequestBody UserDTO userDTO) {
         return ResponseEntity.ok(userService.saveUser(userDTO));
+    }
+
+    // POST /api/users/me/avatar — update avatar image
+    @PostMapping("/me/avatar")
+    public ResponseEntity<UserDTO> uploadAvatar(
+            @AuthenticationPrincipal Object principal,
+            @org.springframework.web.bind.annotation.RequestParam("avatar") org.springframework.web.multipart.MultipartFile file) {
+        try {
+            String base64Image = java.util.Base64.getEncoder().encodeToString(file.getBytes());
+            String mimeType = file.getContentType();
+            String prefix = "data:" + (mimeType != null ? mimeType : "image/jpeg") + ";base64,";
+
+            UpdateUserDTO updateDTO = new UpdateUserDTO();
+            updateDTO.setProfileImgUrl(prefix + base64Image);
+
+            UserDTO updated = updateCurrentUser(principal, updateDTO);
+            return ResponseEntity.ok(updated);
+        } catch (java.io.IOException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     private UserDTO findCurrentUser(Object principal) {
@@ -101,3 +129,4 @@ public class UserController {
         throw new IllegalStateException("No authenticated user found");
     }
 }
+

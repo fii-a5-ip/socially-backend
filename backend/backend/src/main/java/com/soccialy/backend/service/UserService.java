@@ -16,6 +16,11 @@ import org.springframework.stereotype.Service;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Comparator;
+
+import com.soccialy.backend.dto.HistoryEventDTO;
+import com.soccialy.backend.repository.EventRepository;
+import com.soccialy.backend.entity.Event;
 
 @Service
 public class UserService {
@@ -30,7 +35,35 @@ public class UserService {
     private FilterRepository filterRepository;
 
     @Autowired
+    private EventRepository eventRepository;
+
+    @Autowired
     private UserMapper userMapper;
+
+    public List<HistoryEventDTO> getUserHistory(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND_WITH_ID + userId));
+
+        List<Event> createdEvents = eventRepository.findByCreatorId(user.getId());
+        List<Event> joinedEvents = eventRepository.findByParticipantsId(user.getId());
+
+        Set<Event> allEvents = new HashSet<>();
+        allEvents.addAll(createdEvents);
+        allEvents.addAll(joinedEvents);
+
+        return allEvents.stream()
+                .sorted(Comparator.comparing(Event::getScheduledDate).reversed()) // Newest first
+                .map(event -> HistoryEventDTO.builder()
+                        .id(event.getId().longValue())
+                        .name(event.getName())
+                        .date(event.getScheduledDate() != null ? event.getScheduledDate().toLocalDate().toString() : "")
+                        .time(event.getScheduledDate() != null ? event.getScheduledDate().toLocalTime().toString() : "")
+                        .locationName(event.getLocation() != null ? event.getLocation().getName() : "")
+                        .imageUrl(event.getUrl())
+                        .role(createdEvents.contains(event) ? "ORGANIZER" : "PARTICIPANT")
+                        .build())
+                .toList();
+    }
 
     public List<UserDTO> findAllUsers() {
         return userRepository.findAll().stream()
@@ -78,8 +111,16 @@ public class UserService {
             user.setEmail(updateDTO.getEmail());
         }
 
+        if (updateDTO.getFullname() != null) {
+            user.setFullname(updateDTO.getFullname());
+        }
+
         if (updateDTO.getBio() != null) {
             user.setBio(updateDTO.getBio());
+        }
+
+        if (updateDTO.getProfileImgUrl() != null) {
+            user.setProfileImgUrl(updateDTO.getProfileImgUrl());
         }
 
         if (updateDTO.getFilterIds() != null) {
