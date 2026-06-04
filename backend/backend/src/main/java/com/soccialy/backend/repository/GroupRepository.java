@@ -2,6 +2,7 @@ package com.soccialy.backend.repository;
 
 import com.soccialy.backend.entity.Group;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,6 +15,7 @@ public interface GroupRepository extends JpaRepository<Group, Integer> {
     Optional<Group> findByName(String name);
     List<Group> findByNameContainingIgnoreCase(String keyword);
 
+    @EntityGraph(attributePaths = {"members"})
     @Query("SELECT gu.group FROM GroupUser gu WHERE gu.user.id = :userId")
     List<Group> findGroupsByUserId(@Param("userId") Integer userId);
 

@@ -27,4 +27,5 @@ public class EventResponseDTO {
     private WeatherDTO weather;
     private Double distance;
     private Boolean isJoined;
+    private Boolean isExactMatch;
 }

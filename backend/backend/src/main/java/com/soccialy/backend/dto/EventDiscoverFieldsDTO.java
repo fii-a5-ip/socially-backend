@@ -18,4 +18,6 @@ public class EventDiscoverFieldsDTO {
 
     private BigDecimal lat;
     private BigDecimal lng;
+    private String query;
+    private Integer offset;
 }

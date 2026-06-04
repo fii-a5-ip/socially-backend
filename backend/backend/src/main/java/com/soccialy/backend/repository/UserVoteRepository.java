@@ -12,6 +12,7 @@ public interface UserVoteRepository extends JpaRepository<UserVote, Integer> {
     Optional<UserVote> findByUserIdAndEventId(Integer userId, Integer eventId);
     int countByEventIdAndVote(Integer eventId, Integer vote);
     
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"event", "event.location", "event.creator", "event.group", "event.participants"})
     List<UserVote> findByUserId(Integer userId);
     void deleteByUserIdAndVote(Integer userId, Integer vote);
     void deleteByUserId(Integer userId);
