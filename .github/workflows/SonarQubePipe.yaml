@@ -64,34 +64,9 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.0 # Folosim versiunea care merge sigur la voi
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user 
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            # 1. Autentificare ECR pe serverul EC2
-            aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
-            
-            # 2. Tragerea celei mai noi imagini
-            docker pull ${{ steps.login-ecr.outputs.registry }}/backend-core:latest
-            
-            # 3. Crearea fisierului .env pentru Spring
-            mkdir -p ~/spring-app
-            cd ~/spring-app
-            
-            # Folosim GHILIMELE SIMPLE ('') obligatoriu, altfel caracterele din parola rup bash-ul
-            echo 'DB_URL=${{ secrets.DB_URL }}' > .env
-            echo 'DB_USER=${{ secrets.DB_USER }}' >> .env
-            echo 'DB_PASS=${{ secrets.DB_PASS }}' >> .env
-            echo 'GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}' >> .env
-            echo 'JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}' >> .env
-            echo 'AI_API_URL=${{ secrets.AI_API_URL }}' >> .env
-            
-            # 4. Oprirea și ștergerea containerului vechi
-            docker stop java-backend || true
-            docker rm java-backend || true
-            
-            # 5. Pornirea noului container citind din fisierul .env
-            docker run -d --name java-backend --network retea-proiect --env-file .env ${{ steps.login-ecr.outputs.registry }}/backend-core:latest
+      - name: Trigger ASG Instance Refresh
+        run: |
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name java-auto-scaling \
+            --region eu-west-1 \
+            --preferences '{"MinHealthyPercentage": 50, "InstanceWarmup": 300}'
