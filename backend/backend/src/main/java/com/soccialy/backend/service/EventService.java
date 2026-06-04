@@ -275,11 +275,28 @@ public class EventService {
 
         String safeSearchString = (fields.getQuery() != null) ? fields.getQuery().trim() : "";
 
-        List<Event> candidates = eventRepository.findUpcomingEventsForDiscovery(timeOfSearch);
-
         List<Integer> votedEventIds = userVoteRepository.findByUserId(userId).stream()
                 .map(v -> v.getEvent().getId())
                 .toList();
+
+        List<Event> candidates;
+        if (!safeSearchString.isEmpty()) {
+            String[] keywords = safeSearchString.toLowerCase().split("\\s+");
+            java.util.Set<String> stopWords = java.util.Set.of("un", "o", "si", "sa", "de", "la", "din", "cu", "pe", "in", "vreau", "as", "vrea", "imi", "place", "faina", "frumos", "bine", "unde", "undeva", "ceva", "caut", "vreun");
+            List<String> validKeywords = java.util.Arrays.stream(keywords)
+                .filter(kw -> !kw.isBlank() && kw.length() > 2 && !stopWords.contains(kw))
+                .toList();
+            
+            if (!validKeywords.isEmpty() || !aiFilters.isEmpty()) {
+                String regex = validKeywords.isEmpty() ? "a^" : String.join("|", validKeywords); // "a^" never matches anything
+                List<Integer> filtersParam = aiFilters.isEmpty() ? java.util.List.of(-1) : aiFilters;
+                candidates = eventRepository.searchByRegexOrFilters(regex, filtersParam, timeOfSearch);
+            } else {
+                candidates = votedEventIds.isEmpty() ? eventRepository.findUpcomingEventsForDiscovery(timeOfSearch) : eventRepository.findUnvotedUpcomingEvents(timeOfSearch, votedEventIds);
+            }
+        } else {
+            candidates = votedEventIds.isEmpty() ? eventRepository.findUpcomingEventsForDiscovery(timeOfSearch) : eventRepository.findUnvotedUpcomingEvents(timeOfSearch, votedEventIds);
+        }
 
         return processAndSortCandidates(candidates, userId, userFilters, uiFilters, aiFilters, timeOfSearch, fields, votedEventIds, safeSearchString, false);
     }
@@ -366,12 +383,47 @@ public class EventService {
 
         candidates.sort((o1, o2) -> Double.compare(calculateCompoundScore(o2, context), calculateCompoundScore(o1, context)));
 
-        return candidates.stream().limit(20).map(event -> {
+        int offset = (fields.getOffset() != null) ? fields.getOffset() : 0;
+
+        return candidates.stream().skip(offset).limit(10).map(event -> {
             EventResponseDTO dto = toResponseDTOWithRegistration(event, userId);
             if (event.getLocation() != null && context.distancesMap().containsKey(event.getLocation().getId())) {
                 dto.setDistance(context.distancesMap().get(event.getLocation().getId()));
             }
-            attachWeatherToDTO(dto, event.getLocation(), event.getScheduledDate());
+            
+            boolean isExactMatch = true;
+            if (context.searchString() != null && !context.searchString().trim().isEmpty()) {
+                List<Integer> finalFilterIds = new ArrayList<>();
+                if (event.getFilterIds() != null) finalFilterIds.addAll(event.getFilterIds());
+                if (event.getLocation() != null) {
+                    List<Integer> lf = context.locationFiltersMap().get(event.getLocation().getId());
+                    if (lf != null) finalFilterIds.addAll(lf);
+                }
+                
+                boolean aiMatched = false;
+                if (context.aiFilters() != null && !context.aiFilters().isEmpty()) {
+                    aiMatched = finalFilterIds.stream().anyMatch(context.aiFilters()::contains);
+                }
+                
+                String lowerSearch = context.searchString().toLowerCase();
+                String[] keywords = lowerSearch.split("\\s+");
+                java.util.Set<String> stopWords = java.util.Set.of("un", "o", "si", "sa", "de", "la", "din", "cu", "pe", "in", "vreau", "as", "vrea", "imi", "place", "faina", "frumos", "bine", "unde", "undeva", "ceva", "caut", "vreun");
+                String eventName = event.getName() != null ? event.getName().toLowerCase() : "";
+                String eventDesc = event.getDesc() != null ? event.getDesc().toLowerCase() : "";
+                boolean textMatched = false;
+                for (String kw : keywords) {
+                    if (!kw.isBlank() && kw.length() > 2 && !stopWords.contains(kw)) {
+                        if (eventName.contains(kw) || eventDesc.contains(kw)) {
+                            textMatched = true;
+                            break;
+                        }
+                    }
+                }
+                isExactMatch = aiMatched || textMatched;
+            }
+            dto.setIsExactMatch(isExactMatch);
+            
+            // Weather check removed from search pipeline to prevent API bottleneck
             return dto;
         }).toList();
     }
@@ -447,7 +499,14 @@ public class EventService {
 
         double wAiScore, wTextScore, wEventScore, wLocationScore, wTimeScore;
         if (ctx.searchString() != null && !ctx.searchString().isEmpty()) {
-            wAiScore = 0.40; wTextScore = 0.30; wLocationScore = 0.15; wEventScore = 0.10; wTimeScore = 0.05;
+            if (textScore > 0) {
+                // Dacă avem literal un cuvânt cheie (ex. "sushi"), îi dăm o pondere masivă ca să bată potrivirile AI generice
+                wTextScore = 0.60; wAiScore = 0.20; wLocationScore = 0.10; wEventScore = 0.05; wTimeScore = 0.05;
+                // De asemenea, dacă a nimerit măcar un cuvânt, îi forțăm un scor minim de 0.5 la textScore ca să nu fie depunctat prea tare de restul cuvintelor inutile din query
+                textScore = Math.max(textScore, 0.5);
+            } else {
+                wAiScore = 0.40; wTextScore = 0.0; wLocationScore = 0.30; wEventScore = 0.20; wTimeScore = 0.10;
+            }
         } else {
             wAiScore = 0.40; wLocationScore = 0.30; wEventScore = 0.25; wTimeScore = 0.05; wTextScore = 0.00;
         }
