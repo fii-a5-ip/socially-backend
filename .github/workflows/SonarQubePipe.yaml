@@ -28,7 +28,7 @@ jobs:
 
       - name: Build and SonarQube Scan
         # Folosim comanda de Maven din pipeline-ul tău original de Spring
-        run: mvn clean verify sonar:sonar -Dsonar.organization=fii-a5-ip -Dsonar.projectKey=fii-a5-ip_socially-backend
+        run: mvn clean verify sonar:sonar -Dsonar.organization=fii-a5-ip -Dsonar.projectKey=fii-a5-ip_socially-backend -Dsonar.scanner.skipJreProvisioning=true
         working-directory: backend/backend # Ne asigurăm că rulăm mvn în folderul corect
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
