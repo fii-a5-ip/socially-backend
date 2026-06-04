@@ -385,7 +385,7 @@ public class EventService {
 
         int offset = (fields.getOffset() != null) ? fields.getOffset() : 0;
 
-        return candidates.stream().skip(offset).limit(10).map(event -> {
+        return candidates.stream().skip(offset).limit(5).map(event -> {
             EventResponseDTO dto = toResponseDTOWithRegistration(event, userId);
             if (event.getLocation() != null && context.distancesMap().containsKey(event.getLocation().getId())) {
                 dto.setDistance(context.distancesMap().get(event.getLocation().getId()));
@@ -419,7 +419,7 @@ public class EventService {
                         }
                     }
                 }
-                isExactMatch = aiMatched || textMatched;
+                isExactMatch = textMatched;
             }
             dto.setIsExactMatch(isExactMatch);
             
@@ -499,16 +499,17 @@ public class EventService {
 
         double wAiScore, wTextScore, wEventScore, wLocationScore, wTimeScore;
         if (ctx.searchString() != null && !ctx.searchString().isEmpty()) {
-            if (textScore > 0) {
-                // Dacă avem literal un cuvânt cheie (ex. "sushi"), îi dăm o pondere masivă ca să bată potrivirile AI generice
-                wTextScore = 0.60; wAiScore = 0.20; wLocationScore = 0.10; wEventScore = 0.05; wTimeScore = 0.05;
-                // De asemenea, dacă a nimerit măcar un cuvânt, îi forțăm un scor minim de 0.5 la textScore ca să nu fie depunctat prea tare de restul cuvintelor inutile din query
-                textScore = Math.max(textScore, 0.5);
-            } else {
-                wAiScore = 0.40; wTextScore = 0.0; wLocationScore = 0.30; wEventScore = 0.20; wTimeScore = 0.10;
-            }
+            wAiScore = 0.40;
+            wTextScore = 0.30;
+            wLocationScore = 0.15;
+            wEventScore = 0.10;
+            wTimeScore = 0.05;
         } else {
-            wAiScore = 0.40; wLocationScore = 0.30; wEventScore = 0.25; wTimeScore = 0.05; wTextScore = 0.00;
+            wAiScore = 0.40;
+            wLocationScore = 0.30;
+            wEventScore = 0.25;
+            wTimeScore = 0.05;
+            wTextScore = 0.00;
         }
 
         double finalScore = (aiScore * wAiScore) + (textScore * wTextScore) + (eventScore * wEventScore) + (finalLocationScore * wLocationScore) + (timeScore * wTimeScore);

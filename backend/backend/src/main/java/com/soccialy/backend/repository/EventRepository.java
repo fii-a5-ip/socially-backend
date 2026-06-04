@@ -38,7 +38,7 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
             "LEFT JOIN event_filters f ON e.id = f.event_id " +
             "WHERE e.date >= :now " +
             "GROUP BY e.id " +
-            "ORDER BY MAX(e.name REGEXP :regex OR e.`desc` REGEXP :regex OR f.filter_id IN (:filters)) DESC, e.date ASC " +
+            "ORDER BY MAX(e.name REGEXP :regex OR e.`desc` REGEXP :regex) DESC, MAX(f.filter_id IN (:filters)) DESC, e.date ASC " +
             "LIMIT 100",
             nativeQuery = true)
     List<Event> searchByRegexOrFilters(
