@@ -189,6 +189,7 @@ public class GroupService {
                                 .build();
         }
 
+        @Transactional
         public void leaveGroup(Integer groupId, Integer userId) {
                 Group group = groupRepository.findById(groupId)
                                 .orElseThrow(() -> new RuntimeException("Group not found"));
