@@ -298,7 +298,7 @@ public class EventService {
             candidates = votedEventIds.isEmpty() ? eventRepository.findUpcomingEventsForDiscovery(timeOfSearch) : eventRepository.findUnvotedUpcomingEvents(timeOfSearch, votedEventIds);
         }
 
-        return processAndSortCandidates(candidates, userId, userFilters, uiFilters, aiFilters, timeOfSearch, fields, votedEventIds, safeSearchString, false);
+        return processAndSortCandidates(candidates, userId, userFilters, uiFilters, aiFilters, timeOfSearch, fields, votedEventIds, safeSearchString, false, 20);
     }
 
     public List<EventResponseDTO> discoverEvents(Integer userId, EventDiscoverFieldsDTO fields) {
@@ -322,10 +322,10 @@ public class EventService {
         // Excludem evenimentele create de userul curent doar din fluxul de recomandari
         candidates.removeIf(event -> event.getCreator() != null && event.getCreator().getId().equals(userId));
 
-        return processAndSortCandidates(candidates, userId, userFilters, uiFilters, aiFilters, timeOfSearch, fields, votedEventIds, "", true);
+        return processAndSortCandidates(candidates, userId, userFilters, uiFilters, aiFilters, timeOfSearch, fields, votedEventIds, "", true, 10);
     }
 
-    private List<EventResponseDTO> processAndSortCandidates(List<Event> candidates, Integer userId, List<Integer> userFilters, List<Integer> uiFilters, List<Integer> aiFilters, LocalDateTime timeOfSearch, EventDiscoverFieldsDTO fields, List<Integer> votedEventIds, String searchString, boolean excludeVoted) {
+    private List<EventResponseDTO> processAndSortCandidates(List<Event> candidates, Integer userId, List<Integer> userFilters, List<Integer> uiFilters, List<Integer> aiFilters, LocalDateTime timeOfSearch, EventDiscoverFieldsDTO fields, List<Integer> votedEventIds, String searchString, boolean excludeVoted, int limit) {
         Double actualMaxDistance = (fields.getMaxDistance() != null) ? fields.getMaxDistance() : 20000.0;
         Integer actualMaxDays = (fields.getMaxDays() != null) ? fields.getMaxDays() : 3650;
         boolean hasUserLocation = (fields.getLat() != null && fields.getLng() != null);
@@ -385,7 +385,7 @@ public class EventService {
 
         int offset = (fields.getOffset() != null) ? fields.getOffset() : 0;
 
-        return candidates.stream().skip(offset).limit(5).map(event -> {
+        return candidates.stream().skip(offset).limit(limit).map(event -> {
             EventResponseDTO dto = toResponseDTOWithRegistration(event, userId);
             if (event.getLocation() != null && context.distancesMap().containsKey(event.getLocation().getId())) {
                 dto.setDistance(context.distancesMap().get(event.getLocation().getId()));
